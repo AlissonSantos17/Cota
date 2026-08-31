@@ -1,14 +1,14 @@
 import Foundation
 
-struct Cotacao: Identifiable, Decodable {
-    let code: String
-    let codein: String
-    let name: String
-    let bid: Decimal
-    let pctChange: Decimal
-    let createDate: String
+public struct Quote: Identifiable, Decodable {
+    public let code: String
+    public let codein: String
+    public let name: String
+    public let bid: Decimal
+    public let pctChange: Decimal
+    public let createDate: String
 
-    var id: String {
+    public var id: String {
         "\(code)-\(codein)"
     }
 
@@ -21,7 +21,7 @@ struct Cotacao: Identifiable, Decodable {
         case createDate = "create_date"
     }
 
-    init(from decoder: Decoder) throws {
+    public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         code = try container.decode(String.self, forKey: .code)
@@ -33,11 +33,11 @@ struct Cotacao: Identifiable, Decodable {
         let pctChangeString = try container.decode(String.self, forKey: .pctChange)
 
         guard let bid = Decimal(string: bidString) else {
-            throw CotacaoError.invalidValue("bid")
+            throw QuoteError.invalidValue("bid")
         }
 
         guard let pctChange = Decimal(string: pctChangeString) else {
-            throw CotacaoError.invalidValue("pctChange")
+            throw QuoteError.invalidValue("pctChange")
         }
 
         self.bid = bid

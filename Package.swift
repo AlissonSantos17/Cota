@@ -13,8 +13,16 @@ let package = Package(
         )
     ],
     targets: [
+        .target(
+            name: "CotaKit"
+        ),
         .executableTarget(
-            name: "Cota"
+            name: "Cota",
+            dependencies: ["CotaKit"]
+        ),
+        .testTarget(
+            name: "CotaKitTests",
+            dependencies: ["CotaKit"]
         )
     ]
 )
