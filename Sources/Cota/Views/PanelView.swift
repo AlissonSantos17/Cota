@@ -23,7 +23,7 @@ struct PanelView: View {
 
             if let date = store.lastUpdate {
                 Text(
-                    "Updated at \(date.formatted(date: .omitted, time: .standard))"
+                    "Updated at \(date.formatted(.dateTime.day().month(.abbreviated).year().hour().minute()))"
                 )
                 .font(.caption2)
                 .foregroundStyle(.secondary)
@@ -146,7 +146,7 @@ private struct QuoteRow: View {
                 copied = false
             }
         }
-        .overlay(alignment: .trailing) {
+        .overlay(alignment: .topTrailing) {
             if copied {
                 Text("Copied!")
                     .font(.caption2)
@@ -154,6 +154,7 @@ private struct QuoteRow: View {
                     .padding(.vertical, 2)
                     .background(.green.opacity(0.2), in: RoundedRectangle(cornerRadius: 4))
                     .transition(.opacity)
+                    .offset(y: -14)
             }
         }
         .animation(.easeInOut(duration: 0.2), value: copied)

@@ -20,13 +20,9 @@ public final class SettingsStore: ObservableObject {
         didSet { defaults.set(refreshInterval, forKey: Keys.refreshInterval) }
     }
 
-    @Published public var launchAtLogin: Bool = false {
-        didSet { updateLaunchAtLogin() }
-    }
+    @Published public var launchAtLogin = false
 
-    @Published public var alerts: [PriceAlert] {
-        didSet { persistAlerts() }
-    }
+    @Published public var alerts: [PriceAlert] = []
 
     public static let defaultPairs = [
         "EUR-BRL", "USD-BRL", "GBP-BRL", "BTC-BRL"
@@ -40,21 +36,31 @@ public final class SettingsStore: ObservableObject {
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-
-        self.pairs = defaults.stringArray(forKey: Keys.pairs)
-            ?? Self.defaultPairs
-
+        self.pairs = defaults.stringArray(forKey: Keys.pairs) ?? Self.defaultPairs
         let stored = defaults.integer(forKey: Keys.refreshInterval)
         self.refreshInterval = stored > 0 ? stored : 300
 
         if let data = defaults.data(forKey: Keys.alerts),
            let decoded = try? JSONDecoder().decode([PriceAlert].self, from: data) {
             self.alerts = decoded
-        } else {
-            self.alerts = []
         }
+    }
 
-        self.launchAtLogin = SMAppService.mainApp.status == .enabled
+    public func loadLaunchAtLogin() {
+        launchAtLogin = SMAppService.mainApp.status == .enabled
+    }
+
+    public func setLaunchAtLogin(_ enabled: Bool) {
+        do {
+            if enabled {
+                try SMAppService.mainApp.register()
+            } else {
+                try SMAppService.mainApp.unregister()
+            }
+            launchAtLogin = enabled
+        } catch {
+            launchAtLogin = SMAppService.mainApp.status == .enabled
+        }
     }
 
     public func addPair(_ pair: String) {
@@ -68,27 +74,22 @@ public final class SettingsStore: ObservableObject {
 
     public func addAlert(_ alert: PriceAlert) {
         alerts.append(alert)
+        persistAlerts()
     }
 
     public func removeAlert(id: UUID) {
         alerts.removeAll { $0.id == id }
+        persistAlerts()
+    }
+
+    public func updateAlert(_ alert: PriceAlert) {
+        alerts = alerts.map { $0.id == alert.id ? alert : $0 }
+        persistAlerts()
     }
 
     private func persistAlerts() {
         if let data = try? JSONEncoder().encode(alerts) {
             defaults.set(data, forKey: Keys.alerts)
-        }
-    }
-
-    private func updateLaunchAtLogin() {
-        do {
-            if launchAtLogin {
-                try SMAppService.mainApp.register()
-            } else {
-                try SMAppService.mainApp.unregister()
-            }
-        } catch {
-            self.launchAtLogin = SMAppService.mainApp.status == .enabled
         }
     }
 }

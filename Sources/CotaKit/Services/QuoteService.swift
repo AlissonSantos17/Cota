@@ -2,6 +2,7 @@ import Foundation
 
 public protocol QuoteServiceProtocol {
     func fetchQuotes(pairs: [String]) async throws -> [Quote]
+    func fetchDailyBids(pair: String, days: Int) async throws -> [Decimal]
 }
 
 public enum QuoteError: LocalizedError, Equatable {
@@ -26,7 +27,8 @@ public enum QuoteError: LocalizedError, Equatable {
 
 public final class QuoteService: QuoteServiceProtocol {
     private let session: URLSession
-    private let baseURL = "https://economia.awesomeapi.com.br/json/last"
+    private let lastURL = "https://economia.awesomeapi.com.br/json/last"
+    private let dailyURL = "https://economia.awesomeapi.com.br/json/daily"
     private let maxRetries = 3
 
     public init(session: URLSession = .shared) {
@@ -38,10 +40,34 @@ public final class QuoteService: QuoteServiceProtocol {
 
         let list = pairs.joined(separator: ",")
 
-        guard let url = URL(string: "\(baseURL)/\(list)") else {
+        guard let url = URL(string: "\(lastURL)/\(list)") else {
             throw QuoteError.invalidURL
         }
 
+        let data = try await fetchData(from: url)
+        let dictionary = try JSONDecoder().decode([String: Quote].self, from: data)
+
+        return pairs.compactMap { pair in
+            let key = pair.replacingOccurrences(of: "-", with: "")
+            return dictionary[key]
+        }
+    }
+
+    public func fetchDailyBids(pair: String, days: Int) async throws -> [Decimal] {
+        guard !pair.isEmpty, days > 0 else {
+            return []
+        }
+
+        guard let url = URL(string: "\(dailyURL)/\(pair)/\(days)") else {
+            throw QuoteError.invalidURL
+        }
+
+        let data = try await fetchData(from: url)
+        let points = try JSONDecoder().decode([DailyBid].self, from: data)
+        return points.reversed().map(\.bid)
+    }
+
+    private func fetchData(from url: URL) async throws -> Data {
         var request = URLRequest(url: url)
         request.cachePolicy = .reloadIgnoringLocalCacheData
         request.timeoutInterval = 15
@@ -66,14 +92,7 @@ public final class QuoteService: QuoteServiceProtocol {
                     throw QuoteError.httpError(httpResponse.statusCode)
                 }
 
-                let dictionary = try JSONDecoder().decode(
-                    [String: Quote].self, from: data
-                )
-
-                return pairs.compactMap { pair in
-                    let key = pair.replacingOccurrences(of: "-", with: "")
-                    return dictionary[key]
-                }
+                return data
             } catch is CancellationError {
                 throw CancellationError()
             } catch {
@@ -82,5 +101,22 @@ public final class QuoteService: QuoteServiceProtocol {
         }
 
         throw lastError
+    }
+}
+
+private struct DailyBid: Decodable {
+    let bid: Decimal
+
+    enum CodingKeys: String, CodingKey {
+        case bid
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let bidString = try container.decode(String.self, forKey: .bid)
+        guard let bid = Decimal(string: bidString) else {
+            throw QuoteError.invalidValue("bid")
+        }
+        self.bid = bid
     }
 }

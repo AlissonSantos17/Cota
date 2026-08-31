@@ -91,8 +91,11 @@ struct SettingsView: View {
     }
 
     private var launchSection: some View {
-        Toggle("Launch at Login", isOn: $settings.launchAtLogin)
-            .font(.subheadline)
+        Toggle("Launch at Login", isOn: Binding(
+            get: { settings.launchAtLogin },
+            set: { settings.setLaunchAtLogin($0) }
+        ))
+        .font(.subheadline)
     }
 
     private var alertsSection: some View {
@@ -109,12 +112,9 @@ struct SettingsView: View {
                     Toggle("", isOn: Binding(
                         get: { alert.isEnabled },
                         set: { enabled in
-                            if var updated = settings.alerts.first(where: { $0.id == alert.id }) {
-                                updated.isEnabled = enabled
-                                settings.alerts = settings.alerts.map {
-                                    $0.id == alert.id ? updated : $0
-                                }
-                            }
+                            var updated = alert
+                            updated.isEnabled = enabled
+                            settings.updateAlert(updated)
                         }
                     ))
                     .labelsHidden()

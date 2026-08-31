@@ -70,14 +70,7 @@ public final class QuoteStore: ObservableObject {
             let newQuotes = try await service.fetchQuotes(pairs: settings.pairs)
             quotes = newQuotes
             lastUpdate = .now
-            for quote in quotes {
-                var history = priceHistory[quote.id, default: []]
-                history.append(quote.bid)
-                if history.count > maxHistoryPoints {
-                    history.removeFirst(history.count - maxHistoryPoints)
-                }
-                priceHistory[quote.id] = history
-            }
+            await updatePriceHistory(with: newQuotes)
             NotificationService.shared.checkAlerts(settings.alerts, against: quotes)
         } catch is CancellationError {
         } catch {
@@ -96,7 +89,40 @@ public final class QuoteStore: ObservableObject {
                 .locale(Locale(identifier: "pt_BR"))
         )
 
-        return "\(flag(first.code)) \(first.code) \(value)"
+        return "\(flag(first.code)) → \(flag(first.codein)) \(value)"
+    }
+
+    private func updatePriceHistory(with quotes: [Quote]) async {
+        let activeIDs = Set(quotes.map(\.id))
+        priceHistory = priceHistory.filter { activeIDs.contains($0.key) }
+
+        for quote in quotes {
+            if var history = priceHistory[quote.id], history.count >= 2 {
+                appendLiveBid(quote.bid, to: &history)
+                priceHistory[quote.id] = history
+                continue
+            }
+
+            let daily = (try? await service.fetchDailyBids(
+                pair: quote.id,
+                days: maxHistoryPoints
+            )) ?? []
+
+            var history = daily
+            appendLiveBid(quote.bid, to: &history)
+            priceHistory[quote.id] = history
+        }
+    }
+
+    private func appendLiveBid(_ bid: Decimal, to history: inout [Decimal]) {
+        if history.last == bid {
+            return
+        }
+
+        history.append(bid)
+        if history.count > maxHistoryPoints {
+            history.removeFirst(history.count - maxHistoryPoints)
+        }
     }
 
     public func flag(_ code: String) -> String {

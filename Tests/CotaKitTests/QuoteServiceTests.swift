@@ -65,4 +65,32 @@ struct QuoteServiceTests {
             _ = try await service.fetchQuotes(pairs: ["USD-BRL"])
         }
     }
+
+    @Test func fetchDailyBidsReturnsChronologicalBids() async throws {
+        let (service, _) = makeService()
+        let json = """
+        [
+            {"bid": "5.18", "timestamp": "3"},
+            {"bid": "5.10", "timestamp": "2"},
+            {"bid": "5.00", "timestamp": "1"}
+        ]
+        """
+
+        MockURLProtocol.requestHandler = { request in
+            let response = HTTPURLResponse(
+                url: request.url!,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: nil
+            )!
+            return (response, Data(json.utf8))
+        }
+
+        let bids = try await service.fetchDailyBids(pair: "USD-BRL", days: 15)
+        #expect(bids == [
+            Decimal(string: "5.00")!,
+            Decimal(string: "5.10")!,
+            Decimal(string: "5.18")!
+        ])
+    }
 }
