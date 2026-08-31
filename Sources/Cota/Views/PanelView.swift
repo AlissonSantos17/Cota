@@ -8,6 +8,22 @@ struct PanelView: View {
     @State private var showSettings = false
 
     var body: some View {
+        Group {
+            if showSettings {
+                SettingsView(settings: settings) {
+                    showSettings = false
+                }
+            } else {
+                quotesPanel
+            }
+        }
+        .padding(14)
+        .frame(width: 300)
+        .animation(.easeInOut(duration: 0.15), value: showSettings)
+        .background { shortcutButtons }
+    }
+
+    private var quotesPanel: some View {
         VStack(alignment: .leading, spacing: 12) {
             header
 
@@ -29,8 +45,6 @@ struct PanelView: View {
                 .foregroundStyle(.secondary)
             }
         }
-        .padding(14)
-        .frame(width: 300)
     }
 
     private var header: some View {
@@ -65,7 +79,7 @@ struct PanelView: View {
     }
 
     private var actions: some View {
-        HStack {
+        HStack(spacing: 8) {
             Button {
                 Task {
                     await store.refresh()
@@ -74,31 +88,52 @@ struct PanelView: View {
                 Label("Refresh", systemImage: "arrow.clockwise")
             }
             .accessibilityLabel("Refresh quotes")
-            .keyboardShortcut("r", modifiers: .command)
             .disabled(store.loading)
 
             Button {
-                showSettings.toggle()
+                showSettings = true
             } label: {
                 Label("Settings", systemImage: "gearshape")
             }
             .accessibilityLabel("Open settings")
-            .keyboardShortcut(",", modifiers: .command)
-            .popover(isPresented: $showSettings) {
-                SettingsView(settings: settings)
-            }
 
-            Spacer()
+            Spacer(minLength: 8)
+
+            Divider()
+                .frame(height: 12)
 
             Button {
                 NSApplication.shared.terminate(nil)
             } label: {
                 Label("Quit", systemImage: "power")
             }
+            .foregroundStyle(.secondary)
+            .buttonStyle(.plain)
             .accessibilityLabel("Quit Cota")
-            .keyboardShortcut("q", modifiers: .command)
         }
         .font(.caption)
+    }
+
+    private var shortcutButtons: some View {
+        Group {
+            Button("Refresh") {
+                Task { await store.refresh() }
+            }
+            .keyboardShortcut("r", modifiers: .command)
+
+            Button("Settings") {
+                showSettings.toggle()
+            }
+            .keyboardShortcut(",", modifiers: .command)
+
+            Button("Quit") {
+                NSApplication.shared.terminate(nil)
+            }
+            .keyboardShortcut("q", modifiers: .command)
+        }
+        .frame(width: 0, height: 0)
+        .opacity(0)
+        .accessibilityHidden(true)
     }
 }
 

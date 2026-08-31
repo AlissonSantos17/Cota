@@ -3,12 +3,11 @@ import CotaKit
 
 struct SettingsView: View {
     @ObservedObject var settings: SettingsStore
-    @Environment(\.dismiss) private var dismiss
+    var onBack: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Settings")
-                .font(.headline)
+            header
 
             pairsSection
 
@@ -23,15 +22,26 @@ struct SettingsView: View {
             Divider()
 
             alertsSection
-
-            HStack {
-                Spacer()
-                Button("Done") { dismiss() }
-                    .keyboardShortcut(.defaultAction)
-            }
         }
-        .padding(16)
-        .frame(width: 320)
+    }
+
+    private var header: some View {
+        HStack(spacing: 8) {
+            Button(action: onBack) {
+                Label("Quotes", systemImage: "chevron.left")
+                    .labelStyle(.titleAndIcon)
+            }
+            .buttonStyle(.plain)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .accessibilityLabel("Back to quotes")
+            .keyboardShortcut(.cancelAction)
+
+            Text("Settings")
+                .font(.headline)
+
+            Spacer()
+        }
     }
 
     private var pairsSection: some View {
@@ -48,11 +58,15 @@ struct SettingsView: View {
                     Button {
                         settings.removePair(pair)
                     } label: {
-                        Image(systemName: "minus.circle.fill")
-                            .foregroundStyle(.red)
+                        Image(systemName: "xmark")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                     .buttonStyle(.plain)
                     .disabled(settings.pairs.count <= 1)
+                    .opacity(settings.pairs.count <= 1 ? 0.35 : 1)
+                    .accessibilityLabel("Remove pair \(pair)")
+                    .help("Remove pair")
                 }
             }
 
@@ -65,7 +79,7 @@ struct SettingsView: View {
                         Button(pair) { settings.addPair(pair) }
                     }
                 } label: {
-                    Label("Add Pair", systemImage: "plus.circle")
+                    Label("Add Pair", systemImage: "plus")
                 }
                 .font(.caption)
             }
@@ -99,40 +113,60 @@ struct SettingsView: View {
     }
 
     private var alertsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("Price Alerts")
                 .font(.subheadline)
                 .bold()
 
-            ForEach(settings.alerts) { alert in
-                HStack {
-                    Text(alert.label)
-                        .font(.caption)
-                    Spacer()
-                    Toggle("", isOn: Binding(
-                        get: { alert.isEnabled },
-                        set: { enabled in
-                            var updated = alert
-                            updated.isEnabled = enabled
-                            settings.updateAlert(updated)
+            if settings.alerts.isEmpty {
+                Text("No alerts yet")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                VStack(spacing: 10) {
+                    ForEach(settings.alerts) { alert in
+                        HStack {
+                            Text(alert.label)
+                                .font(.caption)
+                            Spacer()
+                            Toggle("", isOn: Binding(
+                                get: { alert.isEnabled },
+                                set: { enabled in
+                                    var updated = alert
+                                    updated.isEnabled = enabled
+                                    settings.updateAlert(updated)
+                                }
+                            ))
+                            .labelsHidden()
+                            .toggleStyle(.switch)
+                            .controlSize(.mini)
+                            Button {
+                                settings.removeAlert(id: alert.id)
+                            } label: {
+                                Image(systemName: "xmark")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Remove alert \(alert.label)")
+                            .help("Remove alert")
                         }
-                    ))
-                    .labelsHidden()
-                    .toggleStyle(.switch)
-                    .controlSize(.mini)
-                    Button {
-                        settings.removeAlert(id: alert.id)
-                    } label: {
-                        Image(systemName: "minus.circle.fill")
-                            .foregroundStyle(.red)
                     }
-                    .buttonStyle(.plain)
                 }
             }
 
-            AddAlertRow(pairs: settings.pairs) { alert in
-                settings.addAlert(alert)
+            VStack(alignment: .leading, spacing: 8) {
+                Text("New alert")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                AddAlertRow(pairs: settings.pairs) { alert in
+                    settings.addAlert(alert)
+                }
             }
+            .padding(10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.quaternary.opacity(0.45), in: RoundedRectangle(cornerRadius: 8))
         }
     }
 }
@@ -173,11 +207,13 @@ private struct AddAlertRow: View {
                 onAdd(PriceAlert(pair: selectedPair, threshold: threshold, isAbove: isAbove))
                 thresholdText = ""
             } label: {
-                Image(systemName: "plus.circle.fill")
-                    .foregroundStyle(.green)
+                Image(systemName: "plus")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
             .disabled(selectedPair.isEmpty || Decimal(string: thresholdText) == nil)
+            .accessibilityLabel("Add alert")
         }
         .font(.caption)
     }
