@@ -89,6 +89,11 @@ public final class SettingsStore: ObservableObject {
         pairs.insert(item, at: min(target, pairs.count))
     }
 
+    public func swapPairs(_ i: Int, _ j: Int) {
+        guard i != j, pairs.indices.contains(i), pairs.indices.contains(j) else { return }
+        pairs.swapAt(i, j)
+    }
+
     public func addAlert(_ alert: PriceAlert) {
         alerts.append(alert)
         persistAlerts()

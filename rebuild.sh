@@ -8,5 +8,7 @@ swift build
 
 cp .build/arm64-apple-macosx/debug/Cota Cota.app/Contents/MacOS/Cota
 
+codesign --force --sign - --identifier "com.alissonfelp.Cota" Cota.app
+
 open Cota.app
 echo "Cota atualizado e iniciado."

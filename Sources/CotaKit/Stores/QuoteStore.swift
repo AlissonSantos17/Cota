@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import Combine
 
 @MainActor
 public final class QuoteStore: ObservableObject {
@@ -14,6 +15,7 @@ public final class QuoteStore: ObservableObject {
     public let settings: SettingsStore
 
     private var loop: Task<Void, Never>?
+    private var pairsObservation: AnyCancellable?
 
     public init(
         service: QuoteServiceProtocol = QuoteService(),
@@ -21,10 +23,22 @@ public final class QuoteStore: ObservableObject {
     ) {
         self.service = service
         self.settings = settings
+
+        pairsObservation = settings.$pairs
+            .dropFirst()
+            .removeDuplicates()
+            .sink { [weak self] newPairs in
+                guard let self else { return }
+                Task { @MainActor in
+                    self.quotes = self.quotes.filter { newPairs.contains($0.id) }
+                    await self.refresh()
+                }
+            }
     }
 
     deinit {
         loop?.cancel()
+        pairsObservation?.cancel()
     }
 
     public func start() {

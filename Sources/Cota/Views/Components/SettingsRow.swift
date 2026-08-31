@@ -2,11 +2,11 @@ import SwiftUI
 
 enum SettingsLayout {
     static let horizontalPadding: CGFloat = 16
-    static let sectionSpacing: CGFloat = 16
-    static let headerToContentSpacing: CGFloat = 8
-    static let rowHeight: CGFloat = 34
-    static let trailingSlotWidth: CGFloat = 20
-    static let leadingSlotWidth: CGFloat = 16
+    static let sectionSpacing: CGFloat = 12
+    static let headerToContentSpacing: CGFloat = 6
+    static let rowHeight: CGFloat = 26
+    static let trailingSlotWidth: CGFloat = 18
+    static let leadingSlotWidth: CGFloat = 14
     static let hairline: CGFloat = 0.5
 }
 
@@ -43,17 +43,16 @@ struct SettingsRow<Leading: View, Center: View, Trailing: View>: View {
 struct RowSeparator: View {
     var body: some View {
         Rectangle()
-            .fill(Color(nsColor: .separatorColor))
-            .frame(height: SettingsLayout.hairline)
-            .padding(.leading, SettingsLayout.horizontalPadding + SettingsLayout.leadingSlotWidth + 8)
-            .padding(.trailing, SettingsLayout.horizontalPadding)
+            .fill(Color.primary.opacity(0.12))
+            .frame(height: 1)
+            .padding(.horizontal, SettingsLayout.horizontalPadding)
     }
 }
 
 struct SectionSeparator: View {
     var body: some View {
         Rectangle()
-            .fill(Color(nsColor: .separatorColor))
-            .frame(height: SettingsLayout.hairline)
+            .fill(Color.primary.opacity(0.16))
+            .frame(height: 1)
     }
 }
