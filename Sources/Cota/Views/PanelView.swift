@@ -18,7 +18,7 @@ struct PanelView: View {
                     .padding(14)
             }
         }
-        .frame(width: 320)
+        .frame(width: 360)
         .animation(.easeInOut(duration: 0.15), value: showSettings)
         .background { shortcutButtons }
     }

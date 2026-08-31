@@ -13,7 +13,7 @@ struct SettingsView: View {
 
             SectionSeparator()
 
-            ScrollView {
+            ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 0) {
                     section {
                         SectionHeader(title: "Currency pairs")
@@ -53,8 +53,11 @@ struct SettingsView: View {
                         generalContent
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
+        .frame(width: 360)
+        .frame(maxHeight: 520)
     }
 
     @ViewBuilder
@@ -348,10 +351,10 @@ private struct PairDropDelegate: DropDelegate {
 // MARK: - Alerts
 
 private enum AlertColumns {
-    static let pair: CGFloat = 82
-    static let condition: CGFloat = 72
-    static let value: CGFloat = 72
-    static let toggle: CGFloat = 40
+    static let pair: CGFloat = 78
+    static let condition: CGFloat = 56
+    static let value: CGFloat = 68
+    static let toggle: CGFloat = 44
 }
 
 private struct AlertRow: View {
