@@ -10,15 +10,15 @@ struct PanelView: View {
     var body: some View {
         Group {
             if showSettings {
-                SettingsView(settings: settings) {
+                SettingsView(settings: settings, store: store) {
                     showSettings = false
                 }
             } else {
                 quotesPanel
+                    .padding(14)
             }
         }
-        .padding(14)
-        .frame(width: 300)
+        .frame(width: 320)
         .animation(.easeInOut(duration: 0.15), value: showSettings)
         .background { shortcutButtons }
     }

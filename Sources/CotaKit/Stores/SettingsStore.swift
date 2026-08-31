@@ -72,6 +72,23 @@ public final class SettingsStore: ObservableObject {
         pairs.removeAll { $0 == pair }
     }
 
+    public func movePair(fromOffsets source: IndexSet, toOffset destination: Int) {
+        pairs.move(fromOffsets: source, toOffset: destination)
+    }
+
+    public func movePair(from source: Int, to destination: Int) {
+        guard source != destination,
+              pairs.indices.contains(source),
+              destination >= 0,
+              destination <= pairs.count else {
+            return
+        }
+
+        let item = pairs.remove(at: source)
+        let target = destination > source ? destination - 1 : destination
+        pairs.insert(item, at: min(target, pairs.count))
+    }
+
     public func addAlert(_ alert: PriceAlert) {
         alerts.append(alert)
         persistAlerts()
