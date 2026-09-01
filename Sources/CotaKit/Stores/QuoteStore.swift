@@ -15,12 +15,12 @@ public final class QuoteStore: ObservableObject {
     /// Daily closes per pair, oldest first.
     @Published public private(set) var priceHistory: [String: [Decimal]] = [:]
 
-    /// Bids collected during this session, used for the 24h window — the API
-    /// only exposes daily closes, so two points would draw a straight line.
+    /// Recent ticks for the 24h window: seeded from the intraday endpoint on
+    /// first load, then extended with each live bid.
     @Published public private(set) var intradayBids: [String: [Decimal]] = [:]
 
     private let maxHistoryPoints = 30
-    private let maxIntradayPoints = 60
+    private let maxIntradayPoints = 200
     private let service: QuoteServiceProtocol
     public let settings: SettingsStore
 
@@ -130,14 +130,21 @@ public final class QuoteStore: ObservableObject {
         intradayBids = intradayBids.filter { activeIDs.contains($0.key) }
 
         for quote in quotes {
-            appendIntradayBid(quote.bid, to: quote.id)
-
             if priceHistory[quote.id] == nil {
                 priceHistory[quote.id] = (try? await service.fetchDailyBids(
                     pair: quote.id,
                     days: maxHistoryPoints
                 )) ?? []
             }
+
+            if intradayBids[quote.id] == nil {
+                intradayBids[quote.id] = (try? await service.fetchIntradayBids(
+                    pair: quote.id,
+                    points: QuoteService.maxIntradayPoints
+                )) ?? []
+            }
+
+            appendIntradayBid(quote.bid, to: quote.id)
         }
     }
 
