@@ -15,6 +15,11 @@ public final class QuoteStore: ObservableObject {
     /// Daily closes per pair, oldest first.
     @Published public private(set) var priceHistory: [String: [Decimal]] = [:]
 
+    /// Whether the last fetch is old enough to present as stale. Recomputed on
+    /// a tick because it is a function of elapsed time: nothing else
+    /// republishes while a refresh keeps failing.
+    @Published public private(set) var stale = false
+
     /// Recent ticks for the 24h window: seeded from the intraday endpoint on
     /// first load, then extended with each live bid.
     @Published public private(set) var intradayBids: [String: [Decimal]] = [:]
@@ -25,6 +30,7 @@ public final class QuoteStore: ObservableObject {
     public let settings: SettingsStore
 
     private var loop: Task<Void, Never>?
+    private var staleLoop: Task<Void, Never>?
     private var pairsObservation: AnyCancellable?
 
     public init(
@@ -48,6 +54,7 @@ public final class QuoteStore: ObservableObject {
 
     deinit {
         loop?.cancel()
+        staleLoop?.cancel()
         pairsObservation?.cancel()
     }
 
@@ -71,6 +78,26 @@ public final class QuoteStore: ObservableObject {
                 }
             }
         }
+
+        staleLoop = Task { [weak self] in
+            while !Task.isCancelled {
+                do {
+                    try await Task.sleep(for: .seconds(15))
+                } catch {
+                    break
+                }
+
+                guard let self else { return }
+                self.refreshStaleness()
+            }
+        }
+    }
+
+    private func refreshStaleness() {
+        let current = isStale()
+        if current != stale {
+            stale = current
+        }
     }
 
     /// A quote older than three refresh cycles is presented as stale: one that
@@ -83,6 +110,8 @@ public final class QuoteStore: ObservableObject {
     public func stop() {
         loop?.cancel()
         loop = nil
+        staleLoop?.cancel()
+        staleLoop = nil
     }
 
     public func refresh() async {
@@ -102,6 +131,7 @@ public final class QuoteStore: ObservableObject {
             quotes = newQuotes
             lastUpdate = .now
             hasLoaded = true
+            stale = false
             await updatePriceHistory(with: newQuotes)
             NotificationService.shared.checkAlerts(settings.alerts, against: quotes)
         } catch is CancellationError {

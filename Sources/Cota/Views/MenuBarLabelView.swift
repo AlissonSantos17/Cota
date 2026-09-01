@@ -10,9 +10,15 @@ import CotaKit
 /// figures. So the label is composed as an attributed string and handed over as
 /// an image.
 ///
+/// The body is one `Image` and nothing else. A menu bar label accepts a narrow
+/// set of views, and wrapping it — in a `TimelineView`, to notice staleness on
+/// a tick — produced a status item that drew nothing at all. Elapsed time is
+/// watched by the store instead, which is where the rest of the panel already
+/// reads it from.
+///
 /// Being an image rather than a template, it carries its own colours and does
-/// not follow the menu bar automatically — `colorScheme` is read here so that a
-/// change of appearance re-enters `body` and redraws it.
+/// not follow the menu bar automatically, so `colorScheme` is read here to
+/// redraw on a change of appearance.
 struct MenuBarLabelView: View {
     @ObservedObject var store: QuoteStore
     @ObservedObject var settings: SettingsStore
@@ -20,39 +26,38 @@ struct MenuBarLabelView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        // Staleness is a function of elapsed time. Nothing republishes while a
-        // refresh keeps failing, so the label re-evaluates on a tick of its own.
-        TimelineView(.periodic(from: .now, by: 15)) { context in
-            let segments = MenuBarLabel.segments(
-                for: store.menuBarQuotes,
-                format: settings.menuBarFormat,
-                indicator: settings.menuBarIndicator
-            )
+        Image(nsImage: MenuBarLabelImage.render(segments, dimmed: isDimmed))
+    }
 
-            if segments.isEmpty {
-                Text("Cota")
-            } else {
-                Image(nsImage: MenuBarLabelImage.render(
-                    segments,
-                    dimmed: isDimmed(now: context.date)
-                ))
-            }
-        }
+    private var segments: [LabelSegment] {
+        MenuBarLabel.segments(
+            for: store.menuBarQuotes,
+            format: settings.menuBarFormat,
+            indicator: settings.menuBarIndicator
+        )
     }
 
     /// A quote an hour old wearing a normal face is worse than no quote. The
     /// toggle governs the menu bar only: the panel always marks stale data,
     /// because there is room there to explain it.
-    private func isDimmed(now: Date) -> Bool {
-        settings.dimWhenStale && (store.isStale(at: now) || store.error != nil)
+    private var isDimmed: Bool {
+        settings.dimWhenStale && (store.stale || store.error != nil)
     }
 }
 
 enum MenuBarLabelImage {
+    /// Shown before the first fetch lands, and whenever no pair is selected. An
+    /// empty label would leave an invisible status item with nothing to click.
+    static let placeholder = "Cota"
+
     static func render(_ segments: [LabelSegment], dimmed: Bool) -> NSImage {
-        let text = attributedString(segments, dimmed: dimmed)
+        let resolved = segments.isEmpty
+            ? [LabelSegment(placeholder, .value)]
+            : segments
+
+        let text = attributedString(resolved, dimmed: dimmed)
         let size = text.size()
-        let bounds = NSSize(width: ceil(size.width), height: ceil(size.height))
+        let bounds = NSSize(width: max(1, ceil(size.width)), height: max(1, ceil(size.height)))
 
         // Drawn through a handler rather than lockFocus: the handler runs once
         // per scale factor, so the label stays sharp on a retina display.
@@ -61,7 +66,7 @@ enum MenuBarLabelImage {
             return true
         }
 
-        image.accessibilityDescription = segments.map(\.text).joined()
+        image.accessibilityDescription = resolved.map(\.text).joined()
         return image
     }
 
