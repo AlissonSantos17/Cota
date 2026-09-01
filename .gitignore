@@ -7,3 +7,4 @@ DerivedData/
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 .netrc
 Cota.app/Contents/MacOS/Cota
+Cota.app/Contents/_CodeSignature/

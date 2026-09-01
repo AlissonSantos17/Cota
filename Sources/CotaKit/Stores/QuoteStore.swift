@@ -8,9 +8,15 @@ public final class QuoteStore: ObservableObject {
     @Published public private(set) var error: String?
     @Published public private(set) var loading = false
     @Published public private(set) var lastUpdate: Date?
+    /// Daily closes per pair, oldest first.
     @Published public private(set) var priceHistory: [String: [Decimal]] = [:]
 
-    private let maxHistoryPoints = 20
+    /// Bids collected during this session, used for the 24h window — the API
+    /// only exposes daily closes, so two points would draw a straight line.
+    @Published public private(set) var intradayBids: [String: [Decimal]] = [:]
+
+    private let maxHistoryPoints = 30
+    private let maxIntradayPoints = 60
     private let service: QuoteServiceProtocol
     public let settings: SettingsStore
 
@@ -109,33 +115,99 @@ public final class QuoteStore: ObservableObject {
     private func updatePriceHistory(with quotes: [Quote]) async {
         let activeIDs = Set(quotes.map(\.id))
         priceHistory = priceHistory.filter { activeIDs.contains($0.key) }
+        intradayBids = intradayBids.filter { activeIDs.contains($0.key) }
 
         for quote in quotes {
-            if var history = priceHistory[quote.id], history.count >= 2 {
-                appendLiveBid(quote.bid, to: &history)
-                priceHistory[quote.id] = history
-                continue
+            appendIntradayBid(quote.bid, to: quote.id)
+
+            if priceHistory[quote.id] == nil {
+                priceHistory[quote.id] = (try? await service.fetchDailyBids(
+                    pair: quote.id,
+                    days: maxHistoryPoints
+                )) ?? []
             }
-
-            let daily = (try? await service.fetchDailyBids(
-                pair: quote.id,
-                days: maxHistoryPoints
-            )) ?? []
-
-            var history = daily
-            appendLiveBid(quote.bid, to: &history)
-            priceHistory[quote.id] = history
         }
     }
 
-    private func appendLiveBid(_ bid: Decimal, to history: inout [Decimal]) {
-        if history.last == bid {
+    private func appendIntradayBid(_ bid: Decimal, to pairID: String) {
+        var bids = intradayBids[pairID, default: []]
+
+        if bids.last == bid {
             return
         }
 
-        history.append(bid)
-        if history.count > maxHistoryPoints {
-            history.removeFirst(history.count - maxHistoryPoints)
+        bids.append(bid)
+        if bids.count > maxIntradayPoints {
+            bids.removeFirst(bids.count - maxIntradayPoints)
+        }
+
+        intradayBids[pairID] = bids
+    }
+
+    // MARK: - Period derived values
+
+    /// The series a sparkline should draw for the given window.
+    ///
+    /// The 24h window is the previous daily close followed by the bids seen in
+    /// this session; the longer windows are daily closes with the live bid
+    /// appended as the current point.
+    public func series(for pairID: String, period: QuotePeriod) -> [Decimal] {
+        let daily = priceHistory[pairID] ?? []
+        let intraday = intradayBids[pairID] ?? []
+
+        switch period {
+        case .day:
+            guard let previousClose = daily.dropLast().last else {
+                return intraday
+            }
+            return [previousClose] + intraday
+
+        case .week, .month:
+            var series = Array(daily.suffix(period.days))
+            if let live = intraday.last, series.last != live {
+                series.append(live)
+            }
+            return series
+        }
+    }
+
+    /// Percentage change across the window, measured from its opening value.
+    public func change(for pairID: String, period: QuotePeriod) -> Decimal? {
+        let series = series(for: pairID, period: period)
+
+        guard let open = series.first, let last = series.last, open != 0 else {
+            return nil
+        }
+
+        return (last - open) / open * 100
+    }
+
+    /// Lowest and highest bid within the window.
+    public func range(for pairID: String, period: QuotePeriod) -> (low: Decimal, high: Decimal)? {
+        let series = series(for: pairID, period: period)
+
+        guard let low = series.min(), let high = series.max() else {
+            return nil
+        }
+
+        return (low, high)
+    }
+
+    /// Currency glyph for the row badge. Flag emoji render differently across
+    /// macOS versions and mix optical sizes with the text symbols used for
+    /// crypto, so the panel uses one typographic set instead.
+    public func symbol(_ code: String) -> String {
+        switch code {
+        case "EUR": return "\u{20AC}"
+        case "USD", "CAD", "AUD", "ARS": return "$"
+        case "GBP": return "\u{A3}"
+        case "BRL": return "R$"
+        case "JPY", "CNY": return "\u{A5}"
+        case "CHF": return "\u{20A3}"
+        case "BTC": return "\u{20BF}"
+        case "ETH": return "\u{39E}"
+        case "XRP": return "\u{2715}"
+        default: return String(code.prefix(1))
         }
     }
 

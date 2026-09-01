@@ -13,6 +13,8 @@ enum Layout {
     static let quoteRowHeight: CGFloat = 48
     static let leadingSlotWidth: CGFloat = 14
     static let trailingSlotWidth: CGFloat = 18
+    static let badgeSize: CGFloat = 24
+    static let valueColumnWidth: CGFloat = 84
     static let columnSpacing: CGFloat = 8
     static let hairline: CGFloat = 0.5
 }
@@ -24,17 +26,23 @@ enum Layout {
 /// content, so accessories land on the same x across every list.
 struct ListRow<Leading: View, Center: View, Trailing: View>: View {
     let height: CGFloat
+    let leadingWidth: CGFloat
+    let trailingWidth: CGFloat
     let leading: Leading
     let center: Center
     let trailing: Trailing
 
     init(
         height: CGFloat = Layout.rowHeight,
+        leadingWidth: CGFloat = Layout.leadingSlotWidth,
+        trailingWidth: CGFloat = Layout.trailingSlotWidth,
         @ViewBuilder leading: () -> Leading = { EmptyView() },
         @ViewBuilder center: () -> Center,
         @ViewBuilder trailing: () -> Trailing = { EmptyView() }
     ) {
         self.height = height
+        self.leadingWidth = leadingWidth
+        self.trailingWidth = trailingWidth
         self.leading = leading()
         self.center = center()
         self.trailing = trailing()
@@ -43,13 +51,13 @@ struct ListRow<Leading: View, Center: View, Trailing: View>: View {
     var body: some View {
         HStack(spacing: Layout.columnSpacing) {
             leading
-                .frame(width: Layout.leadingSlotWidth, alignment: .center)
+                .frame(width: leadingWidth, alignment: .center)
 
             center
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             trailing
-                .frame(width: Layout.trailingSlotWidth, alignment: .trailing)
+                .frame(width: trailingWidth, alignment: .trailing)
         }
         .frame(height: height)
     }
