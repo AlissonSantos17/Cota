@@ -23,21 +23,39 @@ struct PanelView: View {
     }
 
     private var quotesPanel: some View {
-        VStack(spacing: 0) {
-            header
+        // Staleness is a function of elapsed time, so the panel re-evaluates on
+        // a tick rather than only when the store publishes.
+        TimelineView(.periodic(from: .now, by: 15)) { context in
+            VStack(spacing: 0) {
+                header
 
-            SectionSeparator()
+                SectionSeparator()
 
-            if let error = store.error {
-                errorView(error)
+                content(now: context.date)
+
+                SectionSeparator()
+
+                footer(now: context.date)
             }
-
-            quotes
-
-            SectionSeparator()
-
-            footer
         }
+    }
+
+    @ViewBuilder
+    private func content(now: Date) -> some View {
+        if settings.pairs.isEmpty {
+            emptyState
+        } else if !store.hasLoaded {
+            skeleton
+        } else {
+            quotes
+                .opacity(isDegraded(now: now) ? 0.5 : 1)
+        }
+    }
+
+    /// Values are kept on screen when a refresh fails or goes stale — dimmed,
+    /// never removed. Vanishing data is a worse answer than old data.
+    private func isDegraded(now: Date) -> Bool {
+        store.error != nil || store.isStale(at: now)
     }
 
     private var header: some View {
@@ -65,16 +83,6 @@ struct PanelView: View {
         .frame(height: 44)
     }
 
-    private func errorView(_ error: String) -> some View {
-        Text("Update error: \(error)")
-            .font(.system(size: 11))
-            .foregroundStyle(.red)
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, Layout.horizontalPadding)
-            .padding(.vertical, 8)
-    }
-
     private var quotes: some View {
         ForEach(Array(store.quotes.enumerated()), id: \.element.id) { index, quote in
             QuoteRow(
@@ -91,9 +99,9 @@ struct PanelView: View {
         }
     }
 
-    private var footer: some View {
+    private func footer(now: Date) -> some View {
         HStack(spacing: 12) {
-            timestamp
+            status(now: now)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             FooterButton(icon: "arrow.clockwise", help: "Refresh quotes") {
@@ -115,13 +123,51 @@ struct PanelView: View {
 
     /// Relative rather than absolute: the question a stale panel raises is
     /// "how old is this?", not "what day is it?".
-    @ViewBuilder
-    private var timestamp: some View {
-        if let date = store.lastUpdate {
-            TimelineView(.periodic(from: .now, by: 30)) { _ in
+    private func status(now: Date) -> some View {
+        let degraded = isDegraded(now: now)
+
+        return HStack(spacing: 4) {
+            if degraded {
+                Image(systemName: "exclamationmark.triangle")
+                    .font(.system(size: 10))
+            }
+
+            if store.error != nil {
+                Text("Couldn't update")
+            } else if let date = store.lastUpdate {
                 Text("Updated \(date.formatted(.relative(presentation: .numeric).locale(Locale(identifier: "en_US"))))")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
+            }
+        }
+        .font(.system(size: 11))
+        .foregroundStyle(degraded ? AnyShapeStyle(.orange) : AnyShapeStyle(.secondary))
+        .help(store.error ?? "")
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 8) {
+            Text("No currency pairs")
+                .font(.system(size: 13, weight: .medium))
+
+            Text("Pick the pairs you want to follow.")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+
+            Button("Open settings") {
+                showSettings = true
+            }
+            .controlSize(.small)
+            .padding(.top, 2)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 28)
+    }
+
+    private var skeleton: some View {
+        ForEach(Array(settings.pairs.enumerated()), id: \.element) { index, _ in
+            SkeletonRow()
+
+            if index < settings.pairs.count - 1 {
+                RowSeparator()
             }
         }
     }
@@ -146,6 +192,38 @@ struct PanelView: View {
         .frame(width: 0, height: 0)
         .opacity(0)
         .accessibilityHidden(true)
+    }
+}
+
+private struct SkeletonRow: View {
+    var body: some View {
+        ListRow(
+            height: Layout.quoteRowHeight,
+            leadingWidth: Layout.badgeSize,
+            trailingWidth: Layout.valueColumnWidth
+        ) {
+            Circle()
+                .fill(Color(nsColor: .quaternaryLabelColor))
+                .frame(width: Layout.badgeSize, height: Layout.badgeSize)
+        } center: {
+            VStack(alignment: .leading, spacing: 4) {
+                bar(width: 64, height: 10)
+                bar(width: 48, height: 8)
+            }
+        } trailing: {
+            VStack(alignment: .trailing, spacing: 4) {
+                bar(width: 60, height: 10)
+                bar(width: 40, height: 8)
+            }
+        }
+        .padding(.horizontal, Layout.horizontalPadding)
+        .accessibilityLabel("Loading quote")
+    }
+
+    private func bar(width: CGFloat, height: CGFloat) -> some View {
+        RoundedRectangle(cornerRadius: 3)
+            .fill(Color(nsColor: .quaternaryLabelColor))
+            .frame(width: width, height: height)
     }
 }
 

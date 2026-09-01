@@ -8,6 +8,10 @@ public final class QuoteStore: ObservableObject {
     @Published public private(set) var error: String?
     @Published public private(set) var loading = false
     @Published public private(set) var lastUpdate: Date?
+
+    /// Whether a fetch has ever succeeded. Drives the skeleton on first load,
+    /// which is not the same state as "loading with values already on screen".
+    @Published public private(set) var hasLoaded = false
     /// Daily closes per pair, oldest first.
     @Published public private(set) var priceHistory: [String: [Decimal]] = [:]
 
@@ -69,6 +73,13 @@ public final class QuoteStore: ObservableObject {
         }
     }
 
+    /// A quote older than three refresh cycles is presented as stale: one that
+    /// looks fresh at 40 minutes is worse than no quote at all.
+    public func isStale(at date: Date = .now) -> Bool {
+        guard let lastUpdate else { return false }
+        return date.timeIntervalSince(lastUpdate) > Double(settings.refreshInterval) * 3
+    }
+
     public func stop() {
         loop?.cancel()
         loop = nil
@@ -90,6 +101,7 @@ public final class QuoteStore: ObservableObject {
             let newQuotes = try await service.fetchQuotes(pairs: settings.pairs)
             quotes = newQuotes
             lastUpdate = .now
+            hasLoaded = true
             await updatePriceHistory(with: newQuotes)
             NotificationService.shared.checkAlerts(settings.alerts, against: quotes)
         } catch is CancellationError {
