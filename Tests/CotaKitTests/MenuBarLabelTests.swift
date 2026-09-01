@@ -217,6 +217,38 @@ struct MenuBarLabelTests {
         #expect(text(segments) == "6,02")
     }
 
+    // MARK: - Examples beside each option
+
+    /// The example has to be judged against the whole selection, not against
+    /// the one pair it shows: EUR alone has a unique symbol, but not once USD
+    /// and CAD are in the list forcing every pair to its code.
+    @Test func examplesReflectTheCollisionsOfTheWholeSelection() {
+        let eur = quote("EUR-BRL", "6.02")
+
+        #expect(
+            text(MenuBarLabel.exampleSegments(for: eur, format: .auto, among: ["EUR"]))
+                == "€ 6,02"
+        )
+        #expect(
+            text(MenuBarLabel.exampleSegments(
+                for: eur,
+                format: .auto,
+                among: ["EUR", "USD", "CAD"]
+            )) == "EUR 6,02"
+        )
+    }
+
+    /// "Value only" still shows what it would do while it is disabled — that is
+    /// what makes the explanation next to it legible.
+    @Test func theValueOnlyExampleSurvivesBeingDisabled() {
+        let eur = quote("EUR-BRL", "6.02")
+
+        #expect(
+            text(MenuBarLabel.exampleSegments(for: eur, format: .value, among: ["EUR", "USD"]))
+                == "6,02"
+        )
+    }
+
     // MARK: - Numbers
 
     @Test func largeValuesAreAbbreviated() {

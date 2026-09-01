@@ -103,6 +103,24 @@ public enum MenuBarLabel {
         return segments
     }
 
+    /// One pair rendered the way a given format would render it, judged against
+    /// the collisions of the whole selection rather than of that pair alone.
+    ///
+    /// `effectiveFormat` is deliberately not applied: the example beside "Value
+    /// only" has to show what the option would do, including while it is
+    /// disabled and explaining why.
+    public static func exampleSegments(
+        for quote: MenuBarQuote,
+        format: MenuBarFormat,
+        among codes: [String]
+    ) -> [LabelSegment] {
+        let useCodes = format == .code
+            || (format == .auto && firstCollision(among: codes) != nil)
+
+        return lead(for: quote, format: format, useCodes: useCodes)
+            + [LabelSegment(formattedValue(quote.bid), .value)]
+    }
+
     private static func lead(
         for quote: MenuBarQuote,
         format: MenuBarFormat,

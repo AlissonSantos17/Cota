@@ -20,6 +20,10 @@ struct SettingsView: View {
 
             SectionSeparator()
 
+            MenuBarSettingsSection(settings: settings, store: store)
+
+            SectionSeparator()
+
             section {
                 SectionHeader(title: "Refresh interval")
 
