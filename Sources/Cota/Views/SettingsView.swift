@@ -14,8 +14,6 @@ struct SettingsView: View {
 
             section {
                 SectionHeader(title: "Currency pairs")
-                    .padding(.horizontal, SettingsLayout.horizontalPadding)
-                    .padding(.bottom, SettingsLayout.headerToContentSpacing)
 
                 pairsList
             }
@@ -24,8 +22,6 @@ struct SettingsView: View {
 
             section {
                 SectionHeader(title: "Refresh interval")
-                    .padding(.horizontal, SettingsLayout.horizontalPadding)
-                    .padding(.bottom, SettingsLayout.headerToContentSpacing)
 
                 intervalContent
             }
@@ -34,8 +30,6 @@ struct SettingsView: View {
 
             section {
                 SectionHeader(title: "Price alerts")
-                    .padding(.horizontal, SettingsLayout.horizontalPadding)
-                    .padding(.bottom, SettingsLayout.headerToContentSpacing)
 
                 alertsContent
             }
@@ -44,8 +38,6 @@ struct SettingsView: View {
 
             section {
                 SectionHeader(title: "General")
-                    .padding(.horizontal, SettingsLayout.horizontalPadding)
-                    .padding(.bottom, SettingsLayout.headerToContentSpacing)
 
                 generalContent
             }
@@ -59,7 +51,7 @@ struct SettingsView: View {
         VStack(spacing: 0) {
             content()
         }
-        .padding(.vertical, SettingsLayout.sectionSpacing)
+        .padding(.vertical, Layout.sectionSpacing)
     }
 
     private var header: some View {
@@ -68,7 +60,7 @@ struct SettingsView: View {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(.secondary)
-                    .frame(width: SettingsLayout.leadingSlotWidth, height: SettingsLayout.rowHeight, alignment: .center)
+                    .frame(width: Layout.leadingSlotWidth, height: Layout.rowHeight, alignment: .center)
             }
             .buttonStyle(.plain)
             .keyboardShortcut(.cancelAction)
@@ -79,9 +71,9 @@ struct SettingsView: View {
                 .frame(maxWidth: .infinity, alignment: .center)
 
             Color.clear
-                .frame(width: SettingsLayout.leadingSlotWidth, height: SettingsLayout.rowHeight)
+                .frame(width: Layout.leadingSlotWidth, height: Layout.rowHeight)
         }
-        .padding(.horizontal, SettingsLayout.horizontalPadding)
+        .padding(.horizontal, Layout.horizontalPadding)
         .frame(height: 34)
     }
 
@@ -101,7 +93,7 @@ struct SettingsView: View {
                     onMoveDown: index < settings.pairs.count - 1 ? { settings.swapPairs(index, index + 1) } : nil,
                     onRemove: { settings.removePair(pair) }
                 )
-                .padding(.horizontal, SettingsLayout.horizontalPadding)
+                .padding(.horizontal, Layout.horizontalPadding)
                 .contentShape(Rectangle())
                 .draggable(pair) {
                     Text(pair)
@@ -172,12 +164,12 @@ struct SettingsView: View {
             .font(.system(size: 12, weight: .medium))
             .labelStyle(.titleAndIcon)
             .frame(maxWidth: .infinity, alignment: .center)
-            .frame(height: SettingsLayout.rowHeight)
+            .frame(height: Layout.rowHeight)
             .contentShape(Rectangle())
         }
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
-        .padding(.horizontal, SettingsLayout.horizontalPadding)
+        .padding(.horizontal, Layout.horizontalPadding)
     }
 
     // MARK: - Refresh interval
@@ -209,7 +201,7 @@ struct SettingsView: View {
                 .font(.system(size: 10))
                 .foregroundStyle(.tertiary)
         }
-        .padding(.horizontal, SettingsLayout.horizontalPadding)
+        .padding(.horizontal, Layout.horizontalPadding)
     }
 
     // MARK: - Price alerts
@@ -227,7 +219,7 @@ struct SettingsView: View {
                         },
                         onRemove: { settings.removeAlert(id: alert.id) }
                     )
-                    .padding(.horizontal, SettingsLayout.horizontalPadding)
+                    .padding(.horizontal, Layout.horizontalPadding)
 
                     if index < settings.alerts.count - 1 {
                         RowSeparator()
@@ -240,7 +232,7 @@ struct SettingsView: View {
             AddAlertRow(pairs: settings.pairs) { alert in
                 settings.addAlert(alert)
             }
-            .padding(.horizontal, SettingsLayout.horizontalPadding)
+            .padding(.horizontal, Layout.horizontalPadding)
             .padding(.top, 6)
         }
     }
@@ -248,7 +240,7 @@ struct SettingsView: View {
     // MARK: - General
 
     private var generalContent: some View {
-        SettingsRow {
+        ListRow {
             EmptyView()
         } center: {
             Text("Launch at login")
@@ -262,7 +254,7 @@ struct SettingsView: View {
             .toggleStyle(.switch)
             .controlSize(.mini)
         }
-        .padding(.horizontal, SettingsLayout.horizontalPadding)
+        .padding(.horizontal, Layout.horizontalPadding)
     }
 }
 
@@ -280,7 +272,7 @@ private struct PairRow: View {
     @State private var hovering = false
 
     var body: some View {
-        SettingsRow {
+        ListRow {
             ReorderControl(hovering: hovering, onMoveUp: onMoveUp, onMoveDown: onMoveDown)
                 .accessibilityLabel("Reorder \(pair)")
         } center: {
@@ -304,7 +296,7 @@ private struct PairRow: View {
                 Image(systemName: "xmark")
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(.secondary)
-                    .frame(width: SettingsLayout.trailingSlotWidth, height: SettingsLayout.rowHeight)
+                    .frame(width: Layout.trailingSlotWidth, height: Layout.rowHeight)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -366,7 +358,7 @@ private struct ReorderControl: View {
                         Image(systemName: "chevron.up")
                             .font(.system(size: 8, weight: .bold))
                             .foregroundStyle(onMoveUp == nil ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.secondary))
-                            .frame(width: SettingsLayout.leadingSlotWidth, height: 10)
+                            .frame(width: Layout.leadingSlotWidth, height: 10)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
@@ -379,7 +371,7 @@ private struct ReorderControl: View {
                         Image(systemName: "chevron.down")
                             .font(.system(size: 8, weight: .bold))
                             .foregroundStyle(onMoveDown == nil ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.secondary))
-                            .frame(width: SettingsLayout.leadingSlotWidth, height: 10)
+                            .frame(width: Layout.leadingSlotWidth, height: 10)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
@@ -390,7 +382,7 @@ private struct ReorderControl: View {
                 GripHandle()
             }
         }
-        .frame(width: SettingsLayout.leadingSlotWidth, height: SettingsLayout.rowHeight)
+        .frame(width: Layout.leadingSlotWidth, height: Layout.rowHeight)
         .animation(.easeInOut(duration: 0.12), value: hovering)
     }
 }
@@ -402,7 +394,7 @@ private struct GripHandle: View {
             HStack(spacing: 2) { dot; dot }
             HStack(spacing: 2) { dot; dot }
         }
-        .frame(width: SettingsLayout.leadingSlotWidth, height: SettingsLayout.rowHeight)
+        .frame(width: Layout.leadingSlotWidth, height: Layout.rowHeight)
         .contentShape(Rectangle())
     }
 
@@ -452,14 +444,14 @@ private struct AlertRow: View {
                 Image(systemName: "xmark")
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(.secondary)
-                    .frame(width: 14, height: SettingsLayout.rowHeight)
+                    .frame(width: 14, height: Layout.rowHeight)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Remove alert \(alert.label)")
             .help("Remove alert")
         }
-        .frame(height: SettingsLayout.rowHeight)
+        .frame(height: Layout.rowHeight)
     }
 
     private var formattedThreshold: String {
@@ -518,7 +510,7 @@ private struct AddAlertRow: View {
             .controlSize(.small)
             .disabled(!isFormValid)
         }
-        .frame(height: SettingsLayout.rowHeight + 2)
+        .frame(height: Layout.rowHeight + 2)
     }
 
     private func parseThreshold() -> Decimal? {
