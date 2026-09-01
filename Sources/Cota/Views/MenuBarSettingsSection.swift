@@ -37,6 +37,13 @@ struct MenuBarSettingsSection: View {
             group {
                 SectionHeader(title: "Change indicator")
                 indicatorControl
+            }
+
+            SectionSeparator()
+
+            // Its own block rather than a tail of "Change indicator": it governs
+            // the whole label, not what follows the number.
+            group {
                 staleToggle
             }
         }
@@ -224,7 +231,6 @@ struct MenuBarSettingsSection: View {
                 .controlSize(.mini)
         }
         .padding(.horizontal, Layout.horizontalPadding)
-        .padding(.top, 6)
         .help("The panel always marks stale quotes; this dims the menu bar too.")
     }
 
