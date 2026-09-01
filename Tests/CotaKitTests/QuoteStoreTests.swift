@@ -74,15 +74,16 @@ struct QuoteStoreTests {
         #expect(store.error != nil)
     }
 
-    @Test func menuBarSummaryDefaultWhenEmpty() {
+    @Test func menuBarHasNothingToLabelBeforeTheFirstFetch() {
         let (store, _) = makeStore()
-        #expect(store.menuBarSummary == "Quotes")
+        #expect(store.menuBarQuotes.isEmpty)
     }
 
     @Test func flagReturnsCorrectEmoji() {
         let (store, _) = makeStore()
         #expect(store.flag("USD") == "🇺🇸")
         #expect(store.flag("EUR") == "🇪🇺")
+        // Crypto has no issuing country and falls back to its symbol.
         #expect(store.flag("BTC") == "₿")
         #expect(store.flag("XYZ") == "XYZ")
     }

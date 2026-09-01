@@ -20,7 +20,7 @@ struct CotaApp: App {
                     store.start()
                 }
         } label: {
-            Text(store.menuBarSummary)
+            MenuBarLabelView(store: store, settings: settings)
         }
         .menuBarExtraStyle(.window)
     }

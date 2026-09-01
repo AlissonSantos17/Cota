@@ -110,20 +110,6 @@ public final class QuoteStore: ObservableObject {
         }
     }
 
-    public var menuBarSummary: String {
-        guard let first = quotes.first else {
-            return "Cota"
-        }
-
-        let value = first.bid.formatted(
-            .number
-                .precision(.fractionLength(2))
-                .locale(Locale(identifier: "pt_BR"))
-        )
-
-        return "\(flag(first.code)) → \(flag(first.codein)) \(value)"
-    }
-
     private func updatePriceHistory(with quotes: [Quote]) async {
         let activeIDs = Set(quotes.map(\.id))
         priceHistory = priceHistory.filter { activeIDs.contains($0.key) }
