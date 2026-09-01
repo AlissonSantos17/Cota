@@ -135,12 +135,29 @@ struct PanelView: View {
             if store.error != nil {
                 Text("Couldn't update")
             } else if let date = store.lastUpdate {
-                Text("Updated \(date.formatted(.relative(presentation: .numeric).locale(Locale(identifier: "en_US"))))")
+                Text("Updated \(Self.elapsed(from: date, to: now))")
             }
         }
         .font(.system(size: 11))
         .foregroundStyle(degraded ? AnyShapeStyle(.orange) : AnyShapeStyle(.secondary))
         .help(store.error ?? "")
+    }
+
+    /// Hand-rolled rather than a relative date style: the stock one rounds a
+    /// fetch that just landed into "in 0 seconds".
+    private static func elapsed(from date: Date, to now: Date) -> String {
+        let seconds = Int(max(0, now.timeIntervalSince(date)))
+
+        switch seconds {
+        case ..<60:
+            return "just now"
+        case ..<3600:
+            return "\(seconds / 60) min ago"
+        case ..<86_400:
+            return "\(seconds / 3600) h ago"
+        default:
+            return "\(seconds / 86_400) d ago"
+        }
     }
 
     private var emptyState: some View {

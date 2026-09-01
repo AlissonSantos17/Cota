@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 /// The single grid both screens are built on.
 ///
@@ -16,7 +17,13 @@ enum Layout {
     static let badgeSize: CGFloat = 24
     static let valueColumnWidth: CGFloat = 84
     static let columnSpacing: CGFloat = 8
-    static let hairline: CGFloat = 0.5
+    /// One device pixel. A fixed 0.5pt hairline only lands on a pixel boundary
+    /// on retina: at 1x it straddles two pixels, renders at half opacity and
+    /// pushes every following row onto a half-point offset, which is what made
+    /// separators drop out of the list.
+    static var hairline: CGFloat {
+        1 / (NSScreen.main?.backingScaleFactor ?? 2)
+    }
 }
 
 /// A row with three slots: a fixed leading slot (handle, badge, icon), a
