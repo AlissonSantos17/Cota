@@ -216,31 +216,30 @@ public final class QuoteStore: ObservableObject {
     /// macOS versions and mix optical sizes with the text symbols used for
     /// crypto, so the panel uses one typographic set instead.
     public func symbol(_ code: String) -> String {
-        switch code {
-        case "EUR": return "\u{20AC}"
-        case "USD", "CAD", "AUD", "ARS": return "$"
-        case "GBP": return "\u{A3}"
-        case "BRL": return "R$"
-        case "JPY", "CNY": return "\u{A5}"
-        case "CHF": return "\u{20A3}"
-        case "BTC": return "\u{20BF}"
-        case "ETH": return "\u{39E}"
-        case "XRP": return "\u{2715}"
-        default: return String(code.prefix(1))
-        }
+        Currency.named(code).symbol ?? String(code.prefix(1))
     }
 
     public func flag(_ code: String) -> String {
-        switch code {
-        case "EUR": return "🇪🇺"
-        case "USD": return "🇺🇸"
-        case "GBP": return "🇬🇧"
-        case "BRL": return "🇧🇷"
-        case "ARS": return "🇦🇷"
-        case "BTC": return "₿"
-        case "ETH": return "Ξ"
-        case "XRP": return "✕"
-        default: return code
+        Currency.named(code).flag ?? Currency.named(code).symbol ?? code
+    }
+
+    // MARK: - Menu bar
+
+    /// The pairs the menu bar labels, in the order the user arranged them, with
+    /// the change measured over the same period the panel is showing — two
+    /// surfaces of one app disagreeing about "the change" is worse than either
+    /// answer alone.
+    public var menuBarQuotes: [MenuBarQuote] {
+        settings.orderedMenuBarPairs.compactMap { pair in
+            guard let quote = quotes.first(where: { $0.id == pair }) else {
+                return nil
+            }
+
+            return MenuBarQuote(
+                pair: pair,
+                bid: quote.bid,
+                change: change(for: pair, period: settings.period) ?? quote.pctChange
+            )
         }
     }
 }

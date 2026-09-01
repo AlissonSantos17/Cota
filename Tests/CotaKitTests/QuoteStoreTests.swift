@@ -24,8 +24,9 @@ final class MockQuoteService: QuoteServiceProtocol, @unchecked Sendable {
 struct QuoteStoreTests {
     private func makeStore() -> (QuoteStore, MockQuoteService) {
         let mockService = MockQuoteService()
-        let defaults = UserDefaults(suiteName: "cota.tests.\(UUID().uuidString)")!
-        defaults.removePersistentDomain(forName: defaults.suiteName ?? "")
+        let suite = "cota.tests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
         let settings = SettingsStore(defaults: defaults)
         let store = QuoteStore(service: mockService, settings: settings)
         return (store, mockService)
