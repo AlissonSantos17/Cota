@@ -77,7 +77,13 @@ jobs:
           xcodebuild -version
 
       - name: Install SwiftLint
-        run: brew install swiftlint
+        run: |
+          version="$(awk '/^swiftlint_version:/{print $2}' .swiftlint.yml)"
+          curl -fsSL "https://github.com/realm/SwiftLint/releases/download/${version}/portable_swiftlint.zip" \
+            -o /tmp/swiftlint.zip
+          unzip -o /tmp/swiftlint.zip -d /tmp/swiftlint
+          echo /tmp/swiftlint >> "$GITHUB_PATH"
+          /tmp/swiftlint/swiftlint version
 
       - name: Format and lint
         run: ./scripts/lint.sh
