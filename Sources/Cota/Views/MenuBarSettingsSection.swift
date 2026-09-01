@@ -13,16 +13,27 @@ struct MenuBarSettingsSection: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // "Preview", not "Menu bar": the tab already says which surface
+            // this is, and repeating it inside makes the real headers below
+            // look like siblings of a title.
             group {
-                SectionHeader(title: "Menu bar")
+                SectionHeader(title: "Preview")
                 preview
-            }
 
-            SectionSeparator()
-
-            group {
-                SectionHeader(title: "Pairs to show")
-                pairsList
+                // No pair picker here: the "Menu bar" column of the Pairs tab
+                // is the single source of truth, and a second selector would
+                // put the reader back in front of two lists of the same thing.
+                if settings.orderedMenuBarPairs.isEmpty {
+                    helpText("Tick a pair in the Pairs tab to show it here.", indent: 0)
+                } else if settings.orderedMenuBarPairs.count > 2 {
+                    // Not a cap: where the line falls depends on what else the
+                    // person keeps up there, so this explains rather than
+                    // forbids.
+                    helpText(
+                        "Two pairs fit comfortably; more will crowd the other menu bar icons.",
+                        indent: 0
+                    )
+                }
             }
 
             SectionSeparator()
@@ -64,7 +75,9 @@ struct MenuBarSettingsSection: View {
     private var preview: some View {
         HStack {
             if selectedQuotes.isEmpty {
-                Text(settings.orderedMenuBarPairs.isEmpty ? "No pairs selected" : "Waiting for quotes")
+                Text(settings.orderedMenuBarPairs.isEmpty
+                    ? "No pairs shown in the menu bar"
+                    : "Waiting for quotes")
                     .font(.system(size: 11))
                     .foregroundStyle(.tertiary)
             } else {
@@ -97,37 +110,6 @@ struct MenuBarSettingsSection: View {
     }
 
     // MARK: - Pairs
-
-    private var pairsList: some View {
-        VStack(spacing: 0) {
-            ForEach(Array(settings.pairs.enumerated()), id: \.element) { index, pair in
-                ListRow(leadingWidth: 16) {
-                    Toggle("", isOn: Binding(
-                        get: { settings.isShownInMenuBar(pair) },
-                        set: { settings.setMenuBarPair(pair, shown: $0) }
-                    ))
-                    .labelsHidden()
-                    .toggleStyle(.checkbox)
-                    .accessibilityLabel("Show \(pair) in the menu bar")
-                } center: {
-                    Text(pair)
-                        .font(.system(size: 12))
-                }
-                .padding(.horizontal, Layout.horizontalPadding)
-
-                if index < settings.pairs.count - 1 {
-                    RowSeparator()
-                }
-            }
-
-            // Not a cap: three labels start pushing the other menu bar icons
-            // off, but where that line falls depends on what else the person
-            // keeps up there, so this explains rather than forbids.
-            if settings.orderedMenuBarPairs.count > 2 {
-                helpText("Two pairs fit comfortably; more will crowd the other menu bar icons.")
-            }
-        }
-    }
 
     // MARK: - Format
 
@@ -218,29 +200,44 @@ struct MenuBarSettingsSection: View {
         .accessibilityLabel("Change indicator")
     }
 
+    /// Governs the menu bar and nothing else. Dimming grates precisely on the
+    /// bar, which is always in view; the panel was opened on purpose, and the
+    /// person there wants the whole picture with room to explain it.
     private var staleToggle: some View {
-        ListRow {
-            EmptyView()
-        } center: {
-            Text("Dim when data is stale")
-                .font(.system(size: 12))
-        } trailing: {
-            Toggle("", isOn: $settings.dimWhenStale)
-                .labelsHidden()
-                .toggleStyle(.switch)
-                .controlSize(.mini)
+        VStack(spacing: 0) {
+            ListRow {
+                EmptyView()
+            } center: {
+                Text("Dim when data is stale")
+                    .font(.system(size: 12))
+            } trailing: {
+                Toggle("", isOn: $settings.dimWhenStale)
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .controlSize(.mini)
+            }
+            .padding(.horizontal, Layout.horizontalPadding)
+
+            // On screen, not in a tooltip: without it the panel going on
+            // marking stale data with the toggle off reads as a bug, and a
+            // tooltip is only found by someone who already suspected one.
+            helpText(
+                "Applies to the menu bar only. The popover always marks stale data.",
+                indent: Layout.leadingSlotWidth + Layout.columnSpacing
+            )
         }
-        .padding(.horizontal, Layout.horizontalPadding)
-        .help("The panel always marks stale quotes; this dims the menu bar too.")
     }
 
-    private func helpText(_ text: String) -> some View {
+    /// Indented to whatever it explains: under a row, past the slot reserved
+    /// for the radio or checkbox, so the line starts under the label and not
+    /// under the control; under the preview, flush with the section margin.
+    private func helpText(_ text: String, indent: CGFloat = 16 + Layout.columnSpacing) -> some View {
         Text(text)
             .font(.system(size: 11))
             .foregroundStyle(.tertiary)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.leading, Layout.horizontalPadding + 16 + Layout.columnSpacing)
+            .padding(.leading, Layout.horizontalPadding + indent)
             .padding(.trailing, Layout.horizontalPadding)
             .padding(.bottom, 6)
     }

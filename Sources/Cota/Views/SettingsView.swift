@@ -1,52 +1,69 @@
 import SwiftUI
 import CotaKit
 
+/// The contents of the Settings window.
+///
+/// Four tabs rather than one column: the panel version had grown to seven
+/// headers of identical weight and needed scrolling inside a popover, which on
+/// macOS is the sign that the content has outgrown the surface. Each tab has to
+/// fit without scrolling — one that stops fitting is asking to be split.
 struct SettingsView: View {
     @ObservedObject var settings: SettingsStore
     @ObservedObject var store: QuoteStore
-    var onBack: () -> Void
+
+    /// Wide enough for the five columns of the pairs list. The popover's 360
+    /// was the constraint that flattened the hierarchy in the first place.
+    private static let width: CGFloat = 460
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
+        TabView {
+            tab {
+                section {
+                    SectionHeader(title: "Refresh interval")
 
-            SectionSeparator()
+                    intervalContent
+                }
 
-            section {
-                SectionHeader(title: "Currency pairs")
+                SectionSeparator()
 
-                pairsList
+                section {
+                    generalContent
+                }
             }
+            .tabItem { Text("General") }
 
-            SectionSeparator()
-
-            MenuBarSettingsSection(settings: settings, store: store)
-
-            SectionSeparator()
-
-            section {
-                SectionHeader(title: "Refresh interval")
-
-                intervalContent
+            tab {
+                section {
+                    pairsList
+                }
             }
+            .tabItem { Text("Pairs") }
 
-            SectionSeparator()
-
-            section {
-                SectionHeader(title: "Price alerts")
-
-                alertsContent
+            tab {
+                MenuBarSettingsSection(settings: settings, store: store)
             }
+            .tabItem { Text("Menu bar") }
 
-            SectionSeparator()
-
-            section {
-                SectionHeader(title: "General")
-
-                generalContent
+            tab {
+                section {
+                    alertsContent
+                }
             }
+            .tabItem { Text("Alerts") }
         }
-        .frame(width: 360)
+        .padding(Layout.sectionSpacing)
+        .frame(width: Self.width)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    /// Every tab is topped out and left to size itself vertically, so the
+    /// window measures the tallest one and short tabs do not stretch.
+    @ViewBuilder
+    private func tab<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        VStack(spacing: 0) {
+            content()
+        }
+        .frame(maxWidth: .infinity, alignment: .top)
         .fixedSize(horizontal: false, vertical: true)
     }
 
@@ -58,40 +75,21 @@ struct SettingsView: View {
         .padding(.vertical, Layout.sectionSpacing)
     }
 
-    private var header: some View {
-        HStack(spacing: 8) {
-            Button(action: onBack) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                    .frame(width: Layout.leadingSlotWidth, height: Layout.rowHeight, alignment: .center)
-            }
-            .buttonStyle(.plain)
-            .keyboardShortcut(.cancelAction)
-            .accessibilityLabel("Back to quotes")
-
-            Text("Settings")
-                .font(.system(size: 12, weight: .semibold))
-                .frame(maxWidth: .infinity, alignment: .center)
-
-            Color.clear
-                .frame(width: Layout.leadingSlotWidth, height: Layout.rowHeight)
-        }
-        .padding(.horizontal, Layout.horizontalPadding)
-        .frame(height: 34)
-    }
-
     // MARK: - Currency pairs
 
     @State private var dropTarget: String?
 
     private var pairsList: some View {
         VStack(spacing: 0) {
+            pairsHeader
+
             ForEach(Array(settings.pairs.enumerated()), id: \.element) { index, pair in
                 PairRow(
                     pair: pair,
                     quote: store.quotes.first { $0.id == pair },
                     canRemove: settings.pairs.count > 1,
+                    isShownInMenuBar: settings.isShownInMenuBar(pair),
+                    onToggleMenuBar: { settings.setMenuBarPair(pair, shown: $0) },
                     isDropTarget: dropTarget == pair,
                     onMoveUp: index > 0 ? { settings.swapPairs(index, index - 1) } : nil,
                     onMoveDown: index < settings.pairs.count - 1 ? { settings.swapPairs(index, index + 1) } : nil,
@@ -145,6 +143,29 @@ struct SettingsView: View {
                 addPairRow
             }
         }
+    }
+
+    /// Mandatory here, and only here: with five columns a bare checkbox in the
+    /// middle of a list of quotes does not explain itself. On a two or three
+    /// column list the same header would be noise.
+    private var pairsHeader: some View {
+        ListRow(height: 22) {
+            EmptyView()
+        } center: {
+            HStack(spacing: Layout.columnSpacing) {
+                Text("Pair")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Text("Rate")
+                    .frame(width: PairColumns.rate, alignment: .trailing)
+                Text("Change")
+                    .frame(width: PairColumns.change, alignment: .trailing)
+                Text("Menu bar")
+                    .frame(width: PairColumns.menuBar, alignment: .center)
+            }
+            .font(.system(size: 11))
+            .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, Layout.horizontalPadding)
     }
 
     private var hasAvailablePairs: Bool {
@@ -252,10 +273,22 @@ struct SettingsView: View {
 
 // MARK: - Rows
 
+/// The header and every row measure their columns here, so the checkbox lands
+/// under its own label instead of wherever the rate above happened to end.
+private enum PairColumns {
+    static let rate: CGFloat = 96
+    static let change: CGFloat = 64
+    /// Wide enough for its own header: "Menu bar" at 11pt needs more than the
+    /// checkbox does, and the label is what makes the column legible.
+    static let menuBar: CGFloat = 60
+}
+
 private struct PairRow: View {
     let pair: String
     let quote: Quote?
     let canRemove: Bool
+    let isShownInMenuBar: Bool
+    let onToggleMenuBar: (Bool) -> Void
     let isDropTarget: Bool
     let onMoveUp: (() -> Void)?
     let onMoveDown: (() -> Void)?
@@ -268,20 +301,28 @@ private struct PairRow: View {
             ReorderControl(hovering: hovering, onMoveUp: onMoveUp, onMoveDown: onMoveDown)
                 .accessibilityLabel("Reorder \(pair)")
         } center: {
-            HStack {
+            HStack(spacing: Layout.columnSpacing) {
                 Text(pair)
                     .font(.system(size: 12, weight: .medium))
-
-                Spacer(minLength: 12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
                 Text(formattedBid)
                     .font(.system(size: 12, weight: .regular, design: .default).monospacedDigit())
                     .foregroundStyle(quote == nil ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary))
+                    .frame(width: PairColumns.rate, alignment: .trailing)
 
                 Text(formattedChange)
                     .font(.system(size: 11, weight: .medium).monospacedDigit())
                     .foregroundStyle(changeColor)
-                    .frame(width: 52, alignment: .trailing)
+                    .frame(width: PairColumns.change, alignment: .trailing)
+
+                // The one source of truth about what the menu bar shows. The
+                // Menu bar tab only reacts to this column.
+                Toggle("", isOn: Binding(get: { isShownInMenuBar }, set: onToggleMenuBar))
+                    .labelsHidden()
+                    .toggleStyle(.checkbox)
+                    .frame(width: PairColumns.menuBar, alignment: .center)
+                    .accessibilityLabel("Show \(pair) in the menu bar")
             }
         } trailing: {
             Button(action: onRemove) {
@@ -310,23 +351,13 @@ private struct PairRow: View {
 
     private var formattedBid: String {
         guard let quote else { return "—" }
-        return quote.bid.formatted(
-            .number
-                .precision(.fractionLength(4))
-                .locale(Locale(identifier: "pt_BR"))
-        )
+        return QuoteFormat.value(quote.bid)
     }
 
     private var formattedChange: String {
         guard let quote else { return "—" }
         let value = quote.pctChange
-        let sign = value >= 0 ? "+" : ""
-        let formatted = value.formatted(
-            .number
-                .precision(.fractionLength(2))
-                .locale(Locale(identifier: "pt_BR"))
-        )
-        return "\(sign)\(formatted)%"
+        return "\(value < 0 ? "▼" : "▲") \(QuoteFormat.percentMagnitude(value))"
     }
 
     private var changeColor: Color {
@@ -402,8 +433,13 @@ private struct GripHandle: View {
 /// Both the alert rows and the new alert form measure their columns here, so
 /// the form reads as the next row of the list rather than a detached block.
 private enum AlertColumns {
-    static let pair: CGFloat = 76
-    static let condition: CGFloat = 52
+    static let pair: CGFloat = 84
+
+    /// 72, not 52: the narrower column truncated "above" to "ab...". The width
+    /// could shrink again if the condition became `>` and `<`, but then the
+    /// existing alerts would have to use the symbol too, or the two rows stop
+    /// lining up.
+    static let condition: CGFloat = 72
 }
 
 private struct AlertRow: View {
@@ -446,11 +482,7 @@ private struct AlertRow: View {
     }
 
     private var formattedThreshold: String {
-        alert.threshold.formatted(
-            .number
-                .precision(.fractionLength(4))
-                .locale(Locale(identifier: "pt_BR"))
-        )
+        QuoteFormat.value(alert.threshold)
     }
 }
 

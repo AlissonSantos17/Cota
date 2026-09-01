@@ -69,14 +69,6 @@ public enum MenuBarLabel {
     /// to this width so that step costs nothing.
     private static let minimumValueWidth = 5
 
-    /// Above this, the full number stops fitting and is abbreviated.
-    private static let abbreviationFloor = Decimal(100_000)
-
-    /// Above this, the cents no longer say anything the reader can use.
-    private static let decimalCeiling = Decimal(1000)
-
-    private static let locale = Locale(identifier: "pt_BR")
-
     // MARK: - Label
 
     public static func segments(
@@ -255,34 +247,16 @@ public enum MenuBarLabel {
 
     // MARK: - Numbers
 
-    /// Decimals earn their place only while they still carry movement. The
-    /// panel already draws this line at a thousand; the menu bar is tighter
-    /// still, so "99.999,00" would spend three characters on nothing.
+    /// The shared rule, plus the padding that only the menu bar needs: nothing
+    /// else on screen moves when a value gains a digit.
     public static func formattedValue(_ bid: Decimal) -> String {
-        let text: String
-
-        if bid >= abbreviationFloor {
-            let thousands = (bid / 1000).formatted(
-                .number.precision(.fractionLength(0)).locale(locale)
-            )
-            text = "\(thousands)k"
-        } else {
-            text = bid.formatted(
-                .number
-                    .precision(.fractionLength(bid >= decimalCeiling ? 0 : 2))
-                    .locale(locale)
-            )
-        }
-
-        return padded(text)
+        padded(QuoteFormat.menuBar(bid))
     }
 
+    /// Signed here: the percent indicator stands alone, with no arrow beside it
+    /// to carry the direction.
     public static func formattedPercent(_ change: Decimal) -> String {
-        let sign = change < 0 ? "-" : "+"
-        let magnitude = abs(change).formatted(
-            .number.precision(.fractionLength(2)).locale(locale)
-        )
-        return "\(sign)\(magnitude)%"
+        QuoteFormat.percent(change)
     }
 
     private static func padded(_ text: String) -> String {

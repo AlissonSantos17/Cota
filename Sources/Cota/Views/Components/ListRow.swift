@@ -57,16 +57,34 @@ struct ListRow<Leading: View, Center: View, Trailing: View>: View {
 
     var body: some View {
         HStack(spacing: Layout.columnSpacing) {
-            leading
-                .frame(width: leadingWidth, alignment: .center)
+            slot(width: leadingWidth, alignment: .center) { leading }
 
             center
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            trailing
-                .frame(width: trailingWidth, alignment: .trailing)
+            slot(width: trailingWidth, alignment: .trailing) { trailing }
         }
         .frame(height: height)
+    }
+
+    /// The slot is a `Color.clear` that the content sits on top of.
+    ///
+    /// A bare `.frame(width:)` is not enough: `EmptyView` contributes no size
+    /// to an `HStack` and suppresses the spacing beside it, so a row without a
+    /// handle or a delete button came out 22pt wider on the left and 26pt on
+    /// the right than the rows around it. Reserving the width is the whole
+    /// point of the component — it cannot depend on the slot being filled.
+    @ViewBuilder
+    private func slot<Content: View>(
+        width: CGFloat,
+        alignment: Alignment,
+        @ViewBuilder _ content: () -> Content
+    ) -> some View {
+        Color.clear
+            .frame(width: width, height: height)
+            .overlay(alignment: alignment) {
+                content()
+            }
     }
 }
 

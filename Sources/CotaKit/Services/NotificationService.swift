@@ -38,19 +38,33 @@ public final class NotificationService: NSObject, UNUserNotificationCenterDelega
                 }
             }
         super.init()
-        UNUserNotificationCenter.current().delegate = self
+    }
+
+    /// How a due alert reaches the person. Injectable so the arming rules can
+    /// be tested without a notification centre — those rules are about which
+    /// alerts are due, not about how a banner is drawn.
+    lazy var deliver: (PriceAlert, Decimal) -> Void = { [weak self] alert, value in
+        self?.send(alert: alert, currentValue: value)
     }
 
     public func requestPermission() {
+        // Set here rather than in `init`: `UNUserNotificationCenter.current()`
+        // needs a real bundle, and the app calls this at launch anyway.
+        UNUserNotificationCenter.current().delegate = self
         UNUserNotificationCenter.current().requestAuthorization(
             options: [.alert, .sound]
         ) { _, _ in }
     }
 
     public func checkAlerts(_ alerts: [PriceAlert], against quotes: [Quote], now: Date = .now) {
-        let activeIDs = Set(alerts.filter(\.isEnabled).map(\.id))
-        triggeredAlerts.formIntersection(activeIDs)
-        lastNotified = lastNotified.filter { activeIDs.contains($0.key) }
+        // Garbage collection is about the alert existing, not about it being
+        // on. Filtering by `isEnabled` here made switching an alert off wipe
+        // its arming state, so switching it back on re-notified immediately if
+        // the price was still past the threshold — the toggle promised a pause
+        // and delivered a reset. A muted alert keeps remembering that it fired.
+        let knownIDs = Set(alerts.map(\.id))
+        triggeredAlerts.formIntersection(knownIDs)
+        lastNotified = lastNotified.filter { knownIDs.contains($0.key) }
 
         for alert in alerts where alert.isEnabled {
             guard let quote = quotes.first(where: { "\($0.code)-\($0.codein)" == alert.pair }) else {
@@ -67,7 +81,7 @@ public final class NotificationService: NSObject, UNUserNotificationCenterDelega
                 }
 
                 lastNotified[alert.id] = now
-                send(alert: alert, currentValue: quote.bid)
+                deliver(alert, quote.bid)
             } else if hasRearmed(alert, bid: quote.bid) {
                 triggeredAlerts.remove(alert.id)
             }
