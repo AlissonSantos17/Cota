@@ -2,6 +2,9 @@ import Testing
 import Foundation
 @testable import CotaKit
 
+/// MockURLProtocol keeps a process-wide handler. Running these cases in
+/// parallel lets one test's JSON land in another's request.
+@Suite(.serialized)
 struct QuoteServiceTests {
     private func makeService() -> (QuoteService, URLSession) {
         let config = URLSessionConfiguration.ephemeral
