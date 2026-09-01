@@ -23,8 +23,8 @@ public struct Currency: Equatable, Sendable {
     }
 }
 
-public extension Currency {
-    static func named(_ code: String) -> Currency {
+extension Currency {
+    public static func named(_ code: String) -> Currency {
         table[code] ?? Currency(code: code)
     }
 
@@ -47,6 +47,6 @@ public extension Currency {
         "ETH": Currency(code: "ETH", symbol: "Ξ"),
         // No glyph: "✕" is a multiplication sign, and passing it off as a
         // currency symbol would put a wrong label in the menu bar.
-        "XRP": Currency(code: "XRP")
+        "XRP": Currency(code: "XRP"),
     ]
 }

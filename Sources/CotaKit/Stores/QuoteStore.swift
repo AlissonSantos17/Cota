@@ -1,6 +1,6 @@
+import Combine
 import Foundation
 import SwiftUI
-import Combine
 
 @MainActor
 public final class QuoteStore: ObservableObject {
@@ -32,6 +32,7 @@ public final class QuoteStore: ObservableObject {
     private var loop: Task<Void, Never>?
     private var staleLoop: Task<Void, Never>?
     private var pairsObservation: AnyCancellable?
+    private var intervalObservation: AnyCancellable?
 
     public init(
         service: QuoteServiceProtocol = QuoteService(),
@@ -50,47 +51,64 @@ public final class QuoteStore: ObservableObject {
                     await self.refresh()
                 }
             }
+
+        intervalObservation = settings.$refreshInterval
+            .dropFirst()
+            .removeDuplicates()
+            .sink { [weak self] _ in
+                self?.restartLoop()
+            }
     }
 
     deinit {
         loop?.cancel()
         staleLoop?.cancel()
         pairsObservation?.cancel()
+        intervalObservation?.cancel()
     }
 
     public func start() {
-        guard loop == nil else {
-            return
-        }
+        if loop == nil {
+            loop = Task { [weak self] in
+                guard let self else {
+                    return
+                }
 
-        loop = Task { [weak self] in
-            guard let self else {
-                return
-            }
+                while !Task.isCancelled {
+                    await self.refresh()
 
-            while !Task.isCancelled {
-                await self.refresh()
-
-                do {
-                    try await Task.sleep(for: .seconds(self.settings.refreshInterval))
-                } catch {
-                    break
+                    do {
+                        try await Task.sleep(for: .seconds(self.settings.refreshInterval))
+                    } catch {
+                        break
+                    }
                 }
             }
         }
 
-        staleLoop = Task { [weak self] in
-            while !Task.isCancelled {
-                do {
-                    try await Task.sleep(for: .seconds(15))
-                } catch {
-                    break
-                }
+        if staleLoop == nil {
+            staleLoop = Task { [weak self] in
+                while !Task.isCancelled {
+                    do {
+                        try await Task.sleep(for: .seconds(15))
+                    } catch {
+                        break
+                    }
 
-                guard let self else { return }
-                self.refreshStaleness()
+                    guard let self else { return }
+                    self.refreshStaleness()
+                }
             }
         }
+    }
+
+    /// The sleep already in flight used the previous interval. Cancel it and
+    /// fetch now, so 5m → 30s does not wait out the remaining minutes.
+    private func restartLoop() {
+        guard loop != nil else { return }
+        loop?.cancel()
+        loop = nil
+        start()
     }
 
     private func refreshStaleness() {
@@ -147,17 +165,19 @@ public final class QuoteStore: ObservableObject {
 
         for quote in quotes {
             if priceHistory[quote.id] == nil {
-                priceHistory[quote.id] = (try? await service.fetchDailyBids(
-                    pair: quote.id,
-                    days: maxHistoryPoints
-                )) ?? []
+                priceHistory[quote.id] =
+                    (try? await service.fetchDailyBids(
+                        pair: quote.id,
+                        days: maxHistoryPoints
+                    )) ?? []
             }
 
             if intradayBids[quote.id] == nil {
-                intradayBids[quote.id] = (try? await service.fetchIntradayBids(
-                    pair: quote.id,
-                    points: QuoteService.maxIntradayPoints
-                )) ?? []
+                intradayBids[quote.id] =
+                    (try? await service.fetchIntradayBids(
+                        pair: quote.id,
+                        points: QuoteService.maxIntradayPoints
+                    )) ?? []
             }
 
             appendIntradayBid(quote.bid, to: quote.id)

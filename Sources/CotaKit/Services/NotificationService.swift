@@ -31,7 +31,8 @@ public final class NotificationService: NSObject, UNUserNotificationCenterDelega
         self.triggeredAlerts = Set(
             (defaults.stringArray(forKey: Keys.triggered) ?? []).compactMap(UUID.init(uuidString:))
         )
-        self.lastNotified = (defaults.dictionary(forKey: Keys.lastNotified) as? [String: Date] ?? [:])
+        self.lastNotified =
+            (defaults.dictionary(forKey: Keys.lastNotified) as? [String: Date] ?? [:])
             .reduce(into: [:]) { result, entry in
                 if let id = UUID(uuidString: entry.key) {
                     result[id] = entry.value
@@ -67,7 +68,8 @@ public final class NotificationService: NSObject, UNUserNotificationCenterDelega
         lastNotified = lastNotified.filter { knownIDs.contains($0.key) }
 
         for alert in alerts where alert.isEnabled {
-            guard let quote = quotes.first(where: { "\($0.code)-\($0.codein)" == alert.pair }) else {
+            guard let quote = quotes.first(where: { "\($0.code)-\($0.codein)" == alert.pair })
+            else {
                 continue
             }
 

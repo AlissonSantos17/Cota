@@ -1,6 +1,6 @@
 import AppKit
-import SwiftUI
 import CotaKit
+import SwiftUI
 
 /// The Settings window.
 ///

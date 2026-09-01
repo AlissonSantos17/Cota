@@ -77,7 +77,8 @@ public enum MenuBarLabel {
         indicator: ChangeIndicator
     ) -> [LabelSegment] {
         let format = effectiveFormat(format, pairCount: quotes.count)
-        let useCodes = format == .code
+        let useCodes =
+            format == .code
             || (format == .auto && firstCollision(among: quotes.map(\.code)) != nil)
 
         var segments: [LabelSegment] = []
@@ -106,7 +107,8 @@ public enum MenuBarLabel {
         format: MenuBarFormat,
         among codes: [String]
     ) -> [LabelSegment] {
-        let useCodes = format == .code
+        let useCodes =
+            format == .code
             || (format == .auto && firstCollision(among: codes) != nil)
 
         return lead(for: quote, format: format, useCodes: useCodes)
@@ -172,7 +174,7 @@ public enum MenuBarLabel {
         case .percent:
             return [
                 LabelSegment(" ", .separator),
-                LabelSegment(formattedPercent(change), .indicator(trend))
+                LabelSegment(formattedPercent(change), .indicator(trend)),
             ]
         }
     }

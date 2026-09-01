@@ -1,5 +1,5 @@
-import SwiftUI
 import CotaKit
+import SwiftUI
 
 /// The contents of the Settings window.
 ///
@@ -92,7 +92,8 @@ struct SettingsView: View {
                     onToggleMenuBar: { settings.setMenuBarPair(pair, shown: $0) },
                     isDropTarget: dropTarget == pair,
                     onMoveUp: index > 0 ? { settings.swapPairs(index, index - 1) } : nil,
-                    onMoveDown: index < settings.pairs.count - 1 ? { settings.swapPairs(index, index + 1) } : nil,
+                    onMoveDown: index < settings.pairs.count - 1
+                        ? { settings.swapPairs(index, index + 1) } : nil,
                     onRemove: { settings.removePair(pair) }
                 )
                 .padding(.horizontal, Layout.horizontalPadding)
@@ -107,9 +108,10 @@ struct SettingsView: View {
                 .dropDestination(for: String.self) { items, _ in
                     dropTarget = nil
                     guard let dropped = items.first,
-                          let from = settings.pairs.firstIndex(of: dropped),
-                          let to = settings.pairs.firstIndex(of: pair),
-                          from != to else {
+                        let from = settings.pairs.firstIndex(of: dropped),
+                        let to = settings.pairs.firstIndex(of: pair),
+                        from != to
+                    else {
                         return false
                     }
                     settings.movePair(from: from, to: to > from ? to + 1 : to)
@@ -199,7 +201,7 @@ struct SettingsView: View {
     // MARK: - Refresh interval
 
     private let intervalOptions: [(label: String, value: Int)] = [
-        ("30s", 30), ("1m", 60), ("2m", 120), ("5m", 300), ("10m", 600)
+        ("30s", 30), ("1m", 60), ("2m", 120), ("5m", 300), ("10m", 600),
     ]
 
     private var intervalContent: some View {
@@ -259,10 +261,13 @@ struct SettingsView: View {
             Text("Launch at login")
                 .font(.system(size: 12))
         } trailing: {
-            Toggle("", isOn: Binding(
-                get: { settings.launchAtLogin },
-                set: { settings.setLaunchAtLogin($0) }
-            ))
+            Toggle(
+                "",
+                isOn: Binding(
+                    get: { settings.launchAtLogin },
+                    set: { settings.setLaunchAtLogin($0) }
+                )
+            )
             .labelsHidden()
             .toggleStyle(.switch)
             .controlSize(.mini)
@@ -308,7 +313,9 @@ private struct PairRow: View {
 
                 Text(formattedBid)
                     .font(.system(size: 12, weight: .regular, design: .default).monospacedDigit())
-                    .foregroundStyle(quote == nil ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary))
+                    .foregroundStyle(
+                        quote == nil ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary)
+                    )
                     .frame(width: PairColumns.rate, alignment: .trailing)
 
                 Text(formattedChange)
@@ -380,7 +387,10 @@ private struct ReorderControl: View {
                     } label: {
                         Image(systemName: "chevron.up")
                             .font(.system(size: 8, weight: .bold))
-                            .foregroundStyle(onMoveUp == nil ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.secondary))
+                            .foregroundStyle(
+                                onMoveUp == nil
+                                    ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.secondary)
+                            )
                             .frame(width: Layout.leadingSlotWidth, height: 10)
                             .contentShape(Rectangle())
                     }
@@ -393,7 +403,10 @@ private struct ReorderControl: View {
                     } label: {
                         Image(systemName: "chevron.down")
                             .font(.system(size: 8, weight: .bold))
-                            .foregroundStyle(onMoveDown == nil ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.secondary))
+                            .foregroundStyle(
+                                onMoveDown == nil
+                                    ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.secondary)
+                            )
                             .frame(width: Layout.leadingSlotWidth, height: 10)
                             .contentShape(Rectangle())
                     }
@@ -413,9 +426,18 @@ private struct ReorderControl: View {
 private struct GripHandle: View {
     var body: some View {
         VStack(spacing: 2) {
-            HStack(spacing: 2) { dot; dot }
-            HStack(spacing: 2) { dot; dot }
-            HStack(spacing: 2) { dot; dot }
+            HStack(spacing: 2) {
+                dot
+                dot
+            }
+            HStack(spacing: 2) {
+                dot
+                dot
+            }
+            HStack(spacing: 2) {
+                dot
+                dot
+            }
         }
         .frame(width: Layout.leadingSlotWidth, height: Layout.rowHeight)
         .contentShape(Rectangle())

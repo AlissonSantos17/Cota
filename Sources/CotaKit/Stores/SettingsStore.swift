@@ -1,6 +1,6 @@
 import Foundation
-import SwiftUI
 import ServiceManagement
+import SwiftUI
 
 @MainActor
 public final class SettingsStore: ObservableObject {
@@ -66,13 +66,13 @@ public final class SettingsStore: ObservableObject {
     @Published public var alerts: [PriceAlert] = []
 
     public static let defaultPairs = [
-        "EUR-BRL", "USD-BRL", "GBP-BRL", "BTC-BRL"
+        "EUR-BRL", "USD-BRL", "GBP-BRL", "BTC-BRL",
     ]
 
     public static let availablePairs = [
         "EUR-BRL", "USD-BRL", "GBP-BRL", "BTC-BRL",
         "ARS-BRL", "CAD-BRL", "AUD-BRL", "JPY-BRL",
-        "CHF-BRL", "CNY-BRL", "ETH-BRL", "XRP-BRL"
+        "CHF-BRL", "CNY-BRL", "ETH-BRL", "XRP-BRL",
     ]
 
     public init(defaults: UserDefaults = .standard) {
@@ -82,17 +82,21 @@ public final class SettingsStore: ObservableObject {
         self.pairs = resolvedPairs.map(\.pair)
         let stored = defaults.integer(forKey: Keys.refreshInterval)
         self.refreshInterval = stored > 0 ? stored : 300
-        self.period = defaults.string(forKey: Keys.period)
+        self.period =
+            defaults.string(forKey: Keys.period)
             .flatMap(QuotePeriod.init(rawValue:)) ?? .day
 
-        self.menuBarFormat = defaults.string(forKey: Keys.menuBarFormat)
+        self.menuBarFormat =
+            defaults.string(forKey: Keys.menuBarFormat)
             .flatMap(MenuBarFormat.init(rawValue:)) ?? .auto
-        self.menuBarIndicator = defaults.string(forKey: Keys.menuBarIndicator)
+        self.menuBarIndicator =
+            defaults.string(forKey: Keys.menuBarIndicator)
             .flatMap(ChangeIndicator.init(rawValue:)) ?? .arrow
         self.dimWhenStale = defaults.object(forKey: Keys.dimWhenStale) as? Bool ?? true
 
         if let data = defaults.data(forKey: Keys.alerts),
-           let decoded = try? JSONDecoder().decode([PriceAlert].self, from: data) {
+            let decoded = try? JSONDecoder().decode([PriceAlert].self, from: data)
+        {
             self.alerts = decoded
         }
     }
@@ -108,14 +112,16 @@ public final class SettingsStore: ObservableObject {
     /// same defaults as before.
     private static func loadPairSettings(from defaults: UserDefaults) -> [PairSetting] {
         if let data = defaults.data(forKey: Keys.pairSettings),
-           let decoded = try? JSONDecoder().decode([PairSetting].self, from: data) {
+            let decoded = try? JSONDecoder().decode([PairSetting].self, from: data)
+        {
             return decoded
         }
 
         let pairs = defaults.stringArray(forKey: Keys.Legacy.pairs) ?? defaultPairs
         // Absent rather than empty means "never configured", and the old code
         // labelled the bar with the first pair in that case.
-        let shown = defaults.stringArray(forKey: Keys.Legacy.menuBarPairs)
+        let shown =
+            defaults.stringArray(forKey: Keys.Legacy.menuBarPairs)
             ?? Array(pairs.prefix(1))
 
         let migrated = pairs.map {
@@ -170,9 +176,10 @@ public final class SettingsStore: ObservableObject {
 
     public func movePair(from source: Int, to destination: Int) {
         guard source != destination,
-              pairSettings.indices.contains(source),
-              destination >= 0,
-              destination <= pairSettings.count else {
+            pairSettings.indices.contains(source),
+            destination >= 0,
+            destination <= pairSettings.count
+        else {
             return
         }
 
@@ -183,8 +190,9 @@ public final class SettingsStore: ObservableObject {
 
     public func swapPairs(_ i: Int, _ j: Int) {
         guard i != j,
-              pairSettings.indices.contains(i),
-              pairSettings.indices.contains(j) else {
+            pairSettings.indices.contains(i),
+            pairSettings.indices.contains(j)
+        else {
             return
         }
         pairSettings.swapAt(i, j)

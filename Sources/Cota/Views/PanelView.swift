@@ -1,6 +1,6 @@
-import SwiftUI
 import AppKit
 import CotaKit
+import SwiftUI
 
 struct PanelView: View {
     @ObservedObject var store: QuoteStore
@@ -398,4 +398,3 @@ private struct CurrencyBadge: View {
             .accessibilityHidden(true)
     }
 }
-

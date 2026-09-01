@@ -1,5 +1,6 @@
-import Testing
 import Foundation
+import Testing
+
 @testable import CotaKit
 
 @Suite @MainActor
@@ -15,11 +16,11 @@ struct NotificationServiceTests {
     private func quote(_ pair: String, bid: String) -> Quote {
         let parts = pair.split(separator: "-")
         let json = """
-        {
-          "code": "\(parts[0])", "codein": "\(parts[1])", "name": "\(pair)",
-          "bid": "\(bid)", "pctChange": "0", "create_date": "2026-09-01 09:12:00"
-        }
-        """
+            {
+              "code": "\(parts[0])", "codein": "\(parts[1])", "name": "\(pair)",
+              "bid": "\(bid)", "pctChange": "0", "create_date": "2026-09-01 09:12:00"
+            }
+            """
         return try! JSONDecoder().decode(Quote.self, from: Data(json.utf8))
     }
 

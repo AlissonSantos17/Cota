@@ -1,5 +1,5 @@
-import SwiftUI
 import CotaKit
+import SwiftUI
 
 /// Label segments drawn at list scale, for the examples beside each format
 /// option in Settings.

@@ -1,5 +1,6 @@
-import Testing
 import Foundation
+import Testing
+
 @testable import CotaKit
 
 @Suite @MainActor
@@ -116,10 +117,11 @@ struct SettingsStoreTests {
 
     @Test func removingAPairTakesItsFlagWithIt() {
         let defaults = freshDefaults()
-        defaults.set(encoded([
-            PairSetting(pair: "EUR-BRL", showsInMenuBar: true),
-            PairSetting(pair: "USD-BRL", showsInMenuBar: true)
-        ]), forKey: "pairSettings")
+        defaults.set(
+            encoded([
+                PairSetting(pair: "EUR-BRL", showsInMenuBar: true),
+                PairSetting(pair: "USD-BRL", showsInMenuBar: true),
+            ]), forKey: "pairSettings")
 
         let store = SettingsStore(defaults: defaults)
         store.removePair("EUR-BRL")
@@ -133,10 +135,11 @@ struct SettingsStoreTests {
 
     @Test func reorderingCarriesTheFlag() {
         let defaults = freshDefaults()
-        defaults.set(encoded([
-            PairSetting(pair: "EUR-BRL", showsInMenuBar: false),
-            PairSetting(pair: "USD-BRL", showsInMenuBar: true)
-        ]), forKey: "pairSettings")
+        defaults.set(
+            encoded([
+                PairSetting(pair: "EUR-BRL", showsInMenuBar: false),
+                PairSetting(pair: "USD-BRL", showsInMenuBar: true),
+            ]), forKey: "pairSettings")
 
         let store = SettingsStore(defaults: defaults)
         store.swapPairs(0, 1)
@@ -158,10 +161,11 @@ struct SettingsStoreTests {
     /// back, or the bar shows two unlabelled numbers.
     @Test func tickingASecondPairWalksTheValueFormatBack() {
         let defaults = freshDefaults()
-        defaults.set(encoded([
-            PairSetting(pair: "EUR-BRL", showsInMenuBar: true),
-            PairSetting(pair: "USD-BRL", showsInMenuBar: false)
-        ]), forKey: "pairSettings")
+        defaults.set(
+            encoded([
+                PairSetting(pair: "EUR-BRL", showsInMenuBar: true),
+                PairSetting(pair: "USD-BRL", showsInMenuBar: false),
+            ]), forKey: "pairSettings")
 
         let store = SettingsStore(defaults: defaults)
         store.menuBarFormat = .value

@@ -1,6 +1,6 @@
-import SwiftUI
 import AppKit
 import CotaKit
+import SwiftUI
 
 /// The label drawn in the menu bar.
 ///
@@ -51,7 +51,8 @@ enum MenuBarLabelImage {
     static let placeholder = "Cota"
 
     static func render(_ segments: [LabelSegment], dimmed: Bool) -> NSImage {
-        let resolved = segments.isEmpty
+        let resolved =
+            segments.isEmpty
             ? [LabelSegment(placeholder, .value)]
             : segments
 
@@ -77,13 +78,14 @@ enum MenuBarLabelImage {
         let result = NSMutableAttributedString()
 
         for segment in segments {
-            result.append(NSAttributedString(
-                string: segment.text,
-                attributes: [
-                    .font: font(for: segment.role),
-                    .foregroundColor: color(for: segment.role, dimmed: dimmed)
-                ]
-            ))
+            result.append(
+                NSAttributedString(
+                    string: segment.text,
+                    attributes: [
+                        .font: font(for: segment.role),
+                        .foregroundColor: color(for: segment.role, dimmed: dimmed),
+                    ]
+                ))
         }
 
         return result
@@ -131,7 +133,7 @@ enum MenuBarLabelImage {
                 .featureSettings: [
                     [
                         NSFontDescriptor.FeatureKey.typeIdentifier: kNumberSpacingType,
-                        NSFontDescriptor.FeatureKey.selectorIdentifier: kMonospacedNumbersSelector
+                        NSFontDescriptor.FeatureKey.selectorIdentifier: kMonospacedNumbersSelector,
                     ]
                 ]
             ])

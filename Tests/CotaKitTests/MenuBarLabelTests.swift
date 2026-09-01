@@ -1,5 +1,6 @@
-import Testing
 import Foundation
+import Testing
+
 @testable import CotaKit
 
 @Suite
@@ -230,11 +231,12 @@ struct MenuBarLabelTests {
                 == "€ 6,02"
         )
         #expect(
-            text(MenuBarLabel.exampleSegments(
-                for: eur,
-                format: .auto,
-                among: ["EUR", "USD", "CAD"]
-            )) == "EUR 6,02"
+            text(
+                MenuBarLabel.exampleSegments(
+                    for: eur,
+                    format: .auto,
+                    among: ["EUR", "USD", "CAD"]
+                )) == "EUR 6,02"
         )
     }
 

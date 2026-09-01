@@ -32,8 +32,13 @@ struct SegmentedControl<Value: Hashable>: View {
                     selection = segment.value
                 } label: {
                     Text(segment.label)
-                        .font(.system(size: 11, weight: selection == segment.value ? .semibold : .regular))
-                        .foregroundStyle(selection == segment.value ? selectedLabelColor : Color.primary)
+                        .font(
+                            .system(
+                                size: 11, weight: selection == segment.value ? .semibold : .regular)
+                        )
+                        .foregroundStyle(
+                            selection == segment.value ? selectedLabelColor : Color.primary
+                        )
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .contentShape(Rectangle())
                 }

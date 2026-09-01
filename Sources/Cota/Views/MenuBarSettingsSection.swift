@@ -1,5 +1,5 @@
-import SwiftUI
 import CotaKit
+import SwiftUI
 
 /// The "Menu bar" block of Settings.
 ///
@@ -75,11 +75,13 @@ struct MenuBarSettingsSection: View {
     private var preview: some View {
         HStack {
             if selectedQuotes.isEmpty {
-                Text(settings.orderedMenuBarPairs.isEmpty
-                    ? "No pairs shown in the menu bar"
-                    : "Waiting for quotes")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.tertiary)
+                Text(
+                    settings.orderedMenuBarPairs.isEmpty
+                        ? "No pairs shown in the menu bar"
+                        : "Waiting for quotes"
+                )
+                .font(.system(size: 11))
+                .foregroundStyle(.tertiary)
             } else {
                 Image(nsImage: MenuBarLabelImage.render(previewSegments, dimmed: false))
             }
@@ -141,20 +143,24 @@ struct MenuBarSettingsSection: View {
     }
 
     private func formatRow(_ format: MenuBarFormat) -> some View {
-        let isDisabled = MenuBarLabel.disabledReason(
-            for: format,
-            pairCount: settings.orderedMenuBarPairs.count
-        ) != nil
+        let isDisabled =
+            MenuBarLabel.disabledReason(
+                for: format,
+                pairCount: settings.orderedMenuBarPairs.count
+            ) != nil
 
         return Button {
             settings.menuBarFormat = format
         } label: {
             ListRow(leadingWidth: 16, trailingWidth: 104) {
-                Image(systemName: settings.menuBarFormat == format
-                    ? "largecircle.fill.circle"
-                    : "circle")
-                    .font(.system(size: 12))
-                    .foregroundStyle(settings.menuBarFormat == format
+                Image(
+                    systemName: settings.menuBarFormat == format
+                        ? "largecircle.fill.circle"
+                        : "circle"
+                )
+                .font(.system(size: 12))
+                .foregroundStyle(
+                    settings.menuBarFormat == format
                         ? AnyShapeStyle(Color.accentColor)
                         : AnyShapeStyle(.secondary))
             } center: {
@@ -231,7 +237,8 @@ struct MenuBarSettingsSection: View {
     /// Indented to whatever it explains: under a row, past the slot reserved
     /// for the radio or checkbox, so the line starts under the label and not
     /// under the control; under the preview, flush with the section margin.
-    private func helpText(_ text: String, indent: CGFloat = 16 + Layout.columnSpacing) -> some View {
+    private func helpText(_ text: String, indent: CGFloat = 16 + Layout.columnSpacing) -> some View
+    {
         Text(text)
             .font(.system(size: 11))
             .foregroundStyle(.tertiary)

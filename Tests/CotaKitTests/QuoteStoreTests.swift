@@ -1,5 +1,6 @@
-import Testing
 import Foundation
+import Testing
+
 @testable import CotaKit
 
 final class MockQuoteService: QuoteServiceProtocol, @unchecked Sendable {
@@ -7,8 +8,11 @@ final class MockQuoteService: QuoteServiceProtocol, @unchecked Sendable {
     var dailyBids: [String: [Decimal]] = [:]
     var intradayBids: [String: [Decimal]] = [:]
 
+    private(set) var fetchCount = 0
+
     func fetchQuotes(pairs: [String]) async throws -> [Quote] {
-        try result.get()
+        fetchCount += 1
+        return try result.get()
     }
 
     func fetchDailyBids(pair: String, days: Int) async throws -> [Decimal] {
@@ -34,24 +38,24 @@ struct QuoteStoreTests {
 
     private func quote(code: String, bid: String, pctChange: String = "0") throws -> Quote {
         let json = """
-        {
-            "code": "\(code)", "codein": "BRL",
-            "name": "\(code)/BRL", "bid": "\(bid)",
-            "pctChange": "\(pctChange)", "create_date": "2026-08-31"
-        }
-        """.data(using: .utf8)!
+            {
+                "code": "\(code)", "codein": "BRL",
+                "name": "\(code)/BRL", "bid": "\(bid)",
+                "pctChange": "\(pctChange)", "create_date": "2026-08-31"
+            }
+            """.data(using: .utf8)!
         return try JSONDecoder().decode(Quote.self, from: json)
     }
 
     @Test func refreshUpdatesQuotes() async {
         let (store, mockService) = makeStore()
         let json = """
-        {
-            "code": "USD", "codein": "BRL",
-            "name": "Dollar", "bid": "5.00",
-            "pctChange": "1.5", "create_date": "2026-08-31"
-        }
-        """.data(using: .utf8)!
+            {
+                "code": "USD", "codein": "BRL",
+                "name": "Dollar", "bid": "5.00",
+                "pctChange": "1.5", "create_date": "2026-08-31"
+            }
+            """.data(using: .utf8)!
 
         let quote = try! JSONDecoder().decode(Quote.self, from: json)
         mockService.result = .success([quote])
@@ -98,14 +102,14 @@ struct QuoteStoreTests {
                 Decimal(string: "5.10")!,
                 Decimal(string: "5.22")!,
                 Decimal(string: "5.16")!,
-                Decimal(string: "5.18")!
+                Decimal(string: "5.18")!,
             ],
             "EUR-BRL": [
                 Decimal(string: "5.90")!,
                 Decimal(string: "5.85")!,
                 Decimal(string: "6.00")!,
-                Decimal(string: "6.02")!
-            ]
+                Decimal(string: "6.02")!,
+            ],
         ]
 
         await store.refresh()
@@ -113,5 +117,36 @@ struct QuoteStoreTests {
         #expect(store.priceHistory["USD-BRL"] == mockService.dailyBids["USD-BRL"])
         #expect(store.priceHistory["EUR-BRL"] == mockService.dailyBids["EUR-BRL"])
         #expect(store.priceHistory["USD-BRL"] != store.priceHistory["EUR-BRL"])
+    }
+
+    /// The loop used to sleep the old interval to the end, so 5m → 30s
+    /// waited out the remaining minutes. Restarting the loop is what makes
+    /// the control mean what it says.
+    @Test func changingTheIntervalFetchesAgainWithoutWaitingOutTheOldSleep() async throws {
+        let (store, mockService) = makeStore()
+        store.settings.refreshInterval = 300
+        mockService.result = .success([try quote(code: "USD", bid: "5.00")])
+
+        store.start()
+        try await waitUntil { mockService.fetchCount >= 1 }
+        #expect(mockService.fetchCount == 1)
+
+        store.settings.refreshInterval = 30
+        try await waitUntil { mockService.fetchCount >= 2 }
+        #expect(mockService.fetchCount == 2)
+
+        store.stop()
+    }
+
+    private func waitUntil(
+        timeout: Duration = .milliseconds(400),
+        _ condition: @MainActor () -> Bool
+    ) async throws {
+        let deadline = ContinuousClock.now + timeout
+        while ContinuousClock.now < deadline {
+            if condition() { return }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        Issue.record("timed out waiting for condition")
     }
 }
