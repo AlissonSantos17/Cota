@@ -5,9 +5,38 @@ import UserNotifications
 public final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     public static let shared = NotificationService()
 
-    private var triggeredAlerts: Set<UUID> = []
+    private enum Keys {
+        static let triggered = "triggeredAlerts"
+        static let lastNotified = "alertLastNotified"
+    }
 
-    private override init() {
+    /// How far past the threshold the price must come back before an alert can
+    /// fire again. Without it a price sitting on the threshold notifies on
+    /// every crossing, which for a quote refreshed every few minutes means a
+    /// stream of banners for a single event.
+    private static let rearmMargin = Decimal(string: "0.003")!
+
+    /// Floor between two notifications for the same alert.
+    private static let cooldown: TimeInterval = 900
+
+    private let defaults: UserDefaults
+
+    /// Persisted: an in-memory set starts empty on launch, so every alert
+    /// whose condition already held fired again each time the app opened.
+    private var triggeredAlerts: Set<UUID>
+    private var lastNotified: [UUID: Date]
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        self.triggeredAlerts = Set(
+            (defaults.stringArray(forKey: Keys.triggered) ?? []).compactMap(UUID.init(uuidString:))
+        )
+        self.lastNotified = (defaults.dictionary(forKey: Keys.lastNotified) as? [String: Date] ?? [:])
+            .reduce(into: [:]) { result, entry in
+                if let id = UUID(uuidString: entry.key) {
+                    result[id] = entry.value
+                }
+            }
         super.init()
         UNUserNotificationCenter.current().delegate = self
     }
@@ -18,28 +47,55 @@ public final class NotificationService: NSObject, UNUserNotificationCenterDelega
         ) { _, _ in }
     }
 
-    public func checkAlerts(_ alerts: [PriceAlert], against quotes: [Quote]) {
+    public func checkAlerts(_ alerts: [PriceAlert], against quotes: [Quote], now: Date = .now) {
         let activeIDs = Set(alerts.filter(\.isEnabled).map(\.id))
         triggeredAlerts.formIntersection(activeIDs)
+        lastNotified = lastNotified.filter { activeIDs.contains($0.key) }
 
         for alert in alerts where alert.isEnabled {
             guard let quote = quotes.first(where: { "\($0.code)-\($0.codein)" == alert.pair }) else {
                 continue
             }
 
-            let isTriggered = alert.isAbove
-                ? quote.bid >= alert.threshold
-                : quote.bid <= alert.threshold
+            if isTriggered(alert, bid: quote.bid) {
+                guard !triggeredAlerts.contains(alert.id) else { continue }
 
-            if isTriggered {
-                if !triggeredAlerts.contains(alert.id) {
-                    triggeredAlerts.insert(alert.id)
-                    send(alert: alert, currentValue: quote.bid)
+                triggeredAlerts.insert(alert.id)
+
+                if let last = lastNotified[alert.id], now.timeIntervalSince(last) < Self.cooldown {
+                    continue
                 }
-            } else {
+
+                lastNotified[alert.id] = now
+                send(alert: alert, currentValue: quote.bid)
+            } else if hasRearmed(alert, bid: quote.bid) {
                 triggeredAlerts.remove(alert.id)
             }
         }
+
+        persist()
+    }
+
+    private func isTriggered(_ alert: PriceAlert, bid: Decimal) -> Bool {
+        alert.isAbove ? bid >= alert.threshold : bid <= alert.threshold
+    }
+
+    /// The price has to clear the threshold by the margin, not merely cross
+    /// back over it, before the alert arms again.
+    private func hasRearmed(_ alert: PriceAlert, bid: Decimal) -> Bool {
+        let margin = alert.threshold * Self.rearmMargin
+
+        return alert.isAbove
+            ? bid < alert.threshold - margin
+            : bid > alert.threshold + margin
+    }
+
+    private func persist() {
+        defaults.set(triggeredAlerts.map(\.uuidString), forKey: Keys.triggered)
+        defaults.set(
+            Dictionary(uniqueKeysWithValues: lastNotified.map { ($0.key.uuidString, $0.value) }),
+            forKey: Keys.lastNotified
+        )
     }
 
     private func send(alert: PriceAlert, currentValue: Decimal) {

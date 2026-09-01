@@ -15,7 +15,6 @@ struct PanelView: View {
                 }
             } else {
                 quotesPanel
-                    .padding(14)
             }
         }
         .frame(width: 360)
@@ -24,94 +23,170 @@ struct PanelView: View {
     }
 
     private var quotesPanel: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            header
+        // Staleness is a function of elapsed time, so the panel re-evaluates on
+        // a tick rather than only when the store publishes.
+        TimelineView(.periodic(from: .now, by: 15)) { context in
+            VStack(spacing: 0) {
+                header
 
-            if let error = store.error {
-                errorView(error)
-            }
+                SectionSeparator()
 
-            quotes
+                content(now: context.date)
 
-            Divider()
+                SectionSeparator()
 
-            actions
-
-            if let date = store.lastUpdate {
-                Text(
-                    "Updated at \(date.formatted(.dateTime.day().month(.abbreviated).year().hour().minute()))"
-                )
-                .font(.caption2)
-                .foregroundStyle(.secondary)
+                footer(now: context.date)
             }
         }
     }
 
-    private var header: some View {
-        HStack {
-            Text("Quotes")
-                .font(.headline)
+    @ViewBuilder
+    private func content(now: Date) -> some View {
+        if settings.pairs.isEmpty {
+            emptyState
+        } else if !store.hasLoaded {
+            skeleton
+        } else {
+            quotes
+                .opacity(isDegraded(now: now) ? 0.5 : 1)
+        }
+    }
 
-            Spacer()
+    /// Values are kept on screen when a refresh fails or goes stale — dimmed,
+    /// never removed. Vanishing data is a worse answer than old data.
+    private func isDegraded(now: Date) -> Bool {
+        store.error != nil || store.isStale(at: now)
+    }
+
+    private var header: some View {
+        HStack(spacing: Layout.columnSpacing) {
+            Text("Quotes")
+                .font(.system(size: 13, weight: .medium))
 
             if store.loading {
                 ProgressView()
                     .controlSize(.small)
+                    .scaleEffect(0.7)
             }
-        }
-    }
 
-    private func errorView(_ error: String) -> some View {
-        Text("Update error: \(error)")
-            .font(.caption)
-            .foregroundStyle(.red)
-            .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: Layout.columnSpacing)
+
+            SegmentedControl(
+                segments: QuotePeriod.allCases.map { .init($0.label, $0) },
+                selection: $settings.period,
+                height: 22
+            )
+            .frame(width: 108)
+            .accessibilityLabel("Period")
+        }
+        .padding(.horizontal, Layout.horizontalPadding)
+        .frame(height: 44)
     }
 
     private var quotes: some View {
-        ForEach(store.quotes) { quote in
+        ForEach(Array(store.quotes.enumerated()), id: \.element.id) { index, quote in
             QuoteRow(
                 quote: quote,
-                flag: store.flag(quote.code),
-                history: store.priceHistory[quote.id, default: []]
+                symbol: store.symbol(quote.code),
+                series: store.series(for: quote.id, period: settings.period),
+                change: store.change(for: quote.id, period: settings.period),
+                range: store.range(for: quote.id, period: settings.period)
             )
+
+            if index < store.quotes.count - 1 {
+                RowSeparator()
+            }
         }
     }
 
-    private var actions: some View {
-        HStack(spacing: 8) {
-            Button {
-                Task {
-                    await store.refresh()
-                }
-            } label: {
-                Label("Refresh", systemImage: "arrow.clockwise")
+    private func footer(now: Date) -> some View {
+        HStack(spacing: 12) {
+            status(now: now)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            FooterButton(icon: "arrow.clockwise", help: "Refresh quotes") {
+                Task { await store.refresh() }
             }
-            .accessibilityLabel("Refresh quotes")
             .disabled(store.loading)
 
-            Button {
+            FooterButton(icon: "gearshape", help: "Settings") {
                 showSettings = true
-            } label: {
-                Label("Settings", systemImage: "gearshape")
             }
-            .accessibilityLabel("Open settings")
 
-            Spacer(minLength: 8)
-
-            Divider()
-                .frame(height: 12)
-
-            Button {
+            FooterButton(icon: "power", help: "Quit Cota") {
                 NSApplication.shared.terminate(nil)
-            } label: {
-                Label("Quit", systemImage: "power")
             }
-            .foregroundStyle(.secondary)
-            .buttonStyle(.plain)
-            .accessibilityLabel("Quit Cota")
         }
-        .font(.caption)
+        .padding(.horizontal, Layout.horizontalPadding)
+        .frame(height: 38)
+    }
+
+    /// Relative rather than absolute: the question a stale panel raises is
+    /// "how old is this?", not "what day is it?".
+    private func status(now: Date) -> some View {
+        let degraded = isDegraded(now: now)
+
+        return HStack(spacing: 4) {
+            if degraded {
+                Image(systemName: "exclamationmark.triangle")
+                    .font(.system(size: 10))
+            }
+
+            if store.error != nil {
+                Text("Couldn't update")
+            } else if let date = store.lastUpdate {
+                Text("Updated \(Self.elapsed(from: date, to: now))")
+            }
+        }
+        .font(.system(size: 11))
+        .foregroundStyle(degraded ? AnyShapeStyle(.orange) : AnyShapeStyle(.secondary))
+        .help(store.error ?? "")
+    }
+
+    /// Hand-rolled rather than a relative date style: the stock one rounds a
+    /// fetch that just landed into "in 0 seconds".
+    private static func elapsed(from date: Date, to now: Date) -> String {
+        let seconds = Int(max(0, now.timeIntervalSince(date)))
+
+        switch seconds {
+        case ..<60:
+            return "just now"
+        case ..<3600:
+            return "\(seconds / 60) min ago"
+        case ..<86_400:
+            return "\(seconds / 3600) h ago"
+        default:
+            return "\(seconds / 86_400) d ago"
+        }
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 8) {
+            Text("No currency pairs")
+                .font(.system(size: 13, weight: .medium))
+
+            Text("Pick the pairs you want to follow.")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+
+            Button("Open settings") {
+                showSettings = true
+            }
+            .controlSize(.small)
+            .padding(.top, 2)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 28)
+    }
+
+    private var skeleton: some View {
+        ForEach(Array(settings.pairs.enumerated()), id: \.element) { index, _ in
+            SkeletonRow()
+
+            if index < settings.pairs.count - 1 {
+                RowSeparator()
+            }
+        }
     }
 
     private var shortcutButtons: some View {
@@ -137,37 +212,102 @@ struct PanelView: View {
     }
 }
 
+private struct SkeletonRow: View {
+    var body: some View {
+        ListRow(
+            height: Layout.quoteRowHeight,
+            leadingWidth: Layout.badgeSize,
+            trailingWidth: Layout.valueColumnWidth
+        ) {
+            Circle()
+                .fill(Color(nsColor: .quaternaryLabelColor))
+                .frame(width: Layout.badgeSize, height: Layout.badgeSize)
+        } center: {
+            VStack(alignment: .leading, spacing: 4) {
+                bar(width: 64, height: 10)
+                bar(width: 48, height: 8)
+            }
+        } trailing: {
+            VStack(alignment: .trailing, spacing: 4) {
+                bar(width: 60, height: 10)
+                bar(width: 40, height: 8)
+            }
+        }
+        .padding(.horizontal, Layout.horizontalPadding)
+        .accessibilityLabel("Loading quote")
+    }
+
+    private func bar(width: CGFloat, height: CGFloat) -> some View {
+        RoundedRectangle(cornerRadius: 3)
+            .fill(Color(nsColor: .quaternaryLabelColor))
+            .frame(width: width, height: height)
+    }
+}
+
+private struct FooterButton: View {
+    let icon: String
+    let help: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+                .frame(width: 15, height: 15)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(help)
+        .accessibilityLabel(help)
+    }
+}
+
+// MARK: - Quote row
+
 private struct QuoteRow: View {
     let quote: Quote
-    let flag: String
-    let history: [Decimal]
+    let symbol: String
+    let series: [Decimal]
+    let change: Decimal?
+    let range: (low: Decimal, high: Decimal)?
+
     @State private var copied = false
 
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("\(flag) \(quote.code)/\(quote.codein)")
-                    .font(.system(.body, design: .rounded))
-                    .bold()
+        ListRow(
+            height: Layout.quoteRowHeight,
+            leadingWidth: Layout.badgeSize,
+            trailingWidth: Layout.valueColumnWidth
+        ) {
+            CurrencyBadge(symbol: symbol)
+        } center: {
+            HStack(spacing: Layout.columnSpacing) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(quote.code)/\(quote.codein)")
+                        .font(.system(size: 13, weight: .medium))
 
-                Text(quote.name)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    Text(formattedRange)
+                        .font(.system(size: 11).monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer(minLength: Layout.columnSpacing)
+
+                SparklineView(data: series, color: changeColor)
+                    .frame(width: SparklineView.width, height: SparklineView.height)
             }
-
-            Spacer()
-
-            SparklineView(data: history, color: changeColor)
-
+        } trailing: {
             VStack(alignment: .trailing, spacing: 2) {
                 Text(formattedValue)
-                    .font(.system(.body, design: .monospaced))
+                    .font(.system(size: 13).monospacedDigit())
 
                 Text(formattedChange)
-                    .font(.caption)
+                    .font(.system(size: 11).monospacedDigit())
                     .foregroundStyle(changeColor)
             }
         }
+        .padding(.horizontal, Layout.horizontalPadding)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(quote.code) to \(quote.codein)")
         .accessibilityValue("\(formattedValue), change \(formattedChange)")
@@ -184,37 +324,88 @@ private struct QuoteRow: View {
         .overlay(alignment: .topTrailing) {
             if copied {
                 Text("Copied!")
-                    .font(.caption2)
+                    .font(.system(size: 10))
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
                     .background(.green.opacity(0.2), in: RoundedRectangle(cornerRadius: 4))
+                    .padding(.trailing, Layout.horizontalPadding)
                     .transition(.opacity)
-                    .offset(y: -14)
             }
         }
         .animation(.easeInOut(duration: 0.2), value: copied)
     }
 
+    /// No currency prefix: the pair name already states it, and a prefix puts
+    /// the digits at a different x on every row.
     private var formattedValue: String {
-        quote.bid.formatted(
-            .currency(code: quote.codein)
-                .locale(Locale(identifier: "pt_BR"))
-        )
+        QuoteFormat.value(quote.bid)
     }
 
-    private var formattedChange: String {
-        let value = quote.pctChange
-        let sign = value >= 0 ? "+" : ""
+    private var formattedRange: String {
+        guard let range else { return "—" }
+        return "\(QuoteFormat.rangeBound(range.low)) – \(QuoteFormat.rangeBound(range.high))"
+    }
 
-        let formatted = value.formatted(
+    /// Always carries an arrow: colour alone does not communicate direction to
+    /// a colourblind reader.
+    private var formattedChange: String {
+        let value = change ?? quote.pctChange
+        let arrow = value < 0 ? "▼" : "▲"
+        let formatted = abs(value).formatted(
             .number
                 .precision(.fractionLength(2))
                 .locale(Locale(identifier: "pt_BR"))
         )
-        return "\(sign)\(formatted)%"
+        return "\(arrow) \(formatted)%"
     }
 
     private var changeColor: Color {
-        quote.pctChange >= 0 ? .green : .red
+        (change ?? quote.pctChange) < 0 ? .red : .green
+    }
+}
+
+private struct CurrencyBadge: View {
+    let symbol: String
+
+    var body: some View {
+        Text(symbol)
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(Color.accentColor)
+            .frame(width: Layout.badgeSize, height: Layout.badgeSize)
+            .background(Color.accentColor.opacity(0.15), in: Circle())
+            .accessibilityHidden(true)
+    }
+}
+
+private enum QuoteFormat {
+    private static let locale = Locale(identifier: "pt_BR")
+
+    /// Large values (crypto) read better grouped and without decimals; FX
+    /// pairs need the fourth decimal to show movement at all.
+    static func value(_ value: Decimal) -> String {
+        let fractionDigits = value >= 1000 ? 0 : 4
+        return value.formatted(
+            .number
+                .precision(.fractionLength(fractionDigits))
+                .locale(locale)
+        )
+    }
+
+    /// Range bounds may abbreviate — the main value may not.
+    static func rangeBound(_ value: Decimal) -> String {
+        if value >= 1000 {
+            let thousands = (value / 1000).formatted(
+                .number
+                    .precision(.fractionLength(0))
+                    .locale(locale)
+            )
+            return "\(thousands)k"
+        }
+
+        return value.formatted(
+            .number
+                .precision(.fractionLength(2))
+                .locale(locale)
+        )
     }
 }

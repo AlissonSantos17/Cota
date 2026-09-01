@@ -3,6 +3,7 @@ import Foundation
 public protocol QuoteServiceProtocol {
     func fetchQuotes(pairs: [String]) async throws -> [Quote]
     func fetchDailyBids(pair: String, days: Int) async throws -> [Decimal]
+    func fetchIntradayBids(pair: String, points: Int) async throws -> [Decimal]
 }
 
 public enum QuoteError: LocalizedError, Equatable {
@@ -29,7 +30,11 @@ public final class QuoteService: QuoteServiceProtocol {
     private let session: URLSession
     private let lastURL = "https://economia.awesomeapi.com.br/json/last"
     private let dailyURL = "https://economia.awesomeapi.com.br/json/daily"
+    private let intradayURL = "https://economia.awesomeapi.com.br/json"
     private let maxRetries = 3
+
+    /// The API caps this endpoint at 100 records no matter what is asked for.
+    public static let maxIntradayPoints = 100
 
     public init(session: URLSession = .shared) {
         self.session = session
@@ -63,7 +68,26 @@ public final class QuoteService: QuoteServiceProtocol {
         }
 
         let data = try await fetchData(from: url)
-        let points = try JSONDecoder().decode([DailyBid].self, from: data)
+        let points = try JSONDecoder().decode([BidPoint].self, from: data)
+        return points.reversed().map(\.bid)
+    }
+
+    /// Recent ticks, roughly one every 45 seconds while the market is open.
+    /// A hundred of them cover about 80 minutes of trading — enough to draw
+    /// the 24h window on launch instead of a flat line.
+    public func fetchIntradayBids(pair: String, points: Int) async throws -> [Decimal] {
+        guard !pair.isEmpty, points > 0 else {
+            return []
+        }
+
+        let capped = min(points, Self.maxIntradayPoints)
+
+        guard let url = URL(string: "\(intradayURL)/\(pair)/\(capped)") else {
+            throw QuoteError.invalidURL
+        }
+
+        let data = try await fetchData(from: url)
+        let points = try JSONDecoder().decode([BidPoint].self, from: data)
         return points.reversed().map(\.bid)
     }
 
@@ -104,7 +128,8 @@ public final class QuoteService: QuoteServiceProtocol {
     }
 }
 
-private struct DailyBid: Decodable {
+/// One record from either the daily or the intraday endpoint.
+private struct BidPoint: Decodable {
     let bid: Decimal
 
     enum CodingKeys: String, CodingKey {

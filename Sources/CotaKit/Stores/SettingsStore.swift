@@ -8,6 +8,7 @@ public final class SettingsStore: ObservableObject {
         static let pairs = "selectedPairs"
         static let refreshInterval = "refreshInterval"
         static let alerts = "priceAlerts"
+        static let period = "quotePeriod"
     }
 
     private let defaults: UserDefaults
@@ -18,6 +19,10 @@ public final class SettingsStore: ObservableObject {
 
     @Published public var refreshInterval: Int {
         didSet { defaults.set(refreshInterval, forKey: Keys.refreshInterval) }
+    }
+
+    @Published public var period: QuotePeriod {
+        didSet { defaults.set(period.rawValue, forKey: Keys.period) }
     }
 
     @Published public var launchAtLogin = false
@@ -39,6 +44,8 @@ public final class SettingsStore: ObservableObject {
         self.pairs = defaults.stringArray(forKey: Keys.pairs) ?? Self.defaultPairs
         let stored = defaults.integer(forKey: Keys.refreshInterval)
         self.refreshInterval = stored > 0 ? stored : 300
+        self.period = defaults.string(forKey: Keys.period)
+            .flatMap(QuotePeriod.init(rawValue:)) ?? .day
 
         if let data = defaults.data(forKey: Keys.alerts),
            let decoded = try? JSONDecoder().decode([PriceAlert].self, from: data) {

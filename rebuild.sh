@@ -6,6 +6,7 @@ sleep 1
 
 swift build
 
+mkdir -p Cota.app/Contents/MacOS
 cp .build/arm64-apple-macosx/debug/Cota Cota.app/Contents/MacOS/Cota
 
 codesign --force --sign - --identifier "com.alissonfelp.Cota" Cota.app

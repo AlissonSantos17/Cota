@@ -5,6 +5,7 @@ import Foundation
 final class MockQuoteService: QuoteServiceProtocol, @unchecked Sendable {
     var result: Result<[Quote], Error> = .success([])
     var dailyBids: [String: [Decimal]] = [:]
+    var intradayBids: [String: [Decimal]] = [:]
 
     func fetchQuotes(pairs: [String]) async throws -> [Quote] {
         try result.get()
@@ -12,6 +13,10 @@ final class MockQuoteService: QuoteServiceProtocol, @unchecked Sendable {
 
     func fetchDailyBids(pair: String, days: Int) async throws -> [Decimal] {
         dailyBids[pair] ?? []
+    }
+
+    func fetchIntradayBids(pair: String, points: Int) async throws -> [Decimal] {
+        intradayBids[pair] ?? []
     }
 }
 
