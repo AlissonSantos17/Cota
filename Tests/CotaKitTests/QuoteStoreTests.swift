@@ -26,13 +26,21 @@ final class MockQuoteService: QuoteServiceProtocol, @unchecked Sendable {
 
 @MainActor
 struct QuoteStoreTests {
-    private func makeStore() -> (QuoteStore, MockQuoteService) {
+    private func makeStore(
+        launchHold: Duration = .seconds(2),
+        launchReveal: Duration = .milliseconds(350)
+    ) -> (QuoteStore, MockQuoteService) {
         let mockService = MockQuoteService()
         let suite = "cota.tests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
         let settings = SettingsStore(defaults: defaults)
-        let store = QuoteStore(service: mockService, settings: settings)
+        let store = QuoteStore(
+            service: mockService,
+            settings: settings,
+            launchHold: launchHold,
+            launchReveal: launchReveal
+        )
         return (store, mockService)
     }
 
@@ -81,6 +89,62 @@ struct QuoteStoreTests {
     @Test func menuBarHasNothingToLabelBeforeTheFirstFetch() {
         let (store, _) = makeStore()
         #expect(store.menuBarQuotes.isEmpty)
+    }
+
+    /// The name stays in the bar for the hold even if the first fetch is
+    /// instant. start() is what begins the clock; refresh alone does not.
+    @Test func theLaunchHoldEndsAfterTheNameHasBeenShown() async throws {
+        let (store, _) = makeStore(launchHold: .milliseconds(30))
+        #expect(store.launchHoldActive)
+
+        store.start()
+        try await waitUntil { !store.launchHoldActive }
+        #expect(!store.launchHoldActive)
+
+        store.stop()
+    }
+
+    /// Quotes landing during the hold must not start the fade. The name
+    /// stays put until the hold ends.
+    @Test func theRevealWaitsForTheHold() async throws {
+        let (store, mockService) = makeStore(
+            launchHold: .milliseconds(80),
+            launchReveal: .milliseconds(20)
+        )
+        mockService.result = .success([try quote(code: "EUR", bid: "6.02")])
+        await store.refresh()
+
+        #expect(!store.menuBarQuotes.isEmpty)
+        #expect(store.launchReveal == 0)
+    }
+
+    @Test func theRevealRunsAfterHoldWhenQuotesAreReady() async throws {
+        let (store, mockService) = makeStore(
+            launchHold: .milliseconds(30),
+            launchReveal: .milliseconds(30)
+        )
+        mockService.result = .success([try quote(code: "EUR", bid: "6.02")])
+        await store.refresh()
+
+        store.start()
+        try await waitUntil { store.launchReveal == 1 }
+        #expect(store.launchReveal == 1)
+
+        store.stop()
+    }
+
+    @Test func theRevealDoesNotRunWithoutQuotes() async throws {
+        let (store, mockService) = makeStore(
+            launchHold: .milliseconds(20),
+            launchReveal: .milliseconds(20)
+        )
+        mockService.result = .success([])
+
+        store.start()
+        try await waitUntil { !store.launchHoldActive }
+        #expect(store.launchReveal == 0)
+
+        store.stop()
     }
 
     @Test func flagReturnsCorrectEmoji() {

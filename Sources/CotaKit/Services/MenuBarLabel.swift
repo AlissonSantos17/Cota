@@ -71,11 +71,34 @@ public enum MenuBarLabel {
 
     // MARK: - Label
 
+    /// How long the bar keeps the app name after launch, even if quotes
+    /// arrived sooner. The renderer turns empty segments into "Cota".
+    public static let launchHold: Duration = .seconds(2)
+
+    /// Crossfade from the name to the quote. Short enough to read as one
+    /// motion, long enough that the two labels do not pop.
+    public static let launchReveal: Duration = .milliseconds(350)
+
+    /// Smoothstep. The fade is still at both ends, so neither label pops.
+    public static func launchBlend(_ progress: Double) -> Double {
+        let clamped = min(max(progress, 0), 1)
+        return clamped * clamped * (3 - 2 * clamped)
+    }
+
+    public static func launchWidth(from: Double, to: Double, progress: Double) -> Double {
+        from + (to - from) * launchBlend(progress)
+    }
+
     public static func segments(
         for quotes: [MenuBarQuote],
         format: MenuBarFormat,
-        indicator: ChangeIndicator
+        indicator: ChangeIndicator,
+        holdActive: Bool = false
     ) -> [LabelSegment] {
+        if holdActive {
+            return []
+        }
+
         let format = effectiveFormat(format, pairCount: quotes.count)
         let useCodes =
             format == .code

@@ -26,14 +26,21 @@ struct MenuBarLabelView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        Image(nsImage: MenuBarLabelImage.render(segments, dimmed: isDimmed))
+        Image(
+            nsImage: MenuBarLabelImage.render(
+                segments,
+                dimmed: isDimmed,
+                reveal: store.launchReveal
+            )
+        )
     }
 
     private var segments: [LabelSegment] {
         MenuBarLabel.segments(
             for: store.menuBarQuotes,
             format: settings.menuBarFormat,
-            indicator: settings.menuBarIndicator
+            indicator: settings.menuBarIndicator,
+            holdActive: store.launchHoldActive
         )
     }
 
@@ -46,28 +53,86 @@ struct MenuBarLabelView: View {
 }
 
 enum MenuBarLabelImage {
-    /// Shown before the first fetch lands, and whenever no pair is selected. An
-    /// empty label would leave an invisible status item with nothing to click.
+    /// Shown for the launch hold, before the first fetch lands, and whenever
+    /// no pair is selected. An empty label would leave an invisible status
+    /// item with nothing to click.
     static let placeholder = "Cota"
 
-    static func render(_ segments: [LabelSegment], dimmed: Bool) -> NSImage {
-        let resolved =
-            segments.isEmpty
-            ? [LabelSegment(placeholder, .value)]
-            : segments
+    static func render(_ segments: [LabelSegment], dimmed: Bool, reveal: Double = 1) -> NSImage {
+        let name = attributedString([LabelSegment(placeholder, .value)], dimmed: dimmed)
+        let quote = segments.isEmpty ? nil : attributedString(segments, dimmed: dimmed)
+        let blend = MenuBarLabel.launchBlend(reveal)
 
-        let text = attributedString(resolved, dimmed: dimmed)
+        if let quote, blend > 0 {
+            if blend >= 1 {
+                return render(text: quote)
+            }
+            return renderBlend(from: name, to: quote, progress: reveal)
+        }
+
+        return render(text: name)
+    }
+
+    /// Drawn through a handler rather than lockFocus: the handler runs once
+    /// per scale factor, so the label stays sharp on a retina display.
+    private static func render(text: NSAttributedString) -> NSImage {
         let size = text.size()
         let bounds = NSSize(width: max(1, ceil(size.width)), height: max(1, ceil(size.height)))
-
-        // Drawn through a handler rather than lockFocus: the handler runs once
-        // per scale factor, so the label stays sharp on a retina display.
         let image = NSImage(size: bounds, flipped: false) { rect in
             text.draw(in: rect)
             return true
         }
+        image.accessibilityDescription = text.string
+        return image
+    }
 
-        image.accessibilityDescription = resolved.map(\.text).joined()
+    private static func renderBlend(
+        from: NSAttributedString,
+        to: NSAttributedString,
+        progress: Double
+    ) -> NSImage {
+        let fromSize = from.size()
+        let toSize = to.size()
+        let width = MenuBarLabel.launchWidth(
+            from: fromSize.width,
+            to: toSize.width,
+            progress: progress
+        )
+        let height = max(fromSize.height, toSize.height)
+        let bounds = NSSize(width: max(1, ceil(width)), height: max(1, ceil(height)))
+        let blend = MenuBarLabel.launchBlend(progress)
+
+        let image = NSImage(size: bounds, flipped: false) { rect in
+            guard let ctx = NSGraphicsContext.current?.cgContext else {
+                return true
+            }
+
+            let fromRect = NSRect(
+                x: 0,
+                y: (rect.height - fromSize.height) / 2,
+                width: fromSize.width,
+                height: fromSize.height
+            )
+            let toRect = NSRect(
+                x: 0,
+                y: (rect.height - toSize.height) / 2,
+                width: toSize.width,
+                height: toSize.height
+            )
+
+            ctx.saveGState()
+            ctx.setAlpha(1 - blend)
+            from.draw(in: fromRect)
+            ctx.restoreGState()
+
+            ctx.saveGState()
+            ctx.setAlpha(blend)
+            to.draw(in: toRect)
+            ctx.restoreGState()
+            return true
+        }
+
+        image.accessibilityDescription = blend < 0.5 ? from.string : to.string
         return image
     }
 

@@ -24,22 +24,37 @@ public final class QuoteStore: ObservableObject {
     /// first load, then extended with each live bid.
     @Published public private(set) var intradayBids: [String: [Decimal]] = [:]
 
+    /// The menu bar keeps the app name until this drops, even if the first
+    /// fetch has already landed. It is a launch hold, not a loading flag.
+    @Published public private(set) var launchHoldActive = true
+
+    /// 0 is the name, 1 is the quote. The renderer crossfades between them.
+    @Published public private(set) var launchReveal: Double = 0
+
     private let maxHistoryPoints = 30
     private let maxIntradayPoints = 200
     private let service: QuoteServiceProtocol
     public let settings: SettingsStore
+    private let launchHold: Duration
+    private let launchRevealDuration: Duration
 
     private var loop: Task<Void, Never>?
     private var staleLoop: Task<Void, Never>?
+    private var launchHoldTask: Task<Void, Never>?
+    private var launchRevealTask: Task<Void, Never>?
     private var pairsObservation: AnyCancellable?
     private var intervalObservation: AnyCancellable?
 
     public init(
         service: QuoteServiceProtocol = QuoteService(),
-        settings: SettingsStore
+        settings: SettingsStore,
+        launchHold: Duration = MenuBarLabel.launchHold,
+        launchReveal: Duration = MenuBarLabel.launchReveal
     ) {
         self.service = service
         self.settings = settings
+        self.launchHold = launchHold
+        self.launchRevealDuration = launchReveal
 
         pairsObservation = settings.$pairs
             .dropFirst()
@@ -63,11 +78,28 @@ public final class QuoteStore: ObservableObject {
     deinit {
         loop?.cancel()
         staleLoop?.cancel()
+        launchHoldTask?.cancel()
+        launchRevealTask?.cancel()
         pairsObservation?.cancel()
         intervalObservation?.cancel()
     }
 
     public func start() {
+        if launchHoldTask == nil {
+            launchHoldTask = Task { [weak self] in
+                guard let self else { return }
+
+                do {
+                    try await Task.sleep(for: self.launchHold)
+                } catch {
+                    return
+                }
+
+                self.launchHoldActive = false
+                self.startRevealIfReady()
+            }
+        }
+
         if loop == nil {
             loop = Task { [weak self] in
                 guard let self else {
@@ -130,6 +162,10 @@ public final class QuoteStore: ObservableObject {
         loop = nil
         staleLoop?.cancel()
         staleLoop = nil
+        launchHoldTask?.cancel()
+        launchHoldTask = nil
+        launchRevealTask?.cancel()
+        launchRevealTask = nil
     }
 
     public func refresh() async {
@@ -152,6 +188,7 @@ public final class QuoteStore: ObservableObject {
             stale = false
             await updatePriceHistory(with: newQuotes)
             NotificationService.shared.checkAlerts(settings.alerts, against: quotes)
+            startRevealIfReady()
         } catch is CancellationError {
         } catch {
             self.error = error.localizedDescription
@@ -277,5 +314,49 @@ public final class QuoteStore: ObservableObject {
                 change: change(for: pair, period: settings.period) ?? quote.pctChange
             )
         }
+    }
+}
+
+extension QuoteStore {
+    /// The fade starts only when the name has been shown and there is a
+    /// quote to fade to. Either arriving first just waits for the other.
+    private func startRevealIfReady() {
+        guard !launchHoldActive, launchReveal < 1, !menuBarQuotes.isEmpty else {
+            return
+        }
+        guard launchRevealTask == nil else { return }
+
+        launchRevealTask = Task { [weak self] in
+            guard let self else { return }
+
+            let start = ContinuousClock.now
+            while !Task.isCancelled {
+                let elapsed = start.duration(to: .now)
+                self.launchReveal = min(
+                    1, Self.progress(elapsed: elapsed, of: self.launchRevealDuration))
+                if self.launchReveal >= 1 {
+                    break
+                }
+
+                do {
+                    try await Task.sleep(for: .milliseconds(16))
+                } catch {
+                    return
+                }
+            }
+
+            self.launchReveal = 1
+        }
+    }
+
+    private static func progress(elapsed: Duration, of total: Duration) -> Double {
+        let elapsedSeconds =
+            Double(elapsed.components.seconds)
+            + Double(elapsed.components.attoseconds) / 1e18
+        let totalSeconds =
+            Double(total.components.seconds)
+            + Double(total.components.attoseconds) / 1e18
+        guard totalSeconds > 0 else { return 1 }
+        return elapsedSeconds / totalSeconds
     }
 }

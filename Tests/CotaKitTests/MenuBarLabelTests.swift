@@ -283,4 +283,42 @@ struct MenuBarLabelTests {
     @Test func noPairsMeansNoSegments() {
         #expect(MenuBarLabel.segments(for: [], format: .auto, indicator: .arrow).isEmpty)
     }
+
+    /// The launch hold keeps the name in the bar even after the first fetch
+    /// has landed. Empty segments are what the renderer turns into "Cota".
+    @Test func theLaunchHoldSuppressesQuotes() {
+        let quotes = [quote("EUR-BRL", "6.02")]
+        #expect(
+            MenuBarLabel.segments(
+                for: quotes,
+                format: .auto,
+                indicator: .none,
+                holdActive: true
+            ).isEmpty
+        )
+        #expect(
+            !MenuBarLabel.segments(
+                for: quotes,
+                format: .auto,
+                indicator: .none,
+                holdActive: false
+            ).isEmpty
+        )
+    }
+
+    /// Smoothstep: the fade starts and ends still, so "Cota" does not pop
+    /// off and the quote does not pop on.
+    @Test func theLaunchBlendEasesAtBothEnds() {
+        #expect(MenuBarLabel.launchBlend(0) == 0)
+        #expect(MenuBarLabel.launchBlend(1) == 1)
+        #expect(MenuBarLabel.launchBlend(0.5) == 0.5)
+        #expect(MenuBarLabel.launchBlend(0.25) < 0.25)
+        #expect(MenuBarLabel.launchBlend(0.75) > 0.75)
+    }
+
+    @Test func theLaunchWidthMovesWithTheBlend() {
+        #expect(MenuBarLabel.launchWidth(from: 10, to: 30, progress: 0) == 10)
+        #expect(MenuBarLabel.launchWidth(from: 10, to: 30, progress: 1) == 30)
+        #expect(MenuBarLabel.launchWidth(from: 10, to: 30, progress: 0.5) == 20)
+    }
 }

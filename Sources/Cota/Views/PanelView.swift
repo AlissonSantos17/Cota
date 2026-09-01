@@ -311,8 +311,7 @@ private struct QuoteRow: View {
         } center: {
             HStack(spacing: Layout.columnSpacing) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("\(quote.code)/\(quote.codein)")
-                        .font(.system(size: 13, weight: .medium))
+                    PairLabel(base: quote.code, quote: quote.codein, size: 13)
 
                     Text(formattedRange)
                         .font(.system(size: 11).monospacedDigit())

@@ -99,8 +99,7 @@ struct SettingsView: View {
                 .padding(.horizontal, Layout.horizontalPadding)
                 .contentShape(Rectangle())
                 .draggable(pair) {
-                    Text(pair)
-                        .font(.system(size: 12, weight: .medium))
+                    PairLabel(pair)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
                         .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 6))
@@ -128,7 +127,7 @@ struct SettingsView: View {
                     }
                     if settings.pairs.count > 1 {
                         Divider()
-                        Button("Remove \(pair)", role: .destructive) {
+                        Button("Remove \(PairDisplay(id: pair).text)", role: .destructive) {
                             settings.removePair(pair)
                         }
                     }
@@ -179,7 +178,7 @@ struct SettingsView: View {
 
         return Menu {
             ForEach(available, id: \.self) { pair in
-                Button(pair) { settings.addPair(pair) }
+                Button(PairDisplay(id: pair).text) { settings.addPair(pair) }
             }
         } label: {
             ListRow {
@@ -304,11 +303,10 @@ private struct PairRow: View {
     var body: some View {
         ListRow {
             ReorderControl(hovering: hovering, onMoveUp: onMoveUp, onMoveDown: onMoveDown)
-                .accessibilityLabel("Reorder \(pair)")
+                .accessibilityLabel("Reorder \(PairDisplay(id: pair).text)")
         } center: {
             HStack(spacing: Layout.columnSpacing) {
-                Text(pair)
-                    .font(.system(size: 12, weight: .medium))
+                PairLabel(pair)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 Text(formattedBid)
@@ -329,7 +327,7 @@ private struct PairRow: View {
                     .labelsHidden()
                     .toggleStyle(.checkbox)
                     .frame(width: PairColumns.menuBar, alignment: .center)
-                    .accessibilityLabel("Show \(pair) in the menu bar")
+                    .accessibilityLabel("Show \(PairDisplay(id: pair).text) in the menu bar")
             }
         } trailing: {
             Button(action: onRemove) {
@@ -342,7 +340,7 @@ private struct PairRow: View {
             .buttonStyle(.plain)
             .disabled(!canRemove)
             .opacity(hovering && canRemove ? 1 : 0)
-            .accessibilityLabel("Remove pair \(pair)")
+            .accessibilityLabel("Remove pair \(PairDisplay(id: pair).text)")
             .help("Remove pair")
         }
         .background(alignment: .top) {
@@ -471,8 +469,7 @@ private struct AlertRow: View {
 
     var body: some View {
         HStack(spacing: Layout.columnSpacing) {
-            Text(alert.pair)
-                .font(.system(size: 12, weight: .medium))
+            PairLabel(alert.pair)
                 .frame(width: AlertColumns.pair, alignment: .leading)
 
             Text(alert.isAbove ? "above" : "below")
@@ -521,7 +518,7 @@ private struct AddAlertRow: View {
             Picker("", selection: $selectedPair) {
                 Text("Pair").tag("")
                 ForEach(pairs, id: \.self) { pair in
-                    Text(pair).tag(pair)
+                    Text(PairDisplay(id: pair).text).tag(pair)
                 }
             }
             .labelsHidden()
