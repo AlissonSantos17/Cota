@@ -17,7 +17,9 @@ struct SparklineView: View {
                     )
 
                 SparklinePath(values: values, domain: domain)
-                    .stroke(color, style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
+                    .stroke(
+                        color, style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round)
+                    )
             }
             .frame(width: Self.width, height: Self.height)
             .accessibilityLabel("Price trend")
@@ -53,10 +55,11 @@ struct SparklineDomain {
 
     init?(values: [Double]) {
         guard values.count >= 2,
-              let low = values.min(),
-              let high = values.max(),
-              let open = values.first,
-              open != 0 else {
+            let low = values.min(),
+            let high = values.max(),
+            let open = values.first,
+            open != 0
+        else {
             return nil
         }
 

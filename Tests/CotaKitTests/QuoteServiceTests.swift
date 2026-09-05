@@ -1,7 +1,11 @@
-import Testing
 import Foundation
+import Testing
+
 @testable import CotaKit
 
+/// MockURLProtocol keeps a process-wide handler. Running these cases in
+/// parallel lets one test's JSON land in another's request.
+@Suite(.serialized)
 struct QuoteServiceTests {
     private func makeService() -> (QuoteService, URLSession) {
         let config = URLSessionConfiguration.ephemeral
@@ -14,17 +18,17 @@ struct QuoteServiceTests {
     @Test func fetchQuotesDecodesValidResponse() async throws {
         let (service, _) = makeService()
         let json = """
-        {
-            "USDBRL": {
-                "code": "USD",
-                "codein": "BRL",
-                "name": "Dollar/Real",
-                "bid": "5.1234",
-                "pctChange": "-0.42",
-                "create_date": "2026-08-31 10:00:00"
+            {
+                "USDBRL": {
+                    "code": "USD",
+                    "codein": "BRL",
+                    "name": "Dollar/Real",
+                    "bid": "5.1234",
+                    "pctChange": "-0.42",
+                    "create_date": "2026-08-31 10:00:00"
+                }
             }
-        }
-        """
+            """
 
         MockURLProtocol.requestHandler = { request in
             let response = HTTPURLResponse(
@@ -69,12 +73,12 @@ struct QuoteServiceTests {
     @Test func fetchDailyBidsReturnsChronologicalBids() async throws {
         let (service, _) = makeService()
         let json = """
-        [
-            {"bid": "5.18", "timestamp": "3"},
-            {"bid": "5.10", "timestamp": "2"},
-            {"bid": "5.00", "timestamp": "1"}
-        ]
-        """
+            [
+                {"bid": "5.18", "timestamp": "3"},
+                {"bid": "5.10", "timestamp": "2"},
+                {"bid": "5.00", "timestamp": "1"}
+            ]
+            """
 
         MockURLProtocol.requestHandler = { request in
             let response = HTTPURLResponse(
@@ -87,10 +91,11 @@ struct QuoteServiceTests {
         }
 
         let bids = try await service.fetchDailyBids(pair: "USD-BRL", days: 15)
-        #expect(bids == [
-            Decimal(string: "5.00")!,
-            Decimal(string: "5.10")!,
-            Decimal(string: "5.18")!
-        ])
+        #expect(
+            bids == [
+                Decimal(string: "5.00")!,
+                Decimal(string: "5.10")!,
+                Decimal(string: "5.18")!,
+            ])
     }
 }

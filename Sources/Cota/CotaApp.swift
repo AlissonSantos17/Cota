@@ -1,5 +1,5 @@
-import SwiftUI
 import CotaKit
+import SwiftUI
 
 @main
 struct CotaApp: App {
@@ -8,8 +8,10 @@ struct CotaApp: App {
 
     init() {
         let settings = SettingsStore()
+        let store = QuoteStore(settings: settings)
+        store.start()
         _settings = StateObject(wrappedValue: settings)
-        _store = StateObject(wrappedValue: QuoteStore(settings: settings))
+        _store = StateObject(wrappedValue: store)
     }
 
     var body: some Scene {
@@ -17,10 +19,9 @@ struct CotaApp: App {
             PanelView(store: store, settings: settings)
                 .task {
                     NotificationService.shared.requestPermission()
-                    store.start()
                 }
         } label: {
-            Text(store.menuBarSummary)
+            MenuBarLabelView(store: store, settings: settings)
         }
         .menuBarExtraStyle(.window)
     }

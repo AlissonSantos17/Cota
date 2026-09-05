@@ -4,219 +4,449 @@
 <meta charset="utf-8">
 <title>Quotes — mockups de referência</title>
 <style>
-  body {
-    margin: 0; padding: 40px;
-    background: #f5f4ef;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    display: flex; flex-wrap: wrap; gap: 40px; align-items: flex-start;
-    justify-content: center;
-  }
-  .col { display: flex; flex-direction: column; gap: 10px; align-items: center; }
-  .caption { font-size: 12px; color: #6b6a64; }
-  .win {
-    background: #1c1c1b; border-radius: 12px; border: 0.5px solid #3d3d3a;
-    overflow: hidden; font-size: 13px; color: #f5f4ef;
-  }
-  .row { display: flex; align-items: center; padding: 0 16px; }
-  .sep { border-top: 0.5px solid #2a2a28; }
-  .num { font-variant-numeric: tabular-nums; }
-  .up { color: #97C459; }
-  .down { color: #F09595; }
-  .meta { font-size: 11px; color: #77766f; }
-  .label { font-size: 11px; color: #a3a29c; }
-  .badge {
-    width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center; font-size: 11px;
-  }
-  .name { font-weight: 500; }
-  .ico { width: 15px; height: 15px; stroke: #a3a29c; fill: none;
-         stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
-  .x { width: 13px; height: 13px; stroke: #5f5e5a; fill: none; stroke-width: 1.6;
-       stroke-linecap: round; flex-shrink: 0; }
-  .seg { display: grid; background: #131312; border-radius: 6px; padding: 2px; gap: 2px; }
-  .seg > div { text-align: center; padding: 5px 0; color: #a3a29c; border-radius: 4px; }
-  .seg > div.on { background: #378ADD; color: #fff; }
-  .tog { width: 30px; height: 18px; border-radius: 9px; position: relative; flex-shrink: 0; }
-  .tog i { position: absolute; top: 2px; width: 14px; height: 14px; border-radius: 50%; }
-  .tog.on { background: #378ADD; } .tog.on i { right: 2px; background: #fff; }
-  .tog.off { background: #4a4a46; } .tog.off i { left: 2px; background: #a3a29c; }
-  .field {
-    height: 26px; background: #131312; border: 0.5px solid #3d3d3a; border-radius: 6px;
-    display: flex; align-items: center; padding: 0 8px; color: #a3a29c; font-size: 12px;
-  }
+  :root { --ink:#1a1915; --ink2:#6b6a64; --page:#f5f4ef; }
+  body { margin:0; padding:40px 24px 80px; background:var(--page); color:var(--ink);
+         font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+         display:flex; flex-direction:column; align-items:center; gap:8px; }
+
+  h1 { font-size:20px; font-weight:600; margin:0; }
+  .lede { font-size:13px; color:var(--ink2); max-width:520px; text-align:center;
+          line-height:1.6; margin:0 0 28px; }
+  h2 { font-size:15px; font-weight:600; margin:36px 0 2px; display:flex;
+       align-items:center; gap:10px; }
+  .badge { font-size:10px; font-weight:500; letter-spacing:0.02em; padding:2px 7px;
+           border-radius:99px; text-transform:uppercase; }
+  .badge.done { background:#dfe9d3; color:#3e5320; }
+  .badge.todo { background:#f6ddd8; color:#7a2f22; }
+  .badge.part { background:#f7e7c6; color:#6d4a12; }
+  .note { font-size:12px; color:var(--ink2); max-width:460px; text-align:center;
+          line-height:1.5; margin:0 0 14px; }
+
+  .win { background:#262624; border-radius:10px; border:0.5px solid #3d3d3a;
+         overflow:hidden; font-size:13px; color:#f5f4ef; }
+  .num { font-variant-numeric:tabular-nums; }
+  .up { color:#97C459; } .down { color:#F09595; }
+  .label { font-size:11px; color:#a3a29c; margin-bottom:8px; }
+  .hint { font-size:11px; color:#77766f; margin-top:6px; line-height:1.4; }
+  .sect { padding:14px 16px; }
+  .sect + .sect { border-top:0.5px solid #3d3d3a; }
+
+  .seg { display:grid; background:#131312; border-radius:6px; padding:2px; gap:2px; }
+  .seg div { text-align:center; padding:5px 0; border-radius:4px; color:#a3a29c; cursor:pointer; }
+  .seg div.on { background:#378ADD; color:#fff; }
+  .tg { width:30px; height:18px; border-radius:9px; background:#4a4a46;
+        position:relative; flex-shrink:0; cursor:pointer; }
+  .tg i { position:absolute; top:2px; left:2px; width:14px; height:14px;
+          border-radius:50%; background:#a3a29c; }
+  .tg.on { background:#378ADD; } .tg.on i { left:auto; right:2px; background:#fff; }
+  .bx { width:15px; height:15px; border-radius:4px; border:0.5px solid #5f5e5a;
+        box-sizing:border-box; display:flex; align-items:center; justify-content:center;
+        font-size:10px; color:transparent; cursor:pointer; }
+  .bx.on { background:#378ADD; border-color:transparent; color:#fff; }
+  .rd { width:14px; height:14px; border-radius:50%; border:0.5px solid #5f5e5a;
+        box-sizing:border-box; flex-shrink:0; }
+  .rd.on { border:4px solid #378ADD; background:#fff; }
+  .ico { width:15px; height:15px; stroke:#a3a29c; fill:none; stroke-width:1.6;
+         stroke-linecap:round; stroke-linejoin:round; }
+
+  /* --- popover --- */
+  .qrow { display:flex; align-items:center; gap:10px; padding:0 16px; height:48px;
+          border-top:0.5px solid #2a2a28; }
+  .qbadge { width:24px; height:24px; border-radius:50%; flex-shrink:0; display:flex;
+            align-items:center; justify-content:center; font-size:11px; }
+
+  /* --- settings window --- */
+  .title { display:flex; align-items:center; height:38px; padding:0 12px; gap:6px;
+           border-bottom:0.5px solid #3d3d3a; }
+  .dot { width:11px; height:11px; border-radius:50%; background:#4a4a46; }
+  .title span { flex:1; text-align:center; font-weight:500; margin-right:57px; }
+  .tabs { display:flex; padding:8px 12px 0; gap:2px; border-bottom:0.5px solid #3d3d3a; }
+  .tabs div { padding:6px 14px; color:#a3a29c; cursor:pointer; border-radius:6px 6px 0 0; }
+  .tabs div.on { background:#333331; color:#f5f4ef; margin-bottom:-1px; }
+  .pane { display:none; } .pane.on { display:block; }
+
+  .hrow { display:flex; align-items:center; padding-bottom:6px; font-size:11px; color:#77766f; }
+  .row { display:flex; align-items:center; height:34px; border-top:0.5px solid #333331; }
+  .grip { width:15px; text-align:center; color:#5f5e5a; cursor:grab; }
+  .cPair { flex:1; padding-left:10px; }
+  .cRate { width:96px; text-align:right; }
+  .cChg  { width:64px; text-align:right; }
+  .cMb   { width:52px; display:flex; justify-content:center; }
+  .cDel  { width:16px; text-align:right; color:#5f5e5a; cursor:pointer; }
+
+  .orow { display:flex; align-items:center; height:32px; gap:10px; cursor:pointer; }
+  .orow + .orow { border-top:0.5px solid #333331; }
+  .why + .orow { border-top:0.5px solid #333331; }
+  .orow.off { cursor:default; color:#5f5e5a; } .orow.off .ex { color:#4a4a46; }
+  .orow.off .rd { border-color:#3d3d3a; }
+  .ex { color:#77766f; font-variant-numeric:tabular-nums; }
+  .why { font-size:11px; color:#77766f; padding:0 0 8px 24px; line-height:1.4; }
+  .bar { background:#131312; border-radius:6px; height:26px; display:flex;
+         align-items:center; padding:0 8px; }
+  .field { height:26px; background:#131312; border:0.5px solid #3d3d3a; border-radius:6px;
+           display:flex; align-items:center; padding:0 8px; color:#a3a29c; font-size:12px;
+           box-sizing:border-box; }
+
+  /* --- menu bar strip --- */
+  .mbrow { display:flex; align-items:center; gap:14px; }
+  .mbcap { width:110px; font-size:12px; color:var(--ink2); text-align:right; }
+  .mbbar { background:#1c1c1b; border-radius:6px; height:24px; display:flex;
+           align-items:center; padding:0 8px; gap:12px; color:#f5f4ef; font-size:13px; }
 </style>
 </head>
 <body>
 
-<div class="col">
-<div class="win" style="width: 356px;">
+<h1>Quotes — referência visual</h1>
+<p class="lede">Arquivo único com as três superfícies do app. O estado de cada
+uma acompanha a tabela no topo de <code>UI_SPEC.md</code>; ao concluir um
+item, atualize os dois.</p>
 
-  <div class="row" style="padding: 14px 16px 10px;">
-    <span style="font-weight: 500; flex: 1;">Quotes</span>
-    <div class="seg" style="grid-template-columns: repeat(3, auto); font-size: 11px;">
-      <div class="on" style="background:#333331; padding: 3px 8px;">24h</div>
-      <div style="padding: 3px 8px;">7d</div>
-      <div style="padding: 3px 8px;">30d</div>
+<!-- ============ 1. POPOVER ============ -->
+<h2>View principal (popover) <span class="badge done">implementado</span></h2>
+<p class="note">Spec §2. Sparklines com piso de escala e linha de referência no
+valor de abertura.</p>
+
+<div class="win" style="width:356px;">
+  <div style="display:flex; align-items:center; padding:14px 16px 10px;">
+    <span style="font-weight:500; flex:1;">Quotes</span>
+    <div class="seg" style="grid-template-columns:repeat(3,auto); font-size:11px;">
+      <div class="on" style="padding:3px 8px;">24h</div>
+      <div style="padding:3px 8px;">7d</div>
+      <div style="padding:3px 8px;">30d</div>
     </div>
   </div>
 
-  <div class="row sep" style="height: 48px; gap: 10px;">
-    <div class="badge" style="background:#185FA5; color:#E6F1FB;">&euro;</div>
+  <div class="qrow">
+    <div class="qbadge" style="background:#185FA5; color:#E6F1FB;">&euro;</div>
     <div style="flex:1; min-width:0;">
-      <div class="name">EUR/BRL</div>
-      <div class="meta num">6,01 &ndash; 6,04</div>
+      <div style="font-weight:500;">EUR/BRL</div>
+      <div class="hint num" style="margin:0;">5,96 &ndash; 6,04</div>
     </div>
     <svg width="60" height="24" viewBox="0 0 60 24">
-      <line x1="0" y1="12" x2="60" y2="12" stroke="#3d3d3a" stroke-dasharray="2 2"/>
-      <polyline points="0,11 8,12 16,11 24,13 32,12 40,12 48,13 60,13"
+      <line x1="0" y1="10" x2="60" y2="10" stroke="#3d3d3a" stroke-dasharray="2 2"/>
+      <polyline points="0,10 8,11 16,10 24,13 32,12 40,14 48,15 60,16"
                 fill="none" stroke="#F09595" stroke-width="1.5"/>
     </svg>
     <div style="text-align:right; min-width:84px;">
-      <div class="num">6,0231</div>
-      <div class="meta num down">&#9660; 0,02%</div>
+      <div class="num">5,9713</div>
+      <div class="hint num down" style="margin:0;">&#9662; 0,83%</div>
     </div>
   </div>
 
-  <div class="row sep" style="height: 48px; gap: 10px;">
-    <div class="badge" style="background:#3B6D11; color:#EAF3DE;">$</div>
+  <div class="qrow">
+    <div class="qbadge" style="background:#3B6D11; color:#EAF3DE;">$</div>
     <div style="flex:1; min-width:0;">
-      <div class="name">USD/BRL</div>
-      <div class="meta num">5,17 &ndash; 5,20</div>
+      <div style="font-weight:500;">USD/BRL</div>
+      <div class="hint num" style="margin:0;">5,14 &ndash; 5,19</div>
     </div>
     <svg width="60" height="24" viewBox="0 0 60 24">
-      <line x1="0" y1="14" x2="60" y2="14" stroke="#3d3d3a" stroke-dasharray="2 2"/>
-      <polyline points="0,15 8,15 16,14 24,13 32,11 40,10 48,9 60,8"
-                fill="none" stroke="#97C459" stroke-width="1.5"/>
-    </svg>
-    <div style="text-align:right; min-width:84px;">
-      <div class="num">5,1940</div>
-      <div class="meta num up">&#9650; 0,19%</div>
-    </div>
-  </div>
-
-  <div class="row sep" style="height: 48px; gap: 10px;">
-    <div class="badge" style="background:#854F0B; color:#FAEEDA;">&#8383;</div>
-    <div style="flex:1; min-width:0;">
-      <div class="name">BTC/BRL</div>
-      <div class="meta num">403k &ndash; 409k</div>
-    </div>
-    <svg width="60" height="24" viewBox="0 0 60 24">
-      <line x1="0" y1="9" x2="60" y2="9" stroke="#3d3d3a" stroke-dasharray="2 2"/>
-      <polyline points="0,8 8,7 16,10 24,9 32,13 40,16 48,15 60,17"
+      <line x1="0" y1="10" x2="60" y2="10" stroke="#3d3d3a" stroke-dasharray="2 2"/>
+      <polyline points="0,10 8,10 16,11 24,12 32,12 40,14 48,13 60,15"
                 fill="none" stroke="#F09595" stroke-width="1.5"/>
     </svg>
     <div style="text-align:right; min-width:84px;">
-      <div class="num">405.884</div>
-      <div class="meta num down">&#9660; 0,48%</div>
+      <div class="num">5,1518</div>
+      <div class="hint num down" style="margin:0;">&#9662; 0,62%</div>
     </div>
   </div>
 
-  <div class="row" style="border-top: 0.5px solid #3d3d3a; padding: 10px 16px; gap: 12px;">
-    <span class="meta" style="flex:1;">Updated 2 min ago</span>
+  <div class="qrow">
+    <div class="qbadge" style="background:#854F0B; color:#FAEEDA;">&#8383;</div>
+    <div style="flex:1; min-width:0;">
+      <div style="font-weight:500;">BTC/BRL</div>
+      <div class="hint num" style="margin:0;">396.100 &ndash; 411.900</div>
+    </div>
+    <svg width="60" height="24" viewBox="0 0 60 24">
+      <line x1="0" y1="8" x2="60" y2="8" stroke="#3d3d3a" stroke-dasharray="2 2"/>
+      <polyline points="0,8 8,7 16,10 24,9 32,13 40,16 48,15 60,18"
+                fill="none" stroke="#F09595" stroke-width="1.5"/>
+    </svg>
+    <div style="text-align:right; min-width:84px;">
+      <div class="num">398.348</div>
+      <div class="hint num down" style="margin:0;">&#9662; 3,01%</div>
+    </div>
+  </div>
+
+  <div style="border-top:0.5px solid #3d3d3a; display:flex; align-items:center;
+              padding:10px 16px; gap:12px;">
+    <span class="hint" style="flex:1; margin:0;">Updated 2 min ago</span>
     <svg class="ico" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2 5.3M20 5v6h-6"/></svg>
-    <svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 7 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H1a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 2.6 7a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 2.7-1.1V1a2 2 0 1 1 4 0v.1A1.6 1.6 0 0 0 17 2.6a1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0 1.1 2.7H23a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z" transform="scale(0.82) translate(2.6 2.6)"/></svg>
+    <svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8.5"/></svg>
     <svg class="ico" viewBox="0 0 24 24"><path d="M12 3v9M18.4 6.6a9 9 0 1 1-12.8 0"/></svg>
   </div>
-
-</div>
-<div class="caption">View principal</div>
 </div>
 
-<div class="col">
-<div class="win" style="width: 340px; background:#262624;">
+<!-- ============ 2. MENU BAR ============ -->
+<h2>Item da barra de menu <span class="badge done">implementado</span></h2>
+<p class="note">Spec §6. O formato é escolhido em Settings; abaixo, como cada
+opção renderiza no tamanho real.</p>
 
-  <div class="row" style="height:44px; border-bottom:0.5px solid #3d3d3a;">
-    <svg class="ico" viewBox="0 0 24 24" style="width:17px;height:17px;"><path d="M15 6l-6 6 6 6"/></svg>
-    <span style="flex:1; text-align:center; font-weight:500; margin-right:17px;">Settings</span>
+<div style="display:flex; flex-direction:column; gap:12px;">
+  <div class="mbrow"><div class="mbcap">automatic</div>
+    <div class="mbbar"><span class="num">&euro; 5,97 <span class="down">&#9662;</span></span>
+    <span class="num" style="color:#77766f;">09:12</span></div></div>
+  <div class="mbrow"><div class="mbcap">currency code</div>
+    <div class="mbbar"><span class="num"><span style="color:#a3a29c;font-size:11px;">EUR</span> 5,97 <span class="down">&#9662;</span></span>
+    <span class="num" style="color:#77766f;">09:12</span></div></div>
+  <div class="mbrow"><div class="mbcap">flag</div>
+    <div class="mbbar"><span class="num">&#127466;&#127482; 5,97 <span class="down">&#9662;</span></span>
+    <span class="num" style="color:#77766f;">09:12</span></div></div>
+  <div class="mbrow"><div class="mbcap">dois pares</div>
+    <div class="mbbar"><span class="num">&euro; 5,97 <span class="down">&#9662;</span>&nbsp;&nbsp;&nbsp;$ 5,15 <span class="down">&#9662;</span></span>
+    <span class="num" style="color:#77766f;">09:12</span></div></div>
+  <div class="mbrow"><div class="mbcap">dado velho</div>
+    <div class="mbbar"><span class="num" style="color:#5f5e5a;">&euro; 5,97</span>
+    <span class="num" style="color:#77766f;">09:12</span></div></div>
+</div>
+
+<!-- ============ 3. SETTINGS ============ -->
+<h2>Janela de Settings <span class="badge done">implementado</span></h2>
+<p class="note">Spec §3. As abas funcionam. Marque outro par na coluna
+&ldquo;Menu bar&rdquo; da aba Pairs e veja a aba Menu bar reagir &mdash; essa
+lista é a fonte única de verdade.</p>
+
+<div class="win" style="width:460px;">
+  <div class="title"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span>Settings</span></div>
+
+  <div class="tabs" id="tabs">
+    <div data-t="general">General</div>
+    <div data-t="pairs" class="on">Pairs</div>
+    <div data-t="menubar">Menu bar</div>
+    <div data-t="alerts">Alerts</div>
   </div>
 
-  <div style="padding: 16px 16px 8px;">
-    <div class="label" style="margin-bottom:8px;">Currency pairs</div>
-
-    <div style="display:flex; align-items:center; height:34px; gap:10px;">
-      <svg class="x" viewBox="0 0 24 24" style="stroke-width:2;"><path d="M9 5h.01M9 12h.01M9 19h.01M15 5h.01M15 12h.01M15 19h.01"/></svg>
-      <span style="flex:1;">EUR-BRL</span>
-      <span class="num">6,2140</span>
-      <span class="num up" style="width:56px; text-align:right;">&#9650; 0,42%</span>
-      <svg class="x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
-    </div>
-
-    <div class="sep" style="display:flex; align-items:center; height:34px; gap:10px;">
-      <svg class="x" viewBox="0 0 24 24" style="stroke-width:2;"><path d="M9 5h.01M9 12h.01M9 19h.01M15 5h.01M15 12h.01M15 19h.01"/></svg>
-      <span style="flex:1;">USD-BRL</span>
-      <span class="num">5,3480</span>
-      <span class="num down" style="width:56px; text-align:right;">&#9660; 0,18%</span>
-      <svg class="x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
-    </div>
-
-    <div class="sep" style="display:flex; align-items:center; height:34px; gap:10px;">
-      <svg class="x" viewBox="0 0 24 24" style="stroke-width:2;"><path d="M9 5h.01M9 12h.01M9 19h.01M15 5h.01M15 12h.01M15 19h.01"/></svg>
-      <span style="flex:1;">GBP-BRL</span>
-      <span class="num">7,0912</span>
-      <span class="num up" style="width:56px; text-align:right;">&#9650; 0,05%</span>
-      <svg class="x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
-    </div>
-
-    <div class="sep" style="display:flex; align-items:center; height:34px; gap:8px; color:#a3a29c;">
-      <svg class="x" viewBox="0 0 24 24" style="stroke:#a3a29c;"><path d="M12 5v14M5 12h14"/></svg>
-      <span>Add pair</span>
-    </div>
-  </div>
-
-  <div style="height:0.5px; background:#3d3d3a; margin:8px 0;"></div>
-
-  <div style="padding: 8px 16px;">
-    <div class="label" style="margin-bottom:8px;">Refresh interval</div>
-    <div class="seg" style="grid-template-columns: repeat(5, 1fr);">
-      <div>30s</div><div class="on">1m</div><div>2m</div><div>5m</div><div>10m</div>
-    </div>
-    <div class="meta" style="margin-top:6px;">Values are cached between refreshes.</div>
-  </div>
-
-  <div style="height:0.5px; background:#3d3d3a; margin:8px 0;"></div>
-
-  <div style="padding: 8px 16px 16px;">
-    <div class="label" style="margin-bottom:8px;">Price alerts</div>
-
-    <div style="display:flex; align-items:center; height:34px; gap:8px;">
-      <span style="width:76px;">EUR-BRL</span>
-      <span style="width:52px; color:#a3a29c;">above</span>
-      <span class="num" style="flex:1;">6,0000</span>
-      <div class="tog on"><i></i></div>
-      <svg class="x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
-    </div>
-
-    <div class="sep" style="display:flex; align-items:center; height:34px; gap:8px;">
-      <span style="width:76px;">EUR-BRL</span>
-      <span style="width:52px; color:#a3a29c;">below</span>
-      <span class="num" style="flex:1;">5,8000</span>
-      <div class="tog off"><i></i></div>
-      <svg class="x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
-    </div>
-
-    <div class="sep" style="display:flex; align-items:center; gap:8px; padding-top:10px; margin-top:4px;">
-      <div class="field" style="width:76px; justify-content:space-between;">Pair
-        <svg class="x" viewBox="0 0 24 24" style="width:11px;height:11px;"><path d="M6 9l6 6 6-6"/></svg>
+  <div class="pane" data-p="general">
+    <div class="sect">
+      <div class="label">Refresh interval</div>
+      <div class="seg" style="grid-template-columns:repeat(5,1fr);" id="segRefresh">
+        <div>30s</div><div class="on">1m</div><div>2m</div><div>5m</div><div>10m</div>
       </div>
-      <div class="field" style="width:52px; justify-content:center;">&gt;</div>
-      <div class="field" style="flex:1; color:#5f5e5a;">6.00</div>
-      <div class="field" style="width:52px; justify-content:center; background:#333331; border-color:transparent; color:#5f5e5a;">Add</div>
+      <div class="hint">Values are cached between refreshes.</div>
+    </div>
+    <div class="sect">
+      <div style="display:flex; align-items:center; height:34px;">
+        <span style="flex:1;">Launch at login</span><span class="tg"><i></i></span>
+      </div>
     </div>
   </div>
 
-  <div style="height:0.5px; background:#3d3d3a;"></div>
-
-  <div style="padding: 8px 16px 16px;">
-    <div class="label" style="margin-bottom:4px;">General</div>
-    <div style="display:flex; align-items:center; height:34px;">
-      <span style="flex:1;">Launch at login</span>
-      <div class="tog off"><i></i></div>
+  <div class="pane on" data-p="pairs">
+    <div class="sect">
+      <div class="hrow">
+        <span class="grip"></span><span class="cPair">Pair</span>
+        <span class="cRate">Rate</span><span class="cChg">Change</span>
+        <span class="cMb">Menu bar</span><span class="cDel"></span>
+      </div>
+      <div id="pairRows"></div>
+      <div class="row" style="color:#a3a29c;">
+        <span class="grip">+</span><span class="cPair">Add pair</span>
+      </div>
     </div>
   </div>
 
-</div>
-<div class="caption">Settings</div>
+  <div class="pane" data-p="menubar">
+    <div class="sect">
+      <div class="label">Preview</div>
+      <div class="bar">
+        <span id="prev" class="num"></span>
+        <span class="num" style="margin-left:auto; color:#5f5e5a;">09:12</span>
+      </div>
+      <div class="hint" id="prevHint"></div>
+    </div>
+    <div class="sect">
+      <div class="label">Format</div>
+      <div class="orow fmt" data-k="auto"><span class="rd on"></span><span style="flex:1;">Automatic</span><span class="ex" id="exAuto"></span></div>
+      <div class="why" id="whyAuto" style="display:none;"></div>
+      <div class="orow fmt" data-k="code"><span class="rd"></span><span style="flex:1;">Currency code</span><span class="ex" id="exCode"></span></div>
+      <div class="orow fmt" data-k="flag"><span class="rd"></span><span style="flex:1;">Flag</span><span class="ex" id="exFlag"></span></div>
+      <div class="orow fmt" data-k="value" id="rowValue"><span class="rd"></span><span style="flex:1;">Value only</span><span class="ex" id="exValue"></span></div>
+      <div class="why" id="whyValue" style="display:none;">Available with a single pair &mdash; two values with no labels can&rsquo;t be told apart.</div>
+    </div>
+    <div class="sect">
+      <div class="label">Change indicator</div>
+      <div class="seg" style="grid-template-columns:repeat(3,1fr);" id="ind">
+        <div data-k="none">None</div><div data-k="arrow" class="on">Arrow</div><div data-k="pct">Percent</div>
+      </div>
+    </div>
+    <!-- Bloco próprio, não um rabo de "Change indicator": governa o rótulo
+         inteiro, não o que vem depois do número (spec §3.1). -->
+    <div class="sect">
+      <div style="display:flex; align-items:center; height:34px;">
+        <span style="flex:1;">Dim when data is stale</span><span class="tg on"><i></i></span>
+      </div>
+      <div class="hint">Applies to the menu bar only. The popover always marks stale data.</div>
+    </div>
+  </div>
+
+  <div class="pane" data-p="alerts">
+    <div class="sect">
+      <div style="display:flex; align-items:center; height:34px; gap:8px;">
+        <span style="width:84px;">EUR-BRL</span>
+        <span style="width:72px; color:#a3a29c;">above</span>
+        <span class="num" style="flex:1;">6,0000</span>
+        <span class="tg on"><i></i></span><span class="cDel">&#10005;</span>
+      </div>
+      <div style="display:flex; align-items:center; height:34px; gap:8px; border-top:0.5px solid #333331;">
+        <span style="width:84px;">EUR-BRL</span>
+        <span style="width:72px; color:#a3a29c;">below</span>
+        <span class="num" style="flex:1;">5,8000</span>
+        <span class="tg"><i></i></span><span class="cDel">&#10005;</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; padding-top:10px; margin-top:4px;
+                  border-top:0.5px solid #333331;">
+        <div class="field" style="width:84px; justify-content:space-between;">Pair <span style="font-size:9px;">&#9662;</span></div>
+        <div class="field" style="width:72px; justify-content:space-between;">above <span style="font-size:9px;">&#9662;</span></div>
+        <div class="field" style="flex:1; color:#5f5e5a;">Value</div>
+        <div class="field" style="width:52px; justify-content:center; background:#333331;
+             border-color:transparent; color:#5f5e5a;">Add</div>
+      </div>
+    </div>
+  </div>
 </div>
 
+<script>
+(function(){
+  var D = {
+    EUR:{ code:"EUR", sym:"\u20AC", flag:"\uD83C\uDDEA\uD83C\uDDFA", rate:5.9713, chg:-0.83, mb:true  },
+    USD:{ code:"USD", sym:"$",      flag:"\uD83C\uDDFA\uD83C\uDDF8", rate:5.1518, chg:-0.62, mb:false },
+    BTC:{ code:"BTC", sym:"\u20BF", flag:null,                       rate:398348, chg:-3.01, mb:false }
+  };
+  var order = ["EUR","USD","BTC"];
+  var st = { fmt:"auto", ind:"arrow" };
+
+  // Casas decimais por magnitude (spec §1) — a mesma regra em todas as superfícies.
+  function fmtRate(v){
+    var d = v < 10 ? 4 : (v < 1000 ? 2 : 0);
+    return v.toLocaleString("pt-BR", { minimumFractionDigits:d, maximumFractionDigits:d });
+  }
+  // A barra diverge em dois pontos (spec §1): abrevia acima de 100.000 e
+  // para em duas casas, onde as demais superfícies mostram quatro.
+  function fmtBar(v){
+    if (v >= 100000) return Math.round(v/1000).toLocaleString("pt-BR") + "k";
+    var d = v < 1000 ? 2 : 0;
+    return v.toLocaleString("pt-BR", { minimumFractionDigits:d, maximumFractionDigits:d });
+  }
+  function shown(){ return order.filter(function(k){ return D[k].mb; }); }
+
+  function collisions(keys){
+    var by = {}, out = [];
+    keys.forEach(function(k){ (by[D[k].sym] = by[D[k].sym] || []).push(k); });
+    Object.keys(by).forEach(function(s){ if (by[s].length > 1) out.push({ sym:s, keys:by[s] }); });
+    return out;
+  }
+  function unique(keys){ return collisions(keys).length === 0; }
+
+  function pct(c){ return (c >= 0 ? "+" : "\u2212") + Math.abs(c).toFixed(2).replace(".", ",") + "%"; }
+
+  function renderPairs(){
+    document.getElementById("pairRows").innerHTML = order.map(function(k){
+      var d = D[k], cls = d.chg >= 0 ? "up" : "down", ar = d.chg >= 0 ? "\u25B4" : "\u25BE";
+      return '<div class="row">' +
+        '<span class="grip">\u2833</span>' +
+        '<span class="cPair">' + k + '-BRL</span>' +
+        '<span class="cRate num">' + fmtRate(d.rate) + '</span>' +
+        '<span class="cChg num ' + cls + '">' + ar + ' ' +
+          Math.abs(d.chg).toFixed(2).replace(".", ",") + '%</span>' +
+        '<span class="cMb"><i class="bx' + (d.mb ? " on" : "") + '" data-k="' + k + '">\u2713</i></span>' +
+        '<span class="cDel">\u2715</span></div>';
+    }).join("");
+    document.querySelectorAll("#pairRows .bx").forEach(function(el){
+      el.addEventListener("click", function(){
+        D[el.dataset.k].mb = !D[el.dataset.k].mb;
+        renderPairs(); renderMenuBar();
+      });
+    });
+  }
+
+  function renderMenuBar(){
+    var keys = shown(), k0 = keys[0];
+
+    var lockValue = keys.length > 1;
+    document.getElementById("rowValue").classList.toggle("off", lockValue);
+    document.getElementById("whyValue").style.display = lockValue ? "block" : "none";
+    if (lockValue && st.fmt === "value") setFormat("auto");
+
+    var why = document.getElementById("whyAuto");
+    if (k0 && !unique(keys)) {
+      var c = collisions(keys)[0];
+      why.textContent = "Using codes \u2014 " + c.keys.join(" and ") +
+                        " both use the " + c.sym + " symbol.";
+      why.style.display = "block";
+    } else { why.style.display = "none"; }
+
+    ["exAuto","exCode","exFlag","exValue"].forEach(function(id){
+      document.getElementById(id).textContent = "";
+    });
+    if (k0) {
+      var d = D[k0], v = fmtBar(d.rate);
+      document.getElementById("exAuto").textContent  = (unique(keys) ? d.sym : d.code) + " " + v;
+      document.getElementById("exCode").textContent  = d.code + " " + v;
+      document.getElementById("exFlag").textContent  = (d.flag || d.sym) + " " + v;
+      document.getElementById("exValue").textContent = v;
+    }
+
+    document.getElementById("prev").innerHTML = keys.map(function(k){
+      var d = D[k], col = d.chg >= 0 ? "#97C459" : "#F09595", lead = "", tail = "";
+      if (st.fmt === "flag") lead = (d.flag || d.sym) + " ";
+      else if (st.fmt === "code" || !unique(keys))
+        lead = '<span style="color:#a3a29c;font-size:11px">' + d.code + '</span> ';
+      else if (st.fmt !== "value") lead = d.sym + " ";
+
+      if (st.ind === "arrow")
+        tail = ' <span style="color:' + col + '">' + (d.chg >= 0 ? "\u25B4" : "\u25BE") + '</span>';
+      else if (st.ind === "pct")
+        tail = ' <span style="color:' + col + ';font-size:11px">' + pct(d.chg) + '</span>';
+
+      return lead + fmtBar(d.rate) + tail;
+    }).join("&nbsp;&nbsp;&nbsp;") ||
+      '<span style="color:#5f5e5a">No pairs shown in the menu bar</span>';
+
+    document.getElementById("prevHint").textContent =
+      !keys.length ? "Tick a pair in the Pairs tab to show it here." :
+      keys.length > 2 ? "Two pairs fit comfortably; more will crowd the other menu bar icons." : "";
+  }
+
+  function setFormat(k){
+    st.fmt = k;
+    document.querySelectorAll(".fmt").forEach(function(el){
+      el.querySelector(".rd").classList.toggle("on", el.dataset.k === k);
+    });
+  }
+
+  document.querySelectorAll("#tabs div").forEach(function(el){
+    el.addEventListener("click", function(){
+      document.querySelectorAll("#tabs div").forEach(function(t){ t.classList.remove("on"); });
+      el.classList.add("on");
+      document.querySelectorAll(".pane").forEach(function(p){
+        p.classList.toggle("on", p.dataset.p === el.dataset.t);
+      });
+    });
+  });
+  document.querySelectorAll(".fmt").forEach(function(el){
+    el.addEventListener("click", function(){
+      if (el.classList.contains("off")) return;
+      setFormat(el.dataset.k); renderMenuBar();
+    });
+  });
+  document.querySelectorAll("#ind div").forEach(function(el){
+    el.addEventListener("click", function(){
+      st.ind = el.dataset.k;
+      document.querySelectorAll("#ind div").forEach(function(d){ d.classList.remove("on"); });
+      el.classList.add("on"); renderMenuBar();
+    });
+  });
+  document.querySelectorAll("#segRefresh div").forEach(function(el){
+    el.addEventListener("click", function(){
+      document.querySelectorAll("#segRefresh div").forEach(function(d){ d.classList.remove("on"); });
+      el.classList.add("on");
+    });
+  });
+  document.querySelectorAll(".tg").forEach(function(el){
+    el.addEventListener("click", function(){ el.classList.toggle("on"); });
+  });
+
+  renderPairs(); renderMenuBar();
+})();
+</script>
 </body>
 </html>

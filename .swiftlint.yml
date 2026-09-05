@@ -1,0 +1,56 @@
+swiftlint_version: 0.65.1
+
+included:
+  - Sources
+  - Tests
+
+excluded:
+  - .build
+
+# swift-format owns whitespace and punctuation.
+# statement_position needs SourceKit, which CLT-only machines do not have.
+# static_over_final_class fights URLProtocol, which requires class overrides.
+disabled_rules:
+  - colon
+  - comma
+  - opening_brace
+  - statement_position
+  - static_over_final_class
+  - trailing_comma
+  - trailing_whitespace
+  - vertical_whitespace
+
+line_length:
+  warning: 100
+  error: 140
+  ignores_comments: true
+  ignores_urls: true
+
+identifier_name:
+  min_length:
+    warning: 2
+  excluded:
+    - id
+    - ok
+    - to
+    - by
+    - x
+    - y
+    - i
+    - j
+
+type_name:
+  min_length: 3
+
+file_length:
+  warning: 600
+  error: 800
+
+nesting:
+  type_level: 2
+
+cyclomatic_complexity:
+  warning: 15
+  error: 20
+
+reporter: xcode

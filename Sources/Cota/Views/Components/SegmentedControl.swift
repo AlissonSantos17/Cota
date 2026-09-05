@@ -1,5 +1,11 @@
 import SwiftUI
 
+/// Label colour for the selected segment. The fill is `controlAccentColor`,
+/// which the user may have set to any hue, and which shifts again under
+/// "Increase contrast" — so the text on top has to come from the matching
+/// system token rather than a fixed white.
+private let selectedLabelColor = Color(nsColor: .alternateSelectedControlTextColor)
+
 /// Segmented control whose segments always have identical widths.
 ///
 /// The stock control sizes each segment to its label, which leaves "30s"
@@ -26,8 +32,13 @@ struct SegmentedControl<Value: Hashable>: View {
                     selection = segment.value
                 } label: {
                     Text(segment.label)
-                        .font(.system(size: 11, weight: selection == segment.value ? .semibold : .regular))
-                        .foregroundStyle(selection == segment.value ? Color.white : Color.primary)
+                        .font(
+                            .system(
+                                size: 11, weight: selection == segment.value ? .semibold : .regular)
+                        )
+                        .foregroundStyle(
+                            selection == segment.value ? selectedLabelColor : Color.primary
+                        )
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .contentShape(Rectangle())
                 }

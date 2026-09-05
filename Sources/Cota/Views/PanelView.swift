@@ -1,25 +1,21 @@
-import SwiftUI
 import AppKit
 import CotaKit
+import SwiftUI
 
 struct PanelView: View {
     @ObservedObject var store: QuoteStore
     @ObservedObject var settings: SettingsStore
-    @State private var showSettings = false
 
     var body: some View {
-        Group {
-            if showSettings {
-                SettingsView(settings: settings, store: store) {
-                    showSettings = false
-                }
-            } else {
-                quotesPanel
-            }
-        }
-        .frame(width: 360)
-        .animation(.easeInOut(duration: 0.15), value: showSettings)
-        .background { shortcutButtons }
+        quotesPanel
+            .frame(width: 360)
+            .background { shortcutButtons }
+    }
+
+    /// Settings is a window of its own now, not a second page of the popover.
+    /// The popover stays what it is: the quotes view.
+    private func openSettings() {
+        SettingsWindowController.show(settings: settings, store: store)
     }
 
     private var quotesPanel: some View {
@@ -45,7 +41,15 @@ struct PanelView: View {
         if settings.pairs.isEmpty {
             emptyState
         } else if !store.hasLoaded {
-            skeleton
+            // The skeleton means "this is arriving". Once the first fetch has
+            // failed it is not arriving, and animated placeholders would go on
+            // promising a load that is never coming — the same lie as a stale
+            // quote wearing a fresh face (§2.5).
+            if store.error != nil {
+                failureState
+            } else {
+                skeleton
+            }
         } else {
             quotes
                 .opacity(isDegraded(now: now) ? 0.5 : 1)
@@ -110,7 +114,7 @@ struct PanelView: View {
             .disabled(store.loading)
 
             FooterButton(icon: "gearshape", help: "Settings") {
-                showSettings = true
+                openSettings()
             }
 
             FooterButton(icon: "power", help: "Quit Cota") {
@@ -170,9 +174,32 @@ struct PanelView: View {
                 .foregroundStyle(.secondary)
 
             Button("Open settings") {
-                showSettings = true
+                openSettings()
             }
             .controlSize(.small)
+            .padding(.top, 2)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 28)
+    }
+
+    /// Only for a failure with nothing to fall back on. Once a fetch has
+    /// landed, a later failure keeps the values on screen and dims them — old
+    /// data beats no data, and this state would be throwing it away.
+    private var failureState: some View {
+        VStack(spacing: 8) {
+            Text("Couldn't load quotes")
+                .font(.system(size: 13, weight: .medium))
+
+            Text("Check your connection and try again.")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+
+            Button("Try again") {
+                Task { await store.refresh() }
+            }
+            .controlSize(.small)
+            .disabled(store.loading)
             .padding(.top, 2)
         }
         .frame(maxWidth: .infinity)
@@ -197,7 +224,7 @@ struct PanelView: View {
             .keyboardShortcut("r", modifiers: .command)
 
             Button("Settings") {
-                showSettings.toggle()
+                openSettings()
             }
             .keyboardShortcut(",", modifiers: .command)
 
@@ -284,8 +311,7 @@ private struct QuoteRow: View {
         } center: {
             HStack(spacing: Layout.columnSpacing) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("\(quote.code)/\(quote.codein)")
-                        .font(.system(size: 13, weight: .medium))
+                    PairLabel(base: quote.code, quote: quote.codein, size: 13)
 
                     Text(formattedRange)
                         .font(.system(size: 11).monospacedDigit())
@@ -351,12 +377,7 @@ private struct QuoteRow: View {
     private var formattedChange: String {
         let value = change ?? quote.pctChange
         let arrow = value < 0 ? "▼" : "▲"
-        let formatted = abs(value).formatted(
-            .number
-                .precision(.fractionLength(2))
-                .locale(Locale(identifier: "pt_BR"))
-        )
-        return "\(arrow) \(formatted)%"
+        return "\(arrow) \(QuoteFormat.percentMagnitude(value))"
     }
 
     private var changeColor: Color {
@@ -374,38 +395,5 @@ private struct CurrencyBadge: View {
             .frame(width: Layout.badgeSize, height: Layout.badgeSize)
             .background(Color.accentColor.opacity(0.15), in: Circle())
             .accessibilityHidden(true)
-    }
-}
-
-private enum QuoteFormat {
-    private static let locale = Locale(identifier: "pt_BR")
-
-    /// Large values (crypto) read better grouped and without decimals; FX
-    /// pairs need the fourth decimal to show movement at all.
-    static func value(_ value: Decimal) -> String {
-        let fractionDigits = value >= 1000 ? 0 : 4
-        return value.formatted(
-            .number
-                .precision(.fractionLength(fractionDigits))
-                .locale(locale)
-        )
-    }
-
-    /// Range bounds may abbreviate — the main value may not.
-    static func rangeBound(_ value: Decimal) -> String {
-        if value >= 1000 {
-            let thousands = (value / 1000).formatted(
-                .number
-                    .precision(.fractionLength(0))
-                    .locale(locale)
-            )
-            return "\(thousands)k"
-        }
-
-        return value.formatted(
-            .number
-                .precision(.fractionLength(2))
-                .locale(locale)
-        )
     }
 }
