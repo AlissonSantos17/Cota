@@ -1,9 +1,11 @@
 import Foundation
 
-public protocol QuoteServiceProtocol {
+/// `Sendable` because the store fans the history fetches out across a task
+/// group: without it the capture is a data race the compiler cannot rule out.
+public protocol QuoteServiceProtocol: Sendable {
     func fetchQuotes(pairs: [String]) async throws -> [Quote]
     func fetchDailyBids(pair: String, days: Int) async throws -> [Decimal]
-    func fetchIntradayBids(pair: String, points: Int) async throws -> [Decimal]
+    func fetchIntradayBids(pair: String, points: Int) async throws -> [IntradayPoint]
 }
 
 public enum QuoteError: LocalizedError, Equatable {
@@ -75,7 +77,7 @@ public final class QuoteService: QuoteServiceProtocol {
     /// Recent ticks, roughly one every 45 seconds while the market is open.
     /// A hundred of them cover about 80 minutes of trading — enough to draw
     /// the 24h window on launch instead of a flat line.
-    public func fetchIntradayBids(pair: String, points: Int) async throws -> [Decimal] {
+    public func fetchIntradayBids(pair: String, points: Int) async throws -> [IntradayPoint] {
         guard !pair.isEmpty, points > 0 else {
             return []
         }
@@ -88,7 +90,7 @@ public final class QuoteService: QuoteServiceProtocol {
 
         let data = try await fetchData(from: url)
         let points = try JSONDecoder().decode([BidPoint].self, from: data)
-        return points.reversed().map(\.bid)
+        return points.reversed().map { IntradayPoint(date: $0.date, bid: $0.bid) }
     }
 
     private func fetchData(from url: URL) async throws -> Data {
@@ -119,6 +121,11 @@ public final class QuoteService: QuoteServiceProtocol {
                 return data
             } catch is CancellationError {
                 throw CancellationError()
+            } catch let error as QuoteError {
+                if case .httpError(let status) = error, (400..<500).contains(status) {
+                    throw error
+                }
+                lastError = error
             } catch {
                 lastError = error
             }
@@ -131,9 +138,11 @@ public final class QuoteService: QuoteServiceProtocol {
 /// One record from either the daily or the intraday endpoint.
 private struct BidPoint: Decodable {
     let bid: Decimal
+    let date: Date
 
     enum CodingKeys: String, CodingKey {
         case bid
+        case timestamp
     }
 
     init(from decoder: Decoder) throws {
@@ -143,5 +152,10 @@ private struct BidPoint: Decodable {
             throw QuoteError.invalidValue("bid")
         }
         self.bid = bid
+
+        // Unix seconds, as a string, like every other number this API returns.
+        let timestamp = try container.decodeIfPresent(String.self, forKey: .timestamp)
+        let seconds = timestamp.flatMap(TimeInterval.init)
+        self.date = seconds.map(Date.init(timeIntervalSince1970:)) ?? .distantPast
     }
 }

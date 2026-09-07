@@ -1,5 +1,4 @@
 import Foundation
-import ServiceManagement
 import SwiftUI
 
 @MainActor
@@ -23,6 +22,7 @@ public final class SettingsStore: ObservableObject {
     }
 
     private let defaults: UserDefaults
+    private let launchAgent: LaunchAgent
 
     /// The pairs and their menu bar flags — the single source of truth for both.
     @Published public private(set) var pairSettings: [PairSetting] {
@@ -30,7 +30,6 @@ public final class SettingsStore: ObservableObject {
             guard pairSettings != oldValue else { return }
             persistPairSettings()
             pairs = pairSettings.map(\.pair)
-            reconcileMenuBarFormat()
         }
     }
 
@@ -75,8 +74,9 @@ public final class SettingsStore: ObservableObject {
         "CHF-BRL", "CNY-BRL", "ETH-BRL", "XRP-BRL",
     ]
 
-    public init(defaults: UserDefaults = .standard) {
+    public init(defaults: UserDefaults = .standard, launchAgent: LaunchAgent = .system) {
         self.defaults = defaults
+        self.launchAgent = launchAgent
         let resolvedPairs = Self.loadPairSettings(from: defaults)
         self.pairSettings = resolvedPairs
         self.pairs = resolvedPairs.map(\.pair)
@@ -99,6 +99,10 @@ public final class SettingsStore: ObservableObject {
         {
             self.alerts = decoded
         }
+
+        // Read here, not left to a caller: the switch is the only place the
+        // login item is visible, and nothing was calling `loadLaunchAtLogin()`.
+        self.launchAtLogin = launchAgent.isEnabled()
     }
 
     // MARK: - Persistence and migration
@@ -144,20 +148,18 @@ public final class SettingsStore: ObservableObject {
         }
     }
 
+    /// Re-read on every open of Settings: the login item can be revoked in
+    /// System Settings while the app is running.
     public func loadLaunchAtLogin() {
-        launchAtLogin = SMAppService.mainApp.status == .enabled
+        launchAtLogin = launchAgent.isEnabled()
     }
 
     public func setLaunchAtLogin(_ enabled: Bool) {
         do {
-            if enabled {
-                try SMAppService.mainApp.register()
-            } else {
-                try SMAppService.mainApp.unregister()
-            }
+            try launchAgent.setEnabled(enabled)
             launchAtLogin = enabled
         } catch {
-            launchAtLogin = SMAppService.mainApp.status == .enabled
+            launchAtLogin = launchAgent.isEnabled()
         }
     }
 
@@ -168,6 +170,10 @@ public final class SettingsStore: ObservableObject {
 
     public func removePair(_ pair: String) {
         pairSettings.removeAll { $0.pair == pair }
+        let remaining = alerts.filter { $0.pair != pair }
+        guard remaining.count != alerts.count else { return }
+        alerts = remaining
+        persistAlerts()
     }
 
     public func movePair(fromOffsets source: IndexSet, toOffset destination: Int) {
@@ -216,17 +222,6 @@ public final class SettingsStore: ObservableObject {
     /// reconcile — which was the whole point of folding the two lists into one.
     public var orderedMenuBarPairs: [String] {
         pairSettings.filter(\.showsInMenuBar).map(\.pair)
-    }
-
-    private func reconcileMenuBarFormat() {
-        let resolved = MenuBarLabel.effectiveFormat(
-            menuBarFormat,
-            pairCount: orderedMenuBarPairs.count
-        )
-
-        if resolved != menuBarFormat {
-            menuBarFormat = resolved
-        }
     }
 
     public func addAlert(_ alert: PriceAlert) {

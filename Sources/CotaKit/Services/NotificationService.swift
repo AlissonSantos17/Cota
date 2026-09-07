@@ -2,7 +2,9 @@ import Foundation
 import UserNotifications
 
 @MainActor
-public final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
+public final class NotificationService: NSObject, UNUserNotificationCenterDelegate,
+    ObservableObject
+{
     public static let shared = NotificationService()
 
     private enum Keys {
@@ -48,13 +50,43 @@ public final class NotificationService: NSObject, UNUserNotificationCenterDelega
         self?.send(alert: alert, currentValue: value)
     }
 
+    /// True when the person has refused banners. Alerts stay armed; they just
+    /// cannot appear, and Settings has to say so.
+    @Published public private(set) var authorizationDenied = false
+
+    /// Injectable so the denial path can be tested without a notification centre.
+    var resolveAuthorization: () async -> Bool = {
+        await NotificationService.systemAuthorization()
+    }
+
     public func requestPermission() {
         // Set here rather than in `init`: `UNUserNotificationCenter.current()`
         // needs a real bundle, and the app calls this at launch anyway.
         UNUserNotificationCenter.current().delegate = self
-        UNUserNotificationCenter.current().requestAuthorization(
-            options: [.alert, .sound]
-        ) { _, _ in }
+        Task { await refreshAuthorization() }
+    }
+
+    public func refreshAuthorization() async {
+        authorizationDenied = !(await resolveAuthorization())
+    }
+
+    private static func systemAuthorization() async -> Bool {
+        let center = UNUserNotificationCenter.current()
+        let settings = await center.notificationSettings()
+        switch settings.authorizationStatus {
+        case .denied:
+            return false
+        case .authorized, .provisional, .ephemeral:
+            return true
+        case .notDetermined:
+            return await withCheckedContinuation { continuation in
+                center.requestAuthorization(options: [.alert, .sound]) { granted, _ in
+                    continuation.resume(returning: granted)
+                }
+            }
+        @unknown default:
+            return false
+        }
     }
 
     public func checkAlerts(_ alerts: [PriceAlert], against quotes: [Quote], now: Date = .now) {
@@ -76,12 +108,17 @@ public final class NotificationService: NSObject, UNUserNotificationCenterDelega
             if isTriggered(alert, bid: quote.bid) {
                 guard !triggeredAlerts.contains(alert.id) else { continue }
 
-                triggeredAlerts.insert(alert.id)
+                // Banners refused: the alert stays armed rather than being
+                // spent on a notification nobody can receive. Consuming it here
+                // meant that granting permission later still bought silence,
+                // because a threshold already crossed may never rearm.
+                guard !authorizationDenied else { continue }
 
                 if let last = lastNotified[alert.id], now.timeIntervalSince(last) < Self.cooldown {
                     continue
                 }
 
+                triggeredAlerts.insert(alert.id)
                 lastNotified[alert.id] = now
                 deliver(alert, quote.bid)
             } else if hasRearmed(alert, bid: quote.bid) {
@@ -115,19 +152,15 @@ public final class NotificationService: NSObject, UNUserNotificationCenterDelega
     }
 
     private func send(alert: PriceAlert, currentValue: Decimal) {
-        let direction = alert.isAbove ? "above" : "below"
-        let thresholdText = Self.format(alert.threshold)
-        let currentText = Self.format(currentValue)
         let baseCode = alert.pair.split(separator: "-").first.map(String.init) ?? alert.pair
-        let flag = Self.flag(for: baseCode)
 
         let content = UNMutableNotificationContent()
-        content.title = "\(flag) Threshold Reached"
-        content.body = "Price is now \(currentText) (\(direction) your \(thresholdText) alert)."
+        content.title = "\(Self.flag(for: baseCode)) Threshold Reached"
+        content.body = Self.body(for: alert, currentValue: currentValue)
         content.sound = .default
 
         let request = UNNotificationRequest(
-            identifier: "\(alert.id.uuidString)-\(currentText)",
+            identifier: "\(alert.id.uuidString)-\(QuoteFormat.value(currentValue))",
             content: content,
             trigger: nil
         )
@@ -135,34 +168,25 @@ public final class NotificationService: NSObject, UNUserNotificationCenterDelega
         UNUserNotificationCenter.current().add(request)
     }
 
-    private static func format(_ value: Decimal) -> String {
-        value.formatted(
-            .number
-                .precision(.fractionLength(4))
-                .locale(Locale(identifier: "pt_BR"))
-        )
+    /// Through `QuoteFormat` like every other surface. The banner used to fix
+    /// four decimals of its own, which printed BTC as `398.348,0000`.
+    static func body(for alert: PriceAlert, currentValue: Decimal) -> String {
+        let direction = alert.isAbove ? "above" : "below"
+        let threshold = QuoteFormat.value(alert.threshold)
+        let current = QuoteFormat.value(currentValue)
+
+        return "Price is now \(current) (\(direction) your \(threshold) alert)."
     }
 
-    private static func flag(for code: String) -> String {
-        switch code {
-        case "EUR": return "🇪🇺"
-        case "USD": return "🇺🇸"
-        case "GBP": return "🇬🇧"
-        case "BRL": return "🇧🇷"
-        case "ARS": return "🇦🇷"
-        case "CAD": return "🇨🇦"
-        case "AUD": return "🇦🇺"
-        case "JPY": return "🇯🇵"
-        case "CHF": return "🇨🇭"
-        case "CNY": return "🇨🇳"
-        case "BTC": return "₿"
-        case "ETH": return "Ξ"
-        case "XRP": return "✕"
-        default: return code
-        }
+    static func flag(for code: String) -> String {
+        let currency = Currency.named(code)
+        return currency.flag ?? currency.symbol ?? code
     }
 
-    public func userNotificationCenter(
+    /// Nonisolated: it reads nothing from the service, and taking the two
+    /// non-Sendable UserNotifications types onto the main actor is an error in
+    /// the Swift 6 language mode.
+    public nonisolated func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification
     ) async -> UNNotificationPresentationOptions {

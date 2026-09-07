@@ -17,12 +17,24 @@ enum Layout {
     static let badgeSize: CGFloat = 24
     static let valueColumnWidth: CGFloat = 84
     static let columnSpacing: CGFloat = 8
-    /// One device pixel. A fixed 0.5pt hairline only lands on a pixel boundary
-    /// on retina: at 1x it straddles two pixels, renders at half opacity and
-    /// pushes every following row onto a half-point offset, which is what made
-    /// separators drop out of the list.
-    static var hairline: CGFloat {
-        1 / (NSScreen.main?.backingScaleFactor ?? 2)
+}
+
+/// One device pixel. A fixed 0.5pt hairline only lands on a pixel boundary on
+/// retina: at 1x it straddles two pixels, renders at half opacity and pushes
+/// every following row onto a half-point offset, which is what made separators
+/// drop out of the list.
+///
+/// Read from the environment rather than from `NSScreen.main`: the panel is
+/// dragged between displays, and the screen that happens to be frontmost is not
+/// the one the view is drawn on. A static also never re-evaluates, so a window
+/// moved from a retina display to a 1x one kept the wrong thickness.
+private struct Hairline: View {
+    @Environment(\.displayScale) private var displayScale
+
+    var body: some View {
+        Rectangle()
+            .fill(Color(nsColor: .separatorColor))
+            .frame(height: 1 / displayScale)
     }
 }
 
@@ -106,9 +118,7 @@ struct SectionHeader: View {
 /// Hairline between rows of the same list, respecting the 16px margin.
 struct RowSeparator: View {
     var body: some View {
-        Rectangle()
-            .fill(Color(nsColor: .separatorColor))
-            .frame(height: Layout.hairline)
+        Hairline()
             .padding(.horizontal, Layout.horizontalPadding)
     }
 }
@@ -116,8 +126,6 @@ struct RowSeparator: View {
 /// Hairline between sections, edge to edge.
 struct SectionSeparator: View {
     var body: some View {
-        Rectangle()
-            .fill(Color(nsColor: .separatorColor))
-            .frame(height: Layout.hairline)
+        Hairline()
     }
 }

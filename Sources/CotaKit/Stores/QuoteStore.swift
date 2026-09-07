@@ -15,14 +15,18 @@ public final class QuoteStore: ObservableObject {
     /// Daily closes per pair, oldest first.
     @Published public private(set) var priceHistory: [String: [Decimal]] = [:]
 
+    /// Pairs the last successful fetch was asked for and the API omitted.
+    /// Distinct from a failed fetch: the other quotes are on screen.
+    @Published public private(set) var unavailablePairs: [String] = []
+
     /// Whether the last fetch is old enough to present as stale. Recomputed on
     /// a tick because it is a function of elapsed time: nothing else
     /// republishes while a refresh keeps failing.
     @Published public private(set) var stale = false
 
     /// Recent ticks for the 24h window: seeded from the intraday endpoint on
-    /// first load, then extended with each live bid.
-    @Published public private(set) var intradayBids: [String: [Decimal]] = [:]
+    /// first load, then extended with each live bid and pruned to the window.
+    @Published public private(set) var intradayBids: [String: [IntradayPoint]] = [:]
 
     /// The menu bar keeps the app name until this drops, even if the first
     /// fetch has already landed. It is a launch hold, not a loading flag.
@@ -32,11 +36,19 @@ public final class QuoteStore: ObservableObject {
     @Published public private(set) var launchReveal: Double = 0
 
     private let maxHistoryPoints = 30
+    /// A cap on memory, not on the window: the window is `intradayWindow`.
     private let maxIntradayPoints = 200
+    private let intradayWindow: TimeInterval = 24 * 3600
     private let service: QuoteServiceProtocol
     public let settings: SettingsStore
     private let launchHold: Duration
     private let launchRevealDuration: Duration
+    private let now: @Sendable () -> Date
+
+    /// The day each pair's daily closes were fetched for. Closes only change
+    /// when the day does, so this is the condition to ask again — "nothing
+    /// stored yet" froze the 7d and 30d windows on the day of launch.
+    private var dailyHistoryDay: [String: Date] = [:]
 
     private var loop: Task<Void, Never>?
     private var staleLoop: Task<Void, Never>?
@@ -44,17 +56,33 @@ public final class QuoteStore: ObservableObject {
     private var launchRevealTask: Task<Void, Never>?
     private var pairsObservation: AnyCancellable?
     private var intervalObservation: AnyCancellable?
+    private var menuBarObservation: AnyCancellable?
+    /// Bumped when the interval changes. The wait resumes instead of relying
+    /// on cancelling a child `Task.sleep`, which CI's older runtime sometimes
+    /// delivered after the test timeout.
+    private var loopGeneration = 0
+    private var intervalWait: CheckedContinuation<Void, Never>?
+    /// Set when a refresh is asked for while one is in flight, so the fetch
+    /// that is running answers for it instead of the request being lost.
+    private var pendingRefresh = false
+    /// The pairs the last fetch covers, as a set: what changes a fetch, as
+    /// opposed to the order, which only changes the list.
+    private var observedPairs: Set<String> = []
 
     public init(
         service: QuoteServiceProtocol = QuoteService(),
         settings: SettingsStore,
         launchHold: Duration = MenuBarLabel.launchHold,
-        launchReveal: Duration = MenuBarLabel.launchReveal
+        launchReveal: Duration = MenuBarLabel.launchReveal,
+        now: @escaping @Sendable () -> Date = { Date() }
     ) {
         self.service = service
         self.settings = settings
         self.launchHold = launchHold
         self.launchRevealDuration = launchReveal
+        self.now = now
+
+        observedPairs = Set(settings.pairs)
 
         pairsObservation = settings.$pairs
             .dropFirst()
@@ -62,7 +90,19 @@ public final class QuoteStore: ObservableObject {
             .sink { [weak self] newPairs in
                 guard let self else { return }
                 Task { @MainActor in
+                    // Order is a property of the list, not of what has to be
+                    // asked for. Comparing the arrays made every drag in the
+                    // pairs list cost a round trip to the API.
+                    let updated = Set(newPairs)
+                    let membershipChanged = updated != self.observedPairs
+                    self.observedPairs = updated
+
                     self.quotes = self.quotes.filter { newPairs.contains($0.id) }
+                    self.unavailablePairs = self.unavailablePairs.filter {
+                        newPairs.contains($0)
+                    }
+
+                    guard membershipChanged else { return }
                     await self.refresh()
                 }
             }
@@ -73,15 +113,28 @@ public final class QuoteStore: ObservableObject {
             .sink { [weak self] _ in
                 self?.restartLoop()
             }
+
+        // pairSettings can change without `pairs` changing — ticking the
+        // first menu bar pair is the case. The hold and refresh already
+        // asked; this is the third arrival startRevealIfReady waits for.
+        menuBarObservation = settings.$pairSettings
+            .dropFirst()
+            .sink { [weak self] _ in
+                Task { @MainActor in
+                    self?.startRevealIfReady()
+                }
+            }
     }
 
+    /// Only the tasks. `AnyCancellable` cancels its subscription when it is
+    /// deallocated, which is precisely now, so cancelling the observations here
+    /// was work already done — and reaching for them from a `deinit`, which is
+    /// not actor-isolated, is an error in the Swift 6 language mode.
     deinit {
         loop?.cancel()
         staleLoop?.cancel()
         launchHoldTask?.cancel()
         launchRevealTask?.cancel()
-        pairsObservation?.cancel()
-        intervalObservation?.cancel()
     }
 
     public func start() {
@@ -102,19 +155,7 @@ public final class QuoteStore: ObservableObject {
 
         if loop == nil {
             loop = Task { [weak self] in
-                guard let self else {
-                    return
-                }
-
-                while !Task.isCancelled {
-                    await self.refresh()
-
-                    do {
-                        try await Task.sleep(for: .seconds(self.settings.refreshInterval))
-                    } catch {
-                        break
-                    }
-                }
+                await self?.runFetchLoop()
             }
         }
 
@@ -134,13 +175,54 @@ public final class QuoteStore: ObservableObject {
         }
     }
 
-    /// The sleep already in flight used the previous interval. Cancel it and
-    /// fetch now, so 5m → 30s does not wait out the remaining minutes.
+    /// Fetches, then waits out the interval. An interval change resumes the
+    /// wait so the next fetch runs now — without cancelling the loop itself.
+    private func runFetchLoop() async {
+        while !Task.isCancelled {
+            let generation = loopGeneration
+            await refresh()
+
+            if Task.isCancelled { break }
+            if loopGeneration != generation { continue }
+
+            await sleepForInterval(generation: generation)
+        }
+    }
+
+    private func sleepForInterval(generation: Int) async {
+        await withCheckedContinuation { continuation in
+            guard loopGeneration == generation else {
+                continuation.resume()
+                return
+            }
+            intervalWait = continuation
+            Task { [weak self] in
+                guard let self else { return }
+                do {
+                    try await Task.sleep(for: .seconds(self.settings.refreshInterval))
+                } catch {
+                    return
+                }
+                self.finishIntervalWait(generation: generation)
+            }
+        }
+    }
+
+    private func finishIntervalWait(generation: Int) {
+        guard loopGeneration == generation, let wait = intervalWait else { return }
+        intervalWait = nil
+        wait.resume()
+    }
+
+    /// The sleep already in flight used the previous interval. Resume it so
+    /// 5m → 30s does not wait out the remaining minutes.
     private func restartLoop() {
         guard loop != nil else { return }
-        loop?.cancel()
-        loop = nil
-        start()
+        loopGeneration += 1
+        if let wait = intervalWait {
+            intervalWait = nil
+            wait.resume()
+        }
     }
 
     private func refreshStaleness() {
@@ -158,8 +240,17 @@ public final class QuoteStore: ObservableObject {
     }
 
     public func stop() {
+        // Bumped, not just resumed: the `Task.sleep` this loop left behind
+        // still carries the old generation, and without a bump it was still
+        // valid when it came due — waking the wait a *later* loop was sitting
+        // in and pulling its next fetch forward.
+        loopGeneration += 1
         loop?.cancel()
         loop = nil
+        if let wait = intervalWait {
+            intervalWait = nil
+            wait.resume()
+        }
         staleLoop?.cancel()
         staleLoop = nil
         launchHoldTask?.cancel()
@@ -168,21 +259,44 @@ public final class QuoteStore: ObservableObject {
         launchRevealTask = nil
     }
 
+    /// Coalesced rather than dropped: the pairs observation asks for a refresh
+    /// the moment a pair is added, which is exactly when a fetch is most likely
+    /// to be in flight. Returning early there left the new pair unanswered
+    /// until the next tick of the loop.
     public func refresh() async {
         guard !loading else {
+            pendingRefresh = true
             return
         }
 
         loading = true
-        error = nil
 
         defer {
             loading = false
         }
 
+        repeat {
+            pendingRefresh = false
+            await performFetch()
+        } while pendingRefresh && !Task.isCancelled
+    }
+
+    private func performFetch() async {
+        error = nil
+
+        // The pairs this response answers for. Reading `settings.pairs` again
+        // after the await measured the response against a list it was never
+        // asked for, which is how a pair added mid-flight came back "missing".
+        let requested = settings.pairs
+
         do {
-            let newQuotes = try await service.fetchQuotes(pairs: settings.pairs)
+            let newQuotes = try await service.fetchQuotes(pairs: requested)
             quotes = newQuotes
+            let returned = Set(newQuotes.map(\.id))
+            let current = Set(settings.pairs)
+            unavailablePairs = requested.filter {
+                !returned.contains($0) && current.contains($0)
+            }
             lastUpdate = .now
             hasLoaded = true
             stale = false
@@ -194,46 +308,86 @@ public final class QuoteStore: ObservableObject {
             self.error = error.localizedDescription
         }
     }
+}
 
+/// What one pair's history fetch came back with. Either half may be nil: a
+/// failed leg has to stay unset so the next refresh asks again.
+private struct HistoryFetch: Sendable {
+    let id: String
+    let daily: [Decimal]?
+    let intra: [IntradayPoint]?
+}
+
+extension QuoteStore {
     private func updatePriceHistory(with quotes: [Quote]) async {
         let activeIDs = Set(quotes.map(\.id))
         priceHistory = priceHistory.filter { activeIDs.contains($0.key) }
         intradayBids = intradayBids.filter { activeIDs.contains($0.key) }
+        dailyHistoryDay = dailyHistoryDay.filter { activeIDs.contains($0.key) }
 
-        for quote in quotes {
-            if priceHistory[quote.id] == nil {
-                priceHistory[quote.id] =
-                    (try? await service.fetchDailyBids(
-                        pair: quote.id,
-                        days: maxHistoryPoints
-                    )) ?? []
+        let service = self.service
+        let maxHistory = maxHistoryPoints
+        let maxIntraday = QuoteService.maxIntradayPoints
+        let today = Calendar.current.startOfDay(for: now())
+
+        await withTaskGroup(of: HistoryFetch.self) { group in
+            for quote in quotes {
+                let id = quote.id
+                let needsDaily = priceHistory[id] == nil || dailyHistoryDay[id] != today
+                let needsIntraday = intradayBids[id] == nil
+                guard needsDaily || needsIntraday else { continue }
+
+                group.addTask {
+                    let daily: [Decimal]? =
+                        needsDaily
+                        ? try? await service.fetchDailyBids(pair: id, days: maxHistory)
+                        : nil
+                    let intra: [IntradayPoint]? =
+                        needsIntraday
+                        ? try? await service.fetchIntradayBids(pair: id, points: maxIntraday)
+                        : nil
+                    return HistoryFetch(id: id, daily: daily, intra: intra)
+                }
             }
 
-            if intradayBids[quote.id] == nil {
-                intradayBids[quote.id] =
-                    (try? await service.fetchIntradayBids(
-                        pair: quote.id,
-                        points: QuoteService.maxIntradayPoints
-                    )) ?? []
+            for await result in group {
+                if let daily = result.daily {
+                    priceHistory[result.id] = daily
+                    // Only on success: a failed fetch has to be retried, and
+                    // stamping it would hold the stale closes for the whole day.
+                    dailyHistoryDay[result.id] = today
+                }
+                if let intra = result.intra {
+                    intradayBids[result.id] = intra
+                }
             }
+        }
 
+        // Live ticks belong on a seeded series. Appending after a failed
+        // seed would write a non-nil value and block the retry.
+        for quote in quotes where intradayBids[quote.id] != nil {
             appendIntradayBid(quote.bid, to: quote.id)
         }
     }
 
     private func appendIntradayBid(_ bid: Decimal, to pairID: String) {
-        var bids = intradayBids[pairID, default: []]
+        var points = intradayBids[pairID, default: []]
+        let timestamp = now()
 
-        if bids.last == bid {
-            return
+        if points.last?.bid != bid {
+            points.append(IntradayPoint(date: timestamp, bid: bid))
         }
 
-        bids.append(bid)
-        if bids.count > maxIntradayPoints {
-            bids.removeFirst(bids.count - maxIntradayPoints)
+        // Pruned on every tick, not only on append: a pair whose bid has not
+        // moved all day still has to shed yesterday's points.
+        let cutoff = timestamp.addingTimeInterval(-intradayWindow)
+        points.removeAll { $0.date < cutoff }
+
+        if points.count > maxIntradayPoints {
+            points.removeFirst(points.count - maxIntradayPoints)
         }
 
-        intradayBids[pairID] = bids
+        intradayBids[pairID] = points
     }
 
     // MARK: - Period derived values
@@ -245,7 +399,7 @@ public final class QuoteStore: ObservableObject {
     /// appended as the current point.
     public func series(for pairID: String, period: QuotePeriod) -> [Decimal] {
         let daily = priceHistory[pairID] ?? []
-        let intraday = intradayBids[pairID] ?? []
+        let intraday = (intradayBids[pairID] ?? []).map(\.bid)
 
         switch period {
         case .day:
