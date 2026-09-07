@@ -3,6 +3,36 @@ import Testing
 
 @testable import CotaKit
 
+/// Stands in for `SMAppService`, which needs a real bundle a test process does
+/// not have. Kept here rather than on `LaunchAgent`: the app has no use for it.
+final class StubLaunchAgent: @unchecked Sendable {
+    var enabled: Bool
+    let failing: Bool
+
+    init(enabled: Bool, failing: Bool = false) {
+        self.enabled = enabled
+        self.failing = failing
+    }
+
+    struct RegistrationFailed: Error {}
+
+    var agent: LaunchAgent {
+        LaunchAgent(
+            isEnabled: { [self] in enabled },
+            setEnabled: { [self] wanted in
+                if failing { throw RegistrationFailed() }
+                enabled = wanted
+            }
+        )
+    }
+}
+
+extension LaunchAgent {
+    static func stub(enabled: Bool) -> LaunchAgent {
+        StubLaunchAgent(enabled: enabled).agent
+    }
+}
+
 @Suite @MainActor
 struct SettingsStoreTests {
     /// A defaults domain of its own per test, so one test's pairs cannot leak
@@ -16,6 +46,41 @@ struct SettingsStoreTests {
 
     private func encoded(_ settings: [PairSetting]) -> Data {
         try! JSONEncoder().encode(settings)
+    }
+
+    // MARK: - Launch at login
+
+    /// The toggle used to read `false` on every open because nothing ever
+    /// called `loadLaunchAtLogin()`. Someone with the app registered saw "off"
+    /// while it did launch at login, and flipping the switch on was a no-op.
+    @Test func launchAtLoginReflectsTheRegisteredState() {
+        let store = SettingsStore(
+            defaults: freshDefaults(),
+            launchAgent: .stub(enabled: true)
+        )
+
+        #expect(store.launchAtLogin)
+    }
+
+    @Test func settingLaunchAtLoginGoesThroughTheAgent() {
+        let agent = StubLaunchAgent(enabled: false)
+        let store = SettingsStore(defaults: freshDefaults(), launchAgent: agent.agent)
+
+        store.setLaunchAtLogin(true)
+
+        #expect(agent.enabled)
+        #expect(store.launchAtLogin)
+    }
+
+    /// A failed register leaves the switch showing what the system actually
+    /// holds, not what the click asked for.
+    @Test func aFailedRegisterFallsBackToTheSystemState() {
+        let agent = StubLaunchAgent(enabled: false, failing: true)
+        let store = SettingsStore(defaults: freshDefaults(), launchAgent: agent.agent)
+
+        store.setLaunchAtLogin(true)
+
+        #expect(store.launchAtLogin == false)
     }
 
     // MARK: - Migration
@@ -133,6 +198,31 @@ struct SettingsStoreTests {
         #expect(store.isShownInMenuBar("EUR-BRL") == false)
     }
 
+    /// An alert whose pair is gone stayed listed, was skipped by checkAlerts,
+    /// and the form picker no longer offered the pair — a visible alert that
+    /// could never fire.
+    @Test func removingAPairRemovesItsAlerts() {
+        let defaults = freshDefaults()
+        defaults.set(
+            encoded([
+                PairSetting(pair: "EUR-BRL", showsInMenuBar: true),
+                PairSetting(pair: "USD-BRL", showsInMenuBar: false),
+            ]), forKey: "pairSettings")
+
+        let store = SettingsStore(defaults: defaults)
+        store.addAlert(
+            PriceAlert(pair: "EUR-BRL", threshold: Decimal(string: "6")!, isAbove: true))
+        store.addAlert(
+            PriceAlert(pair: "USD-BRL", threshold: Decimal(string: "5")!, isAbove: false))
+
+        store.removePair("EUR-BRL")
+
+        #expect(store.alerts.map(\.pair) == ["USD-BRL"])
+
+        let reopened = SettingsStore(defaults: defaults)
+        #expect(reopened.alerts.map(\.pair) == ["USD-BRL"])
+    }
+
     @Test func reorderingCarriesTheFlag() {
         let defaults = freshDefaults()
         defaults.set(
@@ -157,9 +247,10 @@ struct SettingsStoreTests {
         #expect(reopened.isShownInMenuBar(SettingsStore.defaultPairs[1]))
     }
 
-    /// `value` needs a single pair; ticking a second one has to walk the format
-    /// back, or the bar shows two unlabelled numbers.
-    @Test func tickingASecondPairWalksTheValueFormatBack() {
+    /// Coercion belongs at read time (`effectiveFormat`). Writing `.auto` back
+    /// over the stored choice meant unticking the second pair could not
+    /// restore "Value only".
+    @Test func tickingASecondPairKeepsTheStoredValueFormat() {
         let defaults = freshDefaults()
         defaults.set(
             encoded([
@@ -171,6 +262,20 @@ struct SettingsStoreTests {
         store.menuBarFormat = .value
         store.setMenuBarPair("USD-BRL", shown: true)
 
-        #expect(store.menuBarFormat == .auto)
+        #expect(store.menuBarFormat == .value)
+        #expect(
+            MenuBarLabel.effectiveFormat(
+                store.menuBarFormat, pairCount: store.orderedMenuBarPairs.count)
+                == .auto)
+
+        store.setMenuBarPair("USD-BRL", shown: false)
+        #expect(store.menuBarFormat == .value)
+        #expect(
+            MenuBarLabel.effectiveFormat(
+                store.menuBarFormat, pairCount: store.orderedMenuBarPairs.count)
+                == .value)
+
+        let reopened = SettingsStore(defaults: defaults)
+        #expect(reopened.menuBarFormat == .value)
     }
 }

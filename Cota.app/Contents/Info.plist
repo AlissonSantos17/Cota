@@ -24,5 +24,24 @@
 	<true/>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<!-- The drag payload of the pairs list. Declared here because
+	     `UTType(exportedAs:)` expects the type to exist in the bundle;
+	     without it the system registers a dynamic type and logs a warning
+	     on every drag. -->
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.alissonfelp.Cota.pair</string>
+			<key>UTTypeDescription</key>
+			<string>Cota currency pair</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict/>
+		</dict>
+	</array>
 </dict>
 </plist>

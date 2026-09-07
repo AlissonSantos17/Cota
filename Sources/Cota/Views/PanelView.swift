@@ -88,16 +88,20 @@ struct PanelView: View {
     }
 
     private var quotes: some View {
-        ForEach(Array(store.quotes.enumerated()), id: \.element.id) { index, quote in
-            QuoteRow(
-                quote: quote,
-                symbol: store.symbol(quote.code),
-                series: store.series(for: quote.id, period: settings.period),
-                change: store.change(for: quote.id, period: settings.period),
-                range: store.range(for: quote.id, period: settings.period)
-            )
+        ForEach(Array(settings.pairs.enumerated()), id: \.element) { index, pair in
+            if let quote = store.quotes.first(where: { $0.id == pair }) {
+                QuoteRow(
+                    quote: quote,
+                    symbol: store.symbol(quote.code),
+                    series: store.series(for: quote.id, period: settings.period),
+                    change: store.change(for: quote.id, period: settings.period),
+                    range: store.range(for: quote.id, period: settings.period)
+                )
+            } else {
+                UnavailableRow(pair: pair, symbol: store.symbol(PairDisplay(id: pair).base))
+            }
 
-            if index < store.quotes.count - 1 {
+            if index < settings.pairs.count - 1 {
                 RowSeparator()
             }
         }
@@ -139,12 +143,30 @@ struct PanelView: View {
             if store.error != nil {
                 Text("Couldn't update")
             } else if let date = store.lastUpdate {
-                Text("Updated \(Self.elapsed(from: date, to: now))")
+                let stamp = "Updated \(Self.elapsed(from: date, to: now))"
+                if store.unavailablePairs.isEmpty {
+                    Text(stamp)
+                } else {
+                    Text("\(stamp) · \(unavailableStatus)")
+                }
             }
         }
         .font(.system(size: 11))
         .foregroundStyle(degraded ? AnyShapeStyle(.orange) : AnyShapeStyle(.secondary))
-        .help(store.error ?? "")
+        .help(statusHelp)
+    }
+
+    private var unavailableStatus: String {
+        store.unavailablePairs.count == 1
+            ? "1 pair unavailable"
+            : "\(store.unavailablePairs.count) pairs unavailable"
+    }
+
+    private var statusHelp: String {
+        if let error = store.error, !error.isEmpty { return error }
+        guard !store.unavailablePairs.isEmpty else { return "" }
+        let names = store.unavailablePairs.map { PairDisplay(id: $0).text }.joined(separator: ", ")
+        return "Not in the last API response: \(names)"
     }
 
     /// Hand-rolled rather than a relative date style: the stock one rounds a
@@ -291,6 +313,35 @@ private struct FooterButton: View {
 }
 
 // MARK: - Quote row
+
+private struct UnavailableRow: View {
+    let pair: String
+    let symbol: String
+
+    var body: some View {
+        ListRow(
+            height: Layout.quoteRowHeight,
+            leadingWidth: Layout.badgeSize,
+            trailingWidth: Layout.valueColumnWidth
+        ) {
+            CurrencyBadge(symbol: symbol)
+        } center: {
+            VStack(alignment: .leading, spacing: 2) {
+                PairLabel(pair)
+                Text("Not in the last API response")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
+        } trailing: {
+            Text("—")
+                .font(.system(size: 13).monospacedDigit())
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, Layout.horizontalPadding)
+        .accessibilityLabel(PairDisplay(id: pair).text)
+        .accessibilityValue("Unavailable")
+    }
+}
 
 private struct QuoteRow: View {
     let quote: Quote

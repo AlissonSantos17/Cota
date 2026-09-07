@@ -142,25 +142,40 @@ struct MenuBarSettingsSection: View {
         }
     }
 
+    /// What the bar is actually drawing, which is not always what is stored:
+    /// "Value only" falls back to "Automatic" as soon as a second pair is
+    /// ticked. Marking the stored choice left the radio on a row that was both
+    /// selected and disabled while the bar showed something else.
+    ///
+    /// The stored choice is deliberately left alone — unticking the second pair
+    /// has to bring "Value only" back.
+    private var selectedFormat: MenuBarFormat {
+        MenuBarLabel.effectiveFormat(
+            settings.menuBarFormat,
+            pairCount: settings.orderedMenuBarPairs.count
+        )
+    }
+
     private func formatRow(_ format: MenuBarFormat) -> some View {
         let isDisabled =
             MenuBarLabel.disabledReason(
                 for: format,
                 pairCount: settings.orderedMenuBarPairs.count
             ) != nil
+        let isSelected = selectedFormat == format
 
         return Button {
             settings.menuBarFormat = format
         } label: {
             ListRow(leadingWidth: 16, trailingWidth: 104) {
                 Image(
-                    systemName: settings.menuBarFormat == format
+                    systemName: isSelected
                         ? "largecircle.fill.circle"
                         : "circle"
                 )
                 .font(.system(size: 12))
                 .foregroundStyle(
-                    settings.menuBarFormat == format
+                    isSelected
                         ? AnyShapeStyle(Color.accentColor)
                         : AnyShapeStyle(.secondary))
             } center: {
@@ -175,7 +190,7 @@ struct MenuBarSettingsSection: View {
         .disabled(isDisabled)
         .opacity(isDisabled ? 0.5 : 1)
         .padding(.horizontal, Layout.horizontalPadding)
-        .accessibilityAddTraits(settings.menuBarFormat == format ? [.isSelected] : [])
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 
     /// Examples derive from the first selected pair, never from a fixed value:

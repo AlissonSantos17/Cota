@@ -58,4 +58,42 @@ struct QuoteFormatTests {
     @Test func percentMagnitudeDropsTheSign() {
         #expect(QuoteFormat.percentMagnitude(dec("-0.83")) == "0,83%")
     }
+
+    // MARK: - Threshold parsing
+
+    /// The field is pt-BR. Replacing `,` with `.` and handing the rest to
+    /// `Decimal` turned `350.000` into 350 and `5.000,50` into a silent 5.
+    @Test func parseThresholdReadsBrazilianGrouping() {
+        #expect(QuoteFormat.parseThreshold("6,02") == dec("6.02"))
+        #expect(QuoteFormat.parseThreshold("6.02") == dec("6.02"))
+        #expect(QuoteFormat.parseThreshold("350.000") == dec("350000"))
+        #expect(QuoteFormat.parseThreshold("5.000,50") == dec("5000.50"))
+        #expect(QuoteFormat.parseThreshold("350000,50") == dec("350000.50"))
+    }
+
+    /// `Decimal(string:)` stops at the first character it cannot use and hands
+    /// back the prefix, so `5abc` came out as a valid 5 and `1e5` as 100.000.
+    /// A threshold the person did not type is worse than no threshold: the Add
+    /// button lit up and the alert was armed on a number nobody chose.
+    @Test func parseThresholdRejectsAnythingThatIsNotJustANumber() {
+        #expect(QuoteFormat.parseThreshold("5abc") == nil)
+        #expect(QuoteFormat.parseThreshold("1e5") == nil)
+        #expect(QuoteFormat.parseThreshold("6,02,") == nil)
+        #expect(QuoteFormat.parseThreshold("5 000") == nil)
+        #expect(QuoteFormat.parseThreshold("R$ 6,02") == nil)
+        #expect(QuoteFormat.parseThreshold("+6,02") == nil)
+    }
+
+    /// Whitespace around the number is typing, not input.
+    @Test func parseThresholdTrimsSurroundingWhitespace() {
+        #expect(QuoteFormat.parseThreshold("  6,02 ") == dec("6.02"))
+    }
+
+    @Test func parseThresholdRejectsZeroAndNegative() {
+        #expect(QuoteFormat.parseThreshold("0") == nil)
+        #expect(QuoteFormat.parseThreshold("-1") == nil)
+        #expect(QuoteFormat.parseThreshold("-5,00") == nil)
+        #expect(QuoteFormat.parseThreshold("") == nil)
+        #expect(QuoteFormat.parseThreshold("abc") == nil)
+    }
 }

@@ -70,6 +70,32 @@ struct QuoteServiceTests {
         }
     }
 
+    /// A 404 is a missing resource, not a blip. Retrying it three times with
+    /// backoff held `loading` for ~48s per call and blocked the manual refresh.
+    @Test func fetchQuotesDoesNotRetryClientErrors() async {
+        let (service, _) = makeService()
+        let attempts = AttemptCounter()
+        MockURLProtocol.requestHandler = { request in
+            attempts.count += 1
+            let response = HTTPURLResponse(
+                url: request.url!,
+                statusCode: 404,
+                httpVersion: nil,
+                headerFields: nil
+            )!
+            return (response, Data())
+        }
+
+        await #expect(throws: QuoteError.httpError(404)) {
+            _ = try await service.fetchQuotes(pairs: ["USD-BRL"])
+        }
+        #expect(attempts.count == 1)
+    }
+
+    private final class AttemptCounter: @unchecked Sendable {
+        var count = 0
+    }
+
     @Test func fetchDailyBidsReturnsChronologicalBids() async throws {
         let (service, _) = makeService()
         let json = """
@@ -96,6 +122,42 @@ struct QuoteServiceTests {
                 Decimal(string: "5.00")!,
                 Decimal(string: "5.10")!,
                 Decimal(string: "5.18")!,
+            ])
+    }
+
+    /// Intraday ticks carry their timestamp so the 24h window can be a window:
+    /// a bare list of bids can only ever be "the last N the API gave us".
+    @Test func fetchIntradayBidsCarriesTheTimestampOfEachTick() async throws {
+        let (service, _) = makeService()
+        let json = """
+            [
+                {"bid": "5.18", "timestamp": "1757260800"},
+                {"bid": "5.10", "timestamp": "1757257200"}
+            ]
+            """
+
+        MockURLProtocol.requestHandler = { request in
+            let response = HTTPURLResponse(
+                url: request.url!,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: nil
+            )!
+            return (response, Data(json.utf8))
+        }
+
+        let points = try await service.fetchIntradayBids(pair: "USD-BRL", points: 10)
+
+        #expect(
+            points == [
+                IntradayPoint(
+                    date: Date(timeIntervalSince1970: 1_757_257_200),
+                    bid: Decimal(string: "5.10")!
+                ),
+                IntradayPoint(
+                    date: Date(timeIntervalSince1970: 1_757_260_800),
+                    bid: Decimal(string: "5.18")!
+                ),
             ])
     }
 }

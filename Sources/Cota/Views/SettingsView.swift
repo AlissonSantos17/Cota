@@ -10,6 +10,7 @@ import SwiftUI
 struct SettingsView: View {
     @ObservedObject var settings: SettingsStore
     @ObservedObject var store: QuoteStore
+    @ObservedObject private var notifications = NotificationService.shared
 
     /// Wide enough for the five columns of the pairs list. The popover's 360
     /// was the constraint that flattened the hierarchy in the first place.
@@ -98,15 +99,15 @@ struct SettingsView: View {
                 )
                 .padding(.horizontal, Layout.horizontalPadding)
                 .contentShape(Rectangle())
-                .draggable(pair) {
+                .draggable(PairPayload(pair: pair)) {
                     PairLabel(pair)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
                         .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 6))
                 }
-                .dropDestination(for: String.self) { items, _ in
+                .dropDestination(for: PairPayload.self) { items, _ in
                     dropTarget = nil
-                    guard let dropped = items.first,
+                    guard let dropped = items.first?.pair,
                         let from = settings.pairs.firstIndex(of: dropped),
                         let to = settings.pairs.firstIndex(of: pair),
                         from != to
@@ -222,6 +223,21 @@ struct SettingsView: View {
 
     private var alertsContent: some View {
         VStack(spacing: 0) {
+            if notifications.authorizationDenied {
+                Text(
+                    """
+                    Notifications are off. Alerts are saved but will not appear \
+                    until you allow them in System Settings.
+                    """
+                )
+                .font(.system(size: 11))
+                .foregroundStyle(.orange)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, Layout.horizontalPadding)
+                .padding(.bottom, 8)
+            }
+
             if !settings.alerts.isEmpty {
                 ForEach(Array(settings.alerts.enumerated()), id: \.element.id) { index, alert in
                     AlertRow(
@@ -272,6 +288,10 @@ struct SettingsView: View {
             .controlSize(.mini)
         }
         .padding(.horizontal, Layout.horizontalPadding)
+        // The login item can be revoked in System Settings while the app runs,
+        // so the switch re-reads it on every open rather than trusting the
+        // value it was built with.
+        .task { settings.loadLaunchAtLogin() }
     }
 }
 
@@ -315,6 +335,7 @@ private struct PairRow: View {
                         quote == nil ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary)
                     )
                     .frame(width: PairColumns.rate, alignment: .trailing)
+                    .help(missingQuoteHelp ?? "")
 
                 Text(formattedChange)
                     .font(.system(size: 11, weight: .medium).monospacedDigit())
@@ -357,6 +378,10 @@ private struct PairRow: View {
     private var formattedBid: String {
         guard let quote else { return "—" }
         return QuoteFormat.value(quote.bid)
+    }
+
+    private var missingQuoteHelp: String? {
+        quote == nil ? "Not in the last API response" : nil
     }
 
     private var formattedChange: String {
@@ -445,119 +470,5 @@ private struct GripHandle: View {
         Circle()
             .fill(Color.primary.opacity(0.35))
             .frame(width: 2.5, height: 2.5)
-    }
-}
-
-// MARK: - Alerts
-
-/// Both the alert rows and the new alert form measure their columns here, so
-/// the form reads as the next row of the list rather than a detached block.
-private enum AlertColumns {
-    static let pair: CGFloat = 84
-
-    /// 72, not 52: the narrower column truncated "above" to "ab...". The width
-    /// could shrink again if the condition became `>` and `<`, but then the
-    /// existing alerts would have to use the symbol too, or the two rows stop
-    /// lining up.
-    static let condition: CGFloat = 72
-}
-
-private struct AlertRow: View {
-    let alert: PriceAlert
-    let onToggle: (Bool) -> Void
-    let onRemove: () -> Void
-
-    var body: some View {
-        HStack(spacing: Layout.columnSpacing) {
-            PairLabel(alert.pair)
-                .frame(width: AlertColumns.pair, alignment: .leading)
-
-            Text(alert.isAbove ? "above" : "below")
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
-                .frame(width: AlertColumns.condition, alignment: .leading)
-
-            Text(formattedThreshold)
-                .font(.system(size: 12).monospacedDigit())
-                .frame(maxWidth: .infinity, alignment: .trailing)
-
-            Toggle("", isOn: Binding(get: { alert.isEnabled }, set: onToggle))
-                .labelsHidden()
-                .toggleStyle(.switch)
-                .controlSize(.mini)
-
-            Button(action: onRemove) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                    .frame(width: Layout.trailingSlotWidth, height: Layout.rowHeight)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Remove alert \(alert.label)")
-            .help("Remove alert")
-        }
-        .frame(height: Layout.rowHeight)
-    }
-
-    private var formattedThreshold: String {
-        QuoteFormat.value(alert.threshold)
-    }
-}
-
-private struct AddAlertRow: View {
-    let pairs: [String]
-    let onAdd: (PriceAlert) -> Void
-
-    @State private var selectedPair: String = ""
-    @State private var thresholdText = ""
-    @State private var isAbove = true
-
-    var body: some View {
-        HStack(spacing: Layout.columnSpacing) {
-            Picker("", selection: $selectedPair) {
-                Text("Pair").tag("")
-                ForEach(pairs, id: \.self) { pair in
-                    Text(PairDisplay(id: pair).text).tag(pair)
-                }
-            }
-            .labelsHidden()
-            .pickerStyle(.menu)
-            .controlSize(.small)
-            .frame(width: AlertColumns.pair)
-
-            Picker("", selection: $isAbove) {
-                Text("above").tag(true)
-                Text("below").tag(false)
-            }
-            .labelsHidden()
-            .pickerStyle(.menu)
-            .controlSize(.small)
-            .frame(width: AlertColumns.condition)
-
-            TextField("Value", text: $thresholdText)
-                .textFieldStyle(.roundedBorder)
-                .font(.system(size: 11).monospacedDigit())
-                .multilineTextAlignment(.trailing)
-                .controlSize(.small)
-                .frame(maxWidth: .infinity)
-
-            Button("Add") {
-                guard let threshold = parseThreshold() else { return }
-                onAdd(PriceAlert(pair: selectedPair, threshold: threshold, isAbove: isAbove))
-                thresholdText = ""
-            }
-            .controlSize(.small)
-            .disabled(!isFormValid)
-        }
-        .frame(height: Layout.rowHeight)
-    }
-
-    private func parseThreshold() -> Decimal? {
-        Decimal(string: thresholdText.replacingOccurrences(of: ",", with: "."))
-    }
-
-    private var isFormValid: Bool {
-        !selectedPair.isEmpty && parseThreshold() != nil
     }
 }
