@@ -33,12 +33,22 @@ public final class QuoteService: QuoteServiceProtocol {
     private let lastURL = "https://economia.awesomeapi.com.br/json/last"
     private let dailyURL = "https://economia.awesomeapi.com.br/json/daily"
     private let intradayURL = "https://economia.awesomeapi.com.br/json"
-    private let maxRetries = 3
 
     /// The API caps this endpoint at 100 records no matter what is asked for.
     public static let maxIntradayPoints = 100
 
-    public init(session: URLSession = .shared) {
+    /// Waits for a connection instead of failing with -1009. At login the app
+    /// asks before the network is up, and the failure that came back left the
+    /// menu bar on the app name. The per-request timeout only starts once
+    /// connected; this one bounds the whole wait.
+    public static let defaultSession: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.waitsForConnectivity = true
+        config.timeoutIntervalForResource = 60
+        return URLSession(configuration: config)
+    }()
+
+    public init(session: URLSession = QuoteService.defaultSession) {
         self.session = session
     }
 
@@ -93,45 +103,26 @@ public final class QuoteService: QuoteServiceProtocol {
         return points.reversed().map { IntradayPoint(date: $0.date, bid: $0.bid) }
     }
 
+    /// One attempt. Retrying is the store's job: it knows whether a failure
+    /// is worth asking again soon, and a second schedule here multiplied each
+    /// of its retries by three.
     private func fetchData(from url: URL) async throws -> Data {
         var request = URLRequest(url: url)
         request.cachePolicy = .reloadIgnoringLocalCacheData
         request.timeoutInterval = 15
         request.httpMethod = "GET"
 
-        var lastError: Error = QuoteError.invalidResponse
+        let (data, response) = try await session.data(for: request)
 
-        for attempt in 0..<maxRetries {
-            if attempt > 0 {
-                let delay = UInt64(pow(2.0, Double(attempt - 1))) * 1_000_000_000
-                try await Task.sleep(nanoseconds: delay)
-            }
-
-            do {
-                let (data, response) = try await session.data(for: request)
-
-                guard let httpResponse = response as? HTTPURLResponse else {
-                    throw QuoteError.invalidResponse
-                }
-
-                guard 200..<300 ~= httpResponse.statusCode else {
-                    throw QuoteError.httpError(httpResponse.statusCode)
-                }
-
-                return data
-            } catch is CancellationError {
-                throw CancellationError()
-            } catch let error as QuoteError {
-                if case .httpError(let status) = error, (400..<500).contains(status) {
-                    throw error
-                }
-                lastError = error
-            } catch {
-                lastError = error
-            }
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw QuoteError.invalidResponse
         }
 
-        throw lastError
+        guard 200..<300 ~= httpResponse.statusCode else {
+            throw QuoteError.httpError(httpResponse.statusCode)
+        }
+
+        return data
     }
 }
 
