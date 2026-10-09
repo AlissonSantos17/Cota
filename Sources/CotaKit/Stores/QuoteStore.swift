@@ -35,6 +35,14 @@ public final class QuoteStore: ObservableObject {
     /// 0 is the name, 1 is the quote. The renderer crossfades between them.
     @Published public private(set) var launchReveal: Double = 0
 
+    /// How soon to ask again after consecutive failures. At login the first
+    /// fetch runs before the network is up; waiting out the whole interval
+    /// after it left the menu bar on the app name for minutes. Once the steps
+    /// run out the loop is back on the interval.
+    public nonisolated static let defaultRetryDelays: [Duration] = [
+        .seconds(5), .seconds(10), .seconds(20), .seconds(40),
+    ]
+
     private let maxHistoryPoints = 30
     /// A cap on memory, not on the window: the window is `intradayWindow`.
     private let maxIntradayPoints = 200
@@ -43,6 +51,7 @@ public final class QuoteStore: ObservableObject {
     public let settings: SettingsStore
     private let launchHold: Duration
     private let launchRevealDuration: Duration
+    private let retryDelays: [Duration]
     private let now: @Sendable () -> Date
 
     /// The day each pair's daily closes were fetched for. Closes only change
@@ -68,18 +77,23 @@ public final class QuoteStore: ObservableObject {
     /// The pairs the last fetch covers, as a set: what changes a fetch, as
     /// opposed to the order, which only changes the list.
     private var observedPairs: Set<String> = []
+    /// Failures since the last fetch that came back, counting only the kind a
+    /// retry can fix. Picks the step of `retryDelays` the loop waits for.
+    private var consecutiveFailures = 0
 
     public init(
         service: QuoteServiceProtocol = QuoteService(),
         settings: SettingsStore,
         launchHold: Duration = MenuBarLabel.launchHold,
         launchReveal: Duration = MenuBarLabel.launchReveal,
+        retryDelays: [Duration] = QuoteStore.defaultRetryDelays,
         now: @escaping @Sendable () -> Date = { Date() }
     ) {
         self.service = service
         self.settings = settings
         self.launchHold = launchHold
         self.launchRevealDuration = launchReveal
+        self.retryDelays = retryDelays
         self.now = now
 
         observedPairs = Set(settings.pairs)
@@ -185,11 +199,22 @@ public final class QuoteStore: ObservableObject {
             if Task.isCancelled { break }
             if loopGeneration != generation { continue }
 
-            await sleepForInterval(generation: generation)
+            await sleepForInterval(generation: generation, delay: nextWait())
         }
     }
 
-    private func sleepForInterval(generation: Int) async {
+    /// The interval, unless the last fetches failed in a way worth asking
+    /// again about sooner. A step is never longer than the interval: a failure
+    /// should not take longer to recover from than a success takes to refresh.
+    private func nextWait() -> Duration {
+        let interval = Duration.seconds(settings.refreshInterval)
+        guard consecutiveFailures > 0, consecutiveFailures <= retryDelays.count else {
+            return interval
+        }
+        return min(retryDelays[consecutiveFailures - 1], interval)
+    }
+
+    private func sleepForInterval(generation: Int, delay: Duration) async {
         await withCheckedContinuation { continuation in
             guard loopGeneration == generation else {
                 continuation.resume()
@@ -199,7 +224,7 @@ public final class QuoteStore: ObservableObject {
             Task { [weak self] in
                 guard let self else { return }
                 do {
-                    try await Task.sleep(for: .seconds(self.settings.refreshInterval))
+                    try await Task.sleep(for: delay)
                 } catch {
                     return
                 }
@@ -300,12 +325,39 @@ public final class QuoteStore: ObservableObject {
             lastUpdate = .now
             hasLoaded = true
             stale = false
+            consecutiveFailures = 0
             await updatePriceHistory(with: newQuotes)
             NotificationService.shared.checkAlerts(settings.alerts, against: quotes)
             startRevealIfReady()
-        } catch is CancellationError {
         } catch {
+            // Stopping cancels the request in flight. That is not the API
+            // failing: nothing to show, nothing to retry.
+            guard !Self.isCancellation(error) else { return }
+
+            // `quotes` is left alone: the last good values stay on screen,
+            // and the error and the staleness rule say they are old.
             self.error = error.localizedDescription
+            consecutiveFailures = Self.isTransient(error) ? consecutiveFailures + 1 : 0
+        }
+    }
+
+    /// URLSession reports a cancelled task as `URLError.cancelled`, not as
+    /// `CancellationError`.
+    private static func isCancellation(_ error: Error) -> Bool {
+        error is CancellationError || (error as? URLError)?.code == .cancelled
+    }
+
+    /// Transport failures and server errors can clear up in seconds. A 4xx or
+    /// a body that does not decode will not, and asking again soon only spends
+    /// the API's rate limit.
+    private static func isTransient(_ error: Error) -> Bool {
+        switch error {
+        case is URLError:
+            return true
+        case QuoteError.httpError(let status):
+            return (500..<600).contains(status)
+        default:
+            return false
         }
     }
 }

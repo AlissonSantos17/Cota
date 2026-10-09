@@ -92,6 +92,36 @@ struct QuoteServiceTests {
         #expect(attempts.count == 1)
     }
 
+    /// The store owns the retry schedule. A second schedule here multiplied
+    /// every store retry by three and held `loading` through the backoff.
+    @Test func fetchQuotesMakesASingleAttemptOnServerErrors() async {
+        let (service, _) = makeService()
+        let attempts = AttemptCounter()
+        MockURLProtocol.requestHandler = { request in
+            attempts.count += 1
+            let response = HTTPURLResponse(
+                url: request.url!,
+                statusCode: 503,
+                httpVersion: nil,
+                headerFields: nil
+            )!
+            return (response, Data())
+        }
+
+        await #expect(throws: QuoteError.httpError(503)) {
+            _ = try await service.fetchQuotes(pairs: ["USD-BRL"])
+        }
+        #expect(attempts.count == 1)
+    }
+
+    /// At login the request is made before the network is up. Waiting for it
+    /// beats failing with -1009 and leaving the bar empty.
+    @Test func theDefaultSessionWaitsForConnectivity() {
+        let config = QuoteService.defaultSession.configuration
+        #expect(config.waitsForConnectivity)
+        #expect(config.timeoutIntervalForResource == 60)
+    }
+
     private final class AttemptCounter: @unchecked Sendable {
         var count = 0
     }

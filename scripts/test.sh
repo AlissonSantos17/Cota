@@ -1,15 +1,8 @@
 #!/bin/bash
-# swift-testing ships inside Xcode. On a machine with only the Command Line
-# Tools the framework is present but off the search and runtime paths, so
-# `swift test` fails to build and then fails to load. These flags point at it.
+# Runs the test suite. On a machine with only the Command Line Tools the app
+# target needs an older SDK to build; see sdk-flags.sh. The current Command
+# Line Tools find swift-testing on their own, and the -F/-rpath flags this
+# script used to pass now load a copy whose macro plugin cannot be found.
 set -e
 
-FRAMEWORKS=/Library/Developer/CommandLineTools/Library/Developer/Frameworks
-LIBS=/Library/Developer/CommandLineTools/Library/Developer/usr/lib
-
-swift test \
-  -Xswiftc -F -Xswiftc "$FRAMEWORKS" \
-  -Xlinker -F -Xlinker "$FRAMEWORKS" \
-  -Xlinker -rpath -Xlinker "$FRAMEWORKS" \
-  -Xlinker -rpath -Xlinker "$LIBS" \
-  "$@"
+swift test $("$(dirname "$0")"/sdk-flags.sh) "$@"

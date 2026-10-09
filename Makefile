@@ -4,7 +4,7 @@ test:
 	./scripts/test.sh
 
 build:
-	swift build
+	swift build $$(./scripts/sdk-flags.sh)
 
 format:
 	./scripts/format.sh

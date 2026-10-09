@@ -19,12 +19,16 @@ final class MockQuoteService: QuoteServiceProtocol, @unchecked Sendable {
     /// first has not returned.
     var holdFetch = false
 
+    /// Answers consumed one per call, ahead of `result`. Lets a test script
+    /// "fail, fail, succeed" without racing the loop to swap `result`.
+    var queuedResults: [Result<[Quote], Error>] = []
+
     func fetchQuotes(pairs: [String]) async throws -> [Quote] {
         fetchCount += 1
         requestedPairs.append(pairs)
         // Captured on entry: a response answers the request that was made, so
         // a result set while this one is held belongs to the *next* call.
-        let captured = result
+        let captured = queuedResults.isEmpty ? result : queuedResults.removeFirst()
         while holdFetch {
             try? await Task.sleep(for: .milliseconds(5))
         }
@@ -67,6 +71,7 @@ extension QuoteStoreFixture {
     func makeStore(
         launchHold: Duration = .seconds(2),
         launchReveal: Duration = .milliseconds(350),
+        retryDelays: [Duration] = QuoteStore.defaultRetryDelays,
         clock: TestClock? = nil
     ) -> (QuoteStore, MockQuoteService) {
         let mockService = MockQuoteService()
@@ -79,6 +84,7 @@ extension QuoteStoreFixture {
             settings: settings,
             launchHold: launchHold,
             launchReveal: launchReveal,
+            retryDelays: retryDelays,
             now: clock.map { clock in { clock.now } } ?? { Date() }
         )
         return (store, mockService)
