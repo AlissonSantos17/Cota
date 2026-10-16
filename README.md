@@ -108,7 +108,7 @@ Tests/CotaKitTests/
 
 `CotaKit` concentra regras que a UI só consome: formatação de números (`QuoteFormat`), montagem do rótulo da barra (`MenuBarLabel`) e o loop de fetch. A UI não inventa um segundo formato.
 
-O `.app` é montado à mão (`rebuild.sh`): copia o binário para `Cota.app/Contents/MacOS`, assina ad-hoc e abre. `LSUIElement` está ligado — o Cota não aparece no Dock.
+O `.app` é montado à mão (`rebuild.sh`): copia o binário para `Cota.app/Contents/MacOS`, assina ad-hoc e abre. O ícone (`Cota.app/Contents/Resources/AppIcon.icns`) é versionado; as fontes ficam em `Design/`. `LSUIElement` está ligado — o Cota não aparece no Dock.
 
 ## Requisitos
 
@@ -133,6 +133,8 @@ make build     # build debug
 make format    # swift-format
 make lint      # format + SwiftLint
 make rebuild   # build, codesign e abre o app
+make icon      # regera o AppIcon.icns a partir de Design/*.svg
+make dmg       # build release e gera dist/Cota-<versão>.dmg
 ```
 
 CI no GitHub Actions: teste, build (debug e release) e lint a cada push/PR em `main`.
