@@ -8,3 +8,4 @@ DerivedData/
 .netrc
 Cota.app/Contents/MacOS/Cota
 Cota.app/Contents/_CodeSignature/
+/dist

@@ -7,6 +7,9 @@ public final class SettingsStore: ObservableObject {
         static let pairSettings = "pairSettings"
         static let refreshInterval = "refreshInterval"
         static let alerts = "priceAlerts"
+        /// The alerts as they were stored when part of them could not be read.
+        /// Written once, before anything can save over the original.
+        static let unreadableAlerts = "priceAlerts.unreadable"
         static let period = "quotePeriod"
         static let menuBarFormat = "menuBarFormat"
         static let menuBarIndicator = "menuBarIndicator"
@@ -64,6 +67,13 @@ public final class SettingsStore: ObservableObject {
 
     @Published public var alerts: [PriceAlert] = []
 
+    /// The stored alerts as they were when part of them could not be read,
+    /// or nil when everything was readable. Offered back from Settings; never
+    /// removed by the app.
+    public var unreadableAlertsBackup: Data? {
+        defaults.data(forKey: Keys.unreadableAlerts)
+    }
+
     public static let defaultPairs = [
         "EUR-BRL", "USD-BRL", "GBP-BRL", "BTC-BRL",
     ]
@@ -94,11 +104,7 @@ public final class SettingsStore: ObservableObject {
             .flatMap(ChangeIndicator.init(rawValue:)) ?? .arrow
         self.dimWhenStale = defaults.object(forKey: Keys.dimWhenStale) as? Bool ?? true
 
-        if let data = defaults.data(forKey: Keys.alerts),
-            let decoded = try? JSONDecoder().decode([PriceAlert].self, from: data)
-        {
-            self.alerts = decoded
-        }
+        self.alerts = Self.loadAlerts(from: defaults)
 
         // Read here, not left to a caller: the switch is the only place the
         // login item is visible, and nothing was calling `loadLaunchAtLogin()`.
@@ -237,6 +243,33 @@ public final class SettingsStore: ObservableObject {
     public func updateAlert(_ alert: PriceAlert) {
         alerts = alerts.map { $0.id == alert.id ? alert : $0 }
         persistAlerts()
+    }
+
+    /// Reads alert by alert. Decoding the array in one go failed it whole on a
+    /// single bad record: the list came up empty, and the next change saved
+    /// that empty list over every alert the person had. Whatever cannot be
+    /// read is kept aside first, so it can still be recovered.
+    private static func loadAlerts(from defaults: UserDefaults) -> [PriceAlert] {
+        guard let data = defaults.data(forKey: Keys.alerts) else { return [] }
+
+        let records = try? JSONDecoder().decode([LossyAlert].self, from: data)
+        let alerts = records?.compactMap(\.alert) ?? []
+
+        if alerts.count != records?.count, defaults.data(forKey: Keys.unreadableAlerts) == nil {
+            defaults.set(data, forKey: Keys.unreadableAlerts)
+        }
+
+        return alerts
+    }
+
+    /// One element of the stored array, or nil when that element alone is
+    /// unreadable.
+    private struct LossyAlert: Decodable {
+        let alert: PriceAlert?
+
+        init(from decoder: Decoder) throws {
+            alert = try? PriceAlert(from: decoder)
+        }
     }
 
     private func persistAlerts() {

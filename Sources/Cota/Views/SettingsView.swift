@@ -10,7 +10,6 @@ import SwiftUI
 struct SettingsView: View {
     @ObservedObject var settings: SettingsStore
     @ObservedObject var store: QuoteStore
-    @ObservedObject private var notifications = NotificationService.shared
 
     /// Wide enough for the five columns of the pairs list. The popover's 360
     /// was the constraint that flattened the hierarchy in the first place.
@@ -47,7 +46,7 @@ struct SettingsView: View {
 
             tab {
                 section {
-                    alertsContent
+                    AlertsSection(settings: settings)
                 }
             }
             .tabItem { Text("Alerts") }
@@ -217,54 +216,6 @@ struct SettingsView: View {
                 .foregroundStyle(.tertiary)
         }
         .padding(.horizontal, Layout.horizontalPadding)
-    }
-
-    // MARK: - Price alerts
-
-    private var alertsContent: some View {
-        VStack(spacing: 0) {
-            if notifications.authorizationDenied {
-                Text(
-                    """
-                    Notifications are off. Alerts are saved but will not appear \
-                    until you allow them in System Settings.
-                    """
-                )
-                .font(.system(size: 11))
-                .foregroundStyle(.orange)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, Layout.horizontalPadding)
-                .padding(.bottom, 8)
-            }
-
-            if !settings.alerts.isEmpty {
-                ForEach(Array(settings.alerts.enumerated()), id: \.element.id) { index, alert in
-                    AlertRow(
-                        alert: alert,
-                        onToggle: { enabled in
-                            var updated = alert
-                            updated.isEnabled = enabled
-                            settings.updateAlert(updated)
-                        },
-                        onRemove: { settings.removeAlert(id: alert.id) }
-                    )
-                    .padding(.horizontal, Layout.horizontalPadding)
-
-                    if index < settings.alerts.count - 1 {
-                        RowSeparator()
-                    }
-                }
-
-                RowSeparator()
-            }
-
-            AddAlertRow(pairs: settings.pairs) { alert in
-                settings.addAlert(alert)
-            }
-            .padding(.horizontal, Layout.horizontalPadding)
-            .padding(.top, 6)
-        }
     }
 
     // MARK: - General

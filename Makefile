@@ -1,4 +1,4 @@
-.PHONY: test build format lint rebuild
+.PHONY: test build format lint rebuild icon dmg
 
 test:
 	./scripts/test.sh
@@ -14,3 +14,9 @@ lint:
 
 rebuild:
 	./rebuild.sh
+
+icon:
+	./scripts/make-icon.sh
+
+dmg:
+	./scripts/make-dmg.sh

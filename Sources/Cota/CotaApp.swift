@@ -11,6 +11,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NotificationService.shared.requestPermission()
     }
+
+    /// Coming back from System Settings is the usual way in after changing
+    /// the notifications switch. Reading it here keeps the Settings warning
+    /// true; the alerts themselves read it again before every banner.
+    @MainActor
+    func applicationDidBecomeActive(_ notification: Notification) {
+        Task { await NotificationService.shared.refreshAuthorization() }
+    }
 }
 
 @main

@@ -190,4 +190,29 @@ struct QuoteServiceTests {
                 ),
             ])
     }
+
+    // MARK: - Quote age
+
+    private func decodeQuote(timestamp: String?) throws -> Quote {
+        let field = timestamp.map { ", \"timestamp\": \"\($0)\"" } ?? ""
+        let json = """
+            {"code": "USD", "codein": "BRL", "name": "Dollar/Real", "bid": "5.07",
+             "pctChange": "0", "create_date": "2026-10-16 11:18:01"\(field)}
+            """
+        return try JSONDecoder().decode(Quote.self, from: Data(json.utf8))
+    }
+
+    /// The alerts refuse a quote older than an hour, so its age has to come
+    /// from the source's own timestamp — not from when the app fetched it.
+    @Test func aQuoteCarriesTheSourceTimestamp() throws {
+        let quote = try decodeQuote(timestamp: "1792160281")
+        #expect(quote.updatedAt == Date(timeIntervalSince1970: 1_792_160_281))
+    }
+
+    /// Missing or unreadable, the age is unknown. The quote still decodes:
+    /// a field the panel never shows must not take the price away with it.
+    @Test func aQuoteWithoutATimestampHasNoAge() throws {
+        #expect(try decodeQuote(timestamp: nil).updatedAt == nil)
+        #expect(try decodeQuote(timestamp: "soon").updatedAt == nil)
+    }
 }

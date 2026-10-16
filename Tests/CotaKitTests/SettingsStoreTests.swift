@@ -223,6 +223,81 @@ struct SettingsStoreTests {
         #expect(reopened.alerts.map(\.pair) == ["USD-BRL"])
     }
 
+    // MARK: - Alerts persistence
+
+    private func alertsJSON(_ body: String) -> Data {
+        Data(body.utf8)
+    }
+
+    /// One record the decoder could not read used to fail the whole array:
+    /// the list came up empty, and the next add, toggle or removal saved that
+    /// empty list over every alert the person had.
+    @Test func oneUnreadableAlertDoesNotTakeTheOthersWithIt() {
+        let defaults = freshDefaults()
+        let good = PriceAlert(pair: "USD-BRL", threshold: Decimal(string: "5")!, isAbove: true)
+        let goodJSON = String(data: try! JSONEncoder().encode(good), encoding: .utf8)!
+        defaults.set(alertsJSON("[\(goodJSON), {\"pair\": 42}]"), forKey: "priceAlerts")
+
+        let store = SettingsStore(defaults: defaults)
+
+        #expect(store.alerts == [good])
+    }
+
+    /// When the list cannot be read at all, the bytes are kept aside before
+    /// anything can overwrite them, so the alerts can still be recovered.
+    @Test func anUnreadableListIsKeptAsideBeforeItCanBeOverwritten() {
+        let defaults = freshDefaults()
+        let garbage = alertsJSON("not json")
+        defaults.set(garbage, forKey: "priceAlerts")
+
+        let store = SettingsStore(defaults: defaults)
+        store.addAlert(
+            PriceAlert(pair: "USD-BRL", threshold: Decimal(string: "5")!, isAbove: true))
+
+        #expect(defaults.data(forKey: "priceAlerts.unreadable") == garbage)
+        #expect(SettingsStore(defaults: defaults).alerts.count == 1)
+    }
+
+    /// A second bad read must not replace the first backup with something
+    /// that may already be the overwritten list.
+    @Test func theFirstBackupIsNotReplaced() {
+        let defaults = freshDefaults()
+        let original = alertsJSON("not json")
+        defaults.set(original, forKey: "priceAlerts")
+        _ = SettingsStore(defaults: defaults)
+
+        defaults.set(alertsJSON("still not json"), forKey: "priceAlerts")
+        _ = SettingsStore(defaults: defaults)
+
+        #expect(defaults.data(forKey: "priceAlerts.unreadable") == original)
+    }
+
+    /// Settings offers the kept copy back, so recovering does not mean
+    /// knowing a defaults key. Exposing it never removes it: the copy stays
+    /// until someone deletes it on purpose.
+    @Test func theKeptCopyIsOfferedForRecovery() {
+        let defaults = AlertFixture.freshDefaults()
+        let garbage = alertsJSON("not json")
+        defaults.set(garbage, forKey: "priceAlerts")
+
+        let store = SettingsStore(defaults: defaults)
+
+        #expect(store.unreadableAlertsBackup == garbage)
+        #expect(SettingsStore(defaults: defaults).unreadableAlertsBackup == garbage)
+    }
+
+    @Test func aReadableListLeavesNoBackup() {
+        let defaults = freshDefaults()
+        let store = SettingsStore(defaults: defaults)
+        store.addAlert(
+            PriceAlert(pair: "USD-BRL", threshold: Decimal(string: "5")!, isAbove: true))
+
+        let reopened = SettingsStore(defaults: defaults)
+
+        #expect(defaults.data(forKey: "priceAlerts.unreadable") == nil)
+        #expect(reopened.unreadableAlertsBackup == nil)
+    }
+
     @Test func reorderingCarriesTheFlag() {
         let defaults = freshDefaults()
         defaults.set(

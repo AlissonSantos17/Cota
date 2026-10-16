@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="12 10 73 73">
+  <!-- Menu bar template glyph: monochrome, AppKit tints it. -->
+  <path d="M18 64 L30 57 L40 65 L52 46 L62 53 L76 30" fill="none" stroke="#000" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="76" cy="30" r="7" fill="#000"/>
+</svg>

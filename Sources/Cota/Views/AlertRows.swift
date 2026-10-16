@@ -17,6 +17,9 @@ private enum AlertColumns {
 
 struct AlertRow: View {
     let alert: PriceAlert
+    /// Set when the last evaluation left this alert out. Shown so an alert
+    /// that stays quiet over a weekend reads as paused, not broken.
+    let pause: AlertPause?
     let onToggle: (Bool) -> Void
     let onRemove: () -> Void
 
@@ -30,9 +33,19 @@ struct AlertRow: View {
                 .foregroundStyle(.secondary)
                 .frame(width: AlertColumns.condition, alignment: .leading)
 
-            Text(formattedThreshold)
-                .font(.system(size: 12).monospacedDigit())
-                .frame(maxWidth: .infinity, alignment: .trailing)
+            HStack(spacing: 4) {
+                if let pause {
+                    Image(systemName: "pause.circle")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.orange)
+                        .help(Self.explanation(for: pause))
+                        .accessibilityLabel(Self.explanation(for: pause))
+                }
+
+                Text(formattedThreshold)
+                    .font(.system(size: 12).monospacedDigit())
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
 
             Toggle("", isOn: Binding(get: { alert.isEnabled }, set: onToggle))
                 .labelsHidden()
@@ -55,6 +68,15 @@ struct AlertRow: View {
 
     private var formattedThreshold: String {
         QuoteFormat.value(alert.threshold)
+    }
+
+    private static func explanation(for pause: AlertPause) -> String {
+        switch pause {
+        case .staleQuote:
+            return "Paused: the latest quote is over an hour old. Resumes with a fresh quote."
+        case .untimedQuote:
+            return "Paused: the latest quote has no reliable time. Resumes with a timed quote."
+        }
     }
 }
 
