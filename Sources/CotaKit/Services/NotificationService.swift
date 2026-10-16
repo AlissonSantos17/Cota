@@ -1,54 +1,82 @@
 import Foundation
 import UserNotifications
 
+/// Why an alert is not being evaluated right now. Settings shows it, so a
+/// silent alert is never a mystery.
+public enum AlertPause: Equatable, Sendable {
+    /// The latest quote for the pair is older than the allowed age.
+    case staleQuote
+    /// The latest quote has no timestamp, or one from the future: its age
+    /// cannot be known.
+    case untimedQuote
+}
+
+/// A banner Notification Center still lists, as far as the relaunch check
+/// needs it.
+struct DeliveredRequest: Equatable {
+    let identifier: String
+    let date: Date
+}
+
+/// What a refusal from `add` means for the alert.
+enum Refusal: Equatable {
+    /// Permission changed under the check that had just passed.
+    case notAllowed
+    case failed(DeliveryFailure)
+}
+
+/// Decides which alerts are owed a banner and asks the system to show it.
+///
+/// The life cycle of each alert is `AlertState`; this service feeds it the
+/// quotes, checks permission at the moment a banner is due, and reports back
+/// what the notification centre answered.
 @MainActor
 public final class NotificationService: NSObject, UNUserNotificationCenterDelegate,
     ObservableObject
 {
     public static let shared = NotificationService()
 
-    private enum Keys {
-        static let triggered = "triggeredAlerts"
-        static let lastNotified = "alertLastNotified"
-    }
+    private let store: AlertStateStore
+    private let rules: AlertRules
+    private let clock: () -> Date
 
-    /// How far past the threshold the price must come back before an alert can
-    /// fire again. Without it a price sitting on the threshold notifies on
-    /// every crossing, which for a quote refreshed every few minutes means a
-    /// stream of banners for a single event.
-    private static let rearmMargin = Decimal(string: "0.003")!
+    private var states: [UUID: AlertState]
 
-    /// Floor between two notifications for the same alert.
-    private static let cooldown: TimeInterval = 900
+    /// Whether requests left in flight by the previous run were settled.
+    /// Once per launch: after that, `requesting` only means "in flight now".
+    private var hasReconciled = false
 
-    private let defaults: UserDefaults
+    /// A clock this far ahead of ours is drift between machines. Further
+    /// than that, the timestamp is not to be trusted.
+    private static let clockSkewTolerance: TimeInterval = 300
 
-    /// Persisted: an in-memory set starts empty on launch, so every alert
-    /// whose condition already held fired again each time the app opened.
-    private var triggeredAlerts: Set<UUID>
-    private var lastNotified: [UUID: Date]
-
-    init(defaults: UserDefaults = .standard) {
-        self.defaults = defaults
-        self.triggeredAlerts = Set(
-            (defaults.stringArray(forKey: Keys.triggered) ?? []).compactMap(UUID.init(uuidString:))
-        )
-        self.lastNotified =
-            (defaults.dictionary(forKey: Keys.lastNotified) as? [String: Date] ?? [:])
-            .reduce(into: [:]) { result, entry in
-                if let id = UUID(uuidString: entry.key) {
-                    result[id] = entry.value
-                }
-            }
+    init(
+        store: AlertStateStore = UserDefaultsAlertStateStore(),
+        rules: AlertRules = .standard,
+        clock: @escaping () -> Date = { .now }
+    ) {
+        self.store = store
+        self.rules = rules
+        self.clock = clock
+        self.states = store.load()
         super.init()
     }
 
-    /// How a due alert reaches the person. Injectable so the arming rules can
-    /// be tested without a notification centre — those rules are about which
-    /// alerts are due, not about how a banner is drawn.
-    lazy var deliver: (PriceAlert, Decimal) -> Void = { [weak self] alert, value in
-        self?.send(alert: alert, currentValue: value)
+    /// How a due alert reaches the person. Throws when the notification
+    /// centre refuses the request. Injectable so the rules can be tested
+    /// without a notification centre.
+    var deliver: (PriceAlert, Decimal) async throws -> Void = { alert, value in
+        try await NotificationService.post(alert: alert, currentValue: value)
     }
+
+    /// What Notification Center still shows. Injectable for the same reason
+    /// as `deliver`.
+    var deliveredRequests: () async -> [DeliveredRequest] = {
+        await NotificationService.systemDeliveredRequests()
+    }
+
+    /// Alerts left out of the last evaluation, and why.
+    @Published public private(set) var pauses: [UUID: AlertPause] = [:]
 
     /// True when the person has refused banners. Alerts stay armed; they just
     /// cannot appear, and Settings has to say so.
@@ -66,9 +94,164 @@ public final class NotificationService: NSObject, UNUserNotificationCenterDelega
         Task { await refreshAuthorization() }
     }
 
+    /// Reads the permission as System Settings has it now. Called at launch,
+    /// whenever the app becomes active, and before every banner — the switch
+    /// in System Settings can change at any time while the app runs.
     public func refreshAuthorization() async {
         authorizationDenied = !(await resolveAuthorization())
     }
+
+    /// The state of one alert, or nil when it has never been evaluated.
+    public func state(for id: UUID) -> AlertState? {
+        states[id]
+    }
+
+    public func pause(for id: UUID) -> AlertPause? {
+        pauses[id]
+    }
+
+    /// Runs every alert against the quotes just fetched, then asks for the
+    /// banners that came due.
+    public func checkAlerts(_ alerts: [PriceAlert], against quotes: [Quote]) async {
+        await reconcileInterruptedDeliveries()
+        let now = clock()
+
+        // Garbage collection is about the alert existing, not about it being
+        // on: a muted alert keeps remembering that it fired.
+        let knownIDs = Set(alerts.map(\.id))
+        states = states.filter { knownIDs.contains($0.key) }
+
+        var due: [(alert: PriceAlert, bid: Decimal)] = []
+        var pauses: [UUID: AlertPause] = [:]
+        for alert in alerts {
+            guard let quote = quotes.first(where: { $0.id == alert.pair }) else { continue }
+
+            // Neither fires nor rearms: either would act on a price that may
+            // no longer exist.
+            if let pause = Self.pause(for: quote, now: now, rules: rules) {
+                pauses[alert.id] = pause
+                continue
+            }
+
+            var state = states[alert.id] ?? AlertState()
+            if state.observe(bid: quote.bid, for: alert, rules: rules, now: now) {
+                due.append((alert, quote.bid))
+            }
+            states[alert.id] = state
+        }
+
+        self.pauses = pauses
+        store.save(states)
+        guard !due.isEmpty else { return }
+
+        // Asked now rather than trusted from launch. Denied, the banners stay
+        // owed: spending them on a request nobody can see meant granting
+        // permission later still bought silence.
+        await refreshAuthorization()
+        guard !authorizationDenied else { return }
+
+        for (alert, bid) in due {
+            await send(alert, bid: bid)
+        }
+    }
+
+    /// The alert is marked as notified only once the centre accepts the
+    /// request. That is as far as an app can know: whether the person looked
+    /// at the banner is not something the system reports.
+    private func send(_ alert: PriceAlert, bid: Decimal) async {
+        // Due when the loop ran, but the permission check awaited: another
+        // check may have taken it, or the alert may have been deleted.
+        guard states[alert.id]?.phase == .conditionMet else { return }
+
+        // Saved before the request, so a relaunch knows it was in flight.
+        states[alert.id]?.beginDelivery(at: clock())
+        store.save(states)
+
+        do {
+            try await deliver(alert, bid)
+            states[alert.id]?.deliverySucceeded(at: clock())
+        } catch {
+            switch Self.classify(error) {
+            case .notAllowed:
+                authorizationDenied = true
+                states[alert.id]?.deliveryDeferred()
+            case .failed(let failure):
+                states[alert.id]?.deliveryFailed(failure, at: clock(), rules: rules)
+            }
+        }
+
+        store.save(states)
+    }
+
+    /// The previous run stopped with banners in flight. Notification Center
+    /// says which went out: one listed from the moment of the request on was
+    /// it, and is not sent again. Anything else is still owed. Erring towards
+    /// sending: a repeat is better than a crossing nobody heard about.
+    private func reconcileInterruptedDeliveries() async {
+        guard !hasReconciled else { return }
+        hasReconciled = true
+
+        let interrupted = states.filter { $0.value.phase == .requesting }.map(\.key)
+        guard !interrupted.isEmpty else { return }
+
+        let delivered = await deliveredRequests()
+        for id in interrupted {
+            guard let state = states[id], state.phase == .requesting else { continue }
+            let prefix = "\(id.uuidString)-"
+            let since = state.requestedAt ?? .distantPast
+            let sent =
+                delivered
+                .filter { $0.identifier.hasPrefix(prefix) && $0.date >= since }
+                .map(\.date)
+                .max()
+
+            if let sent {
+                states[id]?.deliverySucceeded(at: sent)
+            } else {
+                states[id]?.deliveryDeferred()
+            }
+        }
+
+        store.save(states)
+    }
+
+    /// Only a quote whose age is known and within the limit describes the
+    /// market now. Without a timestamp there is no age to check.
+    private static func pause(for quote: Quote, now: Date, rules: AlertRules) -> AlertPause? {
+        guard let updatedAt = quote.updatedAt,
+            updatedAt.timeIntervalSince(now) <= clockSkewTolerance
+        else { return .untimedQuote }
+
+        return now.timeIntervalSince(updatedAt) > rules.maxQuoteAge ? .staleQuote : nil
+    }
+
+    /// The centre's validation errors describe the request, which is built the
+    /// same way every time: retrying cannot help. Anything else — an error
+    /// from another domain, a code added later — is treated as one that can
+    /// clear up, so the alert is not given up on by mistake.
+    static func classify(_ error: Error) -> Refusal {
+        guard let error = error as? UNError else { return .failed(.transient) }
+
+        switch error.code {
+        case .notificationsNotAllowed:
+            return .notAllowed
+        case .attachmentInvalidURL, .attachmentUnrecognizedType, .attachmentInvalidFileSize,
+            .attachmentNotInDataStore, .attachmentMoveIntoDataStoreFailed, .attachmentCorrupt,
+            .notificationInvalidNoDate, .notificationInvalidNoContent,
+            .contentProvidingObjectNotAllowed, .contentProvidingInvalid, .badgeInputInvalid:
+            return .failed(.permanent)
+        default:
+            return .failed(.transient)
+        }
+    }
+
+    /// One identifier per banner. Starts with the alert's id, which is how
+    /// the relaunch check finds an alert's banners in Notification Center.
+    static func requestIdentifier(for id: UUID, value: Decimal) -> String {
+        "\(id.uuidString)-\(QuoteFormat.value(value))"
+    }
+
+    // MARK: - System
 
     private static func systemAuthorization() async -> Bool {
         let center = UNUserNotificationCenter.current()
@@ -89,83 +272,27 @@ public final class NotificationService: NSObject, UNUserNotificationCenterDelega
         }
     }
 
-    public func checkAlerts(_ alerts: [PriceAlert], against quotes: [Quote], now: Date = .now) {
-        // Garbage collection is about the alert existing, not about it being
-        // on. Filtering by `isEnabled` here made switching an alert off wipe
-        // its arming state, so switching it back on re-notified immediately if
-        // the price was still past the threshold — the toggle promised a pause
-        // and delivered a reset. A muted alert keeps remembering that it fired.
-        let knownIDs = Set(alerts.map(\.id))
-        triggeredAlerts.formIntersection(knownIDs)
-        lastNotified = lastNotified.filter { knownIDs.contains($0.key) }
-
-        for alert in alerts where alert.isEnabled {
-            guard let quote = quotes.first(where: { "\($0.code)-\($0.codein)" == alert.pair })
-            else {
-                continue
-            }
-
-            if isTriggered(alert, bid: quote.bid) {
-                guard !triggeredAlerts.contains(alert.id) else { continue }
-
-                // Banners refused: the alert stays armed rather than being
-                // spent on a notification nobody can receive. Consuming it here
-                // meant that granting permission later still bought silence,
-                // because a threshold already crossed may never rearm.
-                guard !authorizationDenied else { continue }
-
-                if let last = lastNotified[alert.id], now.timeIntervalSince(last) < Self.cooldown {
-                    continue
-                }
-
-                triggeredAlerts.insert(alert.id)
-                lastNotified[alert.id] = now
-                deliver(alert, quote.bid)
-            } else if hasRearmed(alert, bid: quote.bid) {
-                triggeredAlerts.remove(alert.id)
-            }
+    private static func systemDeliveredRequests() async -> [DeliveredRequest] {
+        await UNUserNotificationCenter.current().deliveredNotifications().map {
+            DeliveredRequest(identifier: $0.request.identifier, date: $0.date)
         }
-
-        persist()
     }
 
-    private func isTriggered(_ alert: PriceAlert, bid: Decimal) -> Bool {
-        alert.isAbove ? bid >= alert.threshold : bid <= alert.threshold
-    }
-
-    /// The price has to clear the threshold by the margin, not merely cross
-    /// back over it, before the alert arms again.
-    private func hasRearmed(_ alert: PriceAlert, bid: Decimal) -> Bool {
-        let margin = alert.threshold * Self.rearmMargin
-
-        return alert.isAbove
-            ? bid < alert.threshold - margin
-            : bid > alert.threshold + margin
-    }
-
-    private func persist() {
-        defaults.set(triggeredAlerts.map(\.uuidString), forKey: Keys.triggered)
-        defaults.set(
-            Dictionary(uniqueKeysWithValues: lastNotified.map { ($0.key.uuidString, $0.value) }),
-            forKey: Keys.lastNotified
-        )
-    }
-
-    private func send(alert: PriceAlert, currentValue: Decimal) {
+    private static func post(alert: PriceAlert, currentValue: Decimal) async throws {
         let baseCode = alert.pair.split(separator: "-").first.map(String.init) ?? alert.pair
 
         let content = UNMutableNotificationContent()
-        content.title = "\(Self.flag(for: baseCode)) Threshold Reached"
-        content.body = Self.body(for: alert, currentValue: currentValue)
+        content.title = "\(flag(for: baseCode)) Threshold Reached"
+        content.body = body(for: alert, currentValue: currentValue)
         content.sound = .default
 
         let request = UNNotificationRequest(
-            identifier: "\(alert.id.uuidString)-\(QuoteFormat.value(currentValue))",
+            identifier: requestIdentifier(for: alert.id, value: currentValue),
             content: content,
             trigger: nil
         )
 
-        UNUserNotificationCenter.current().add(request)
+        try await UNUserNotificationCenter.current().add(request)
     }
 
     /// Through `QuoteFormat` like every other surface. The banner used to fix

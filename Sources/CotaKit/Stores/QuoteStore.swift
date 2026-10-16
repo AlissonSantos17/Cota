@@ -49,6 +49,7 @@ public final class QuoteStore: ObservableObject {
     private let intradayWindow: TimeInterval = 24 * 3600
     private let service: QuoteServiceProtocol
     public let settings: SettingsStore
+    private let notifications: NotificationService
     private let launchHold: Duration
     private let launchRevealDuration: Duration
     private let retryDelays: [Duration]
@@ -66,6 +67,7 @@ public final class QuoteStore: ObservableObject {
     private var pairsObservation: AnyCancellable?
     private var intervalObservation: AnyCancellable?
     private var menuBarObservation: AnyCancellable?
+    private var alertsObservation: AnyCancellable?
     /// Bumped when the interval changes. The wait resumes instead of relying
     /// on cancelling a child `Task.sleep`, which CI's older runtime sometimes
     /// delivered after the test timeout.
@@ -87,10 +89,14 @@ public final class QuoteStore: ObservableObject {
         launchHold: Duration = MenuBarLabel.launchHold,
         launchReveal: Duration = MenuBarLabel.launchReveal,
         retryDelays: [Duration] = QuoteStore.defaultRetryDelays,
+        notifications: NotificationService? = nil,
         now: @escaping @Sendable () -> Date = { Date() }
     ) {
         self.service = service
         self.settings = settings
+        // Resolved here, not as a default argument: `shared` is main-actor
+        // state and default arguments are evaluated outside the actor.
+        self.notifications = notifications ?? .shared
         self.launchHold = launchHold
         self.launchRevealDuration = launchReveal
         self.retryDelays = retryDelays
@@ -127,6 +133,8 @@ public final class QuoteStore: ObservableObject {
             .sink { [weak self] _ in
                 self?.restartLoop()
             }
+
+        observeAlerts()
 
         // pairSettings can change without `pairs` changing — ticking the
         // first menu bar pair is the case. The hold and refresh already
@@ -327,8 +335,10 @@ public final class QuoteStore: ObservableObject {
             stale = false
             consecutiveFailures = 0
             await updatePriceHistory(with: newQuotes)
-            NotificationService.shared.checkAlerts(settings.alerts, against: quotes)
             startRevealIfReady()
+            // Last: a banner can wait on the permission check and the
+            // notification centre, and the menu bar should not wait with it.
+            await notifications.checkAlerts(settings.alerts, against: quotes)
         } catch {
             // Stopping cancels the request in flight. That is not the API
             // failing: nothing to show, nothing to retry.
@@ -564,5 +574,23 @@ extension QuoteStore {
             + Double(total.components.attoseconds) / 1e18
         guard totalSeconds > 0 else { return 1 }
         return elapsedSeconds / totalSeconds
+    }
+}
+
+extension QuoteStore {
+    /// An alert created or switched back on is judged against the quotes
+    /// already on screen instead of waiting up to a whole interval. Read from
+    /// `settings` inside the task: `@Published` emits before the property
+    /// changes. The service decides whether those quotes are current enough;
+    /// with none on screen this does nothing.
+    private func observeAlerts() {
+        alertsObservation = settings.$alerts
+            .dropFirst()
+            .sink { [weak self] _ in
+                Task { @MainActor in
+                    guard let self, !self.quotes.isEmpty else { return }
+                    await self.notifications.checkAlerts(self.settings.alerts, against: self.quotes)
+                }
+            }
     }
 }

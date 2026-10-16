@@ -71,6 +71,18 @@ struct QuoteFormatTests {
         #expect(QuoteFormat.parseThreshold("350000,50") == dec("350000.50"))
     }
 
+    /// A dot followed by exactly three digits is grouping, as pt-BR writes
+    /// it: `5.123` is five thousand. Anyone who meant five point one two
+    /// three types the comma, and the "Reads as" hint shows which reading
+    /// won before the alert is added.
+    @Test func parseThresholdReadsADotBeforeThreeDigitsAsGrouping() {
+        #expect(QuoteFormat.parseThreshold("5.123") == dec("5123"))
+        #expect(QuoteFormat.parseThreshold("5,123") == dec("5.123"))
+        #expect(QuoteFormat.parseThreshold("350.000,50") == dec("350000.50"))
+        #expect(QuoteFormat.parseThreshold("5.1234") == dec("5.1234"))
+        #expect(QuoteFormat.parseThreshold("5.12") == dec("5.12"))
+    }
+
     /// `Decimal(string:)` stops at the first character it cannot use and hands
     /// back the prefix, so `5abc` came out as a valid 5 and `1e5` as 100.000.
     /// A threshold the person did not type is worse than no threshold: the Add
