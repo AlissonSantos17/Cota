@@ -78,11 +78,9 @@ public final class SettingsStore: ObservableObject {
         "EUR-BRL", "USD-BRL", "GBP-BRL", "BTC-BRL",
     ]
 
-    public static let availablePairs = [
-        "EUR-BRL", "USD-BRL", "GBP-BRL", "BTC-BRL",
-        "ARS-BRL", "CAD-BRL", "AUD-BRL", "JPY-BRL",
-        "CHF-BRL", "CNY-BRL", "ETH-BRL", "XRP-BRL",
-    ]
+    public static var availablePairs: [String] {
+        PairCatalog.pairs
+    }
 
     public init(defaults: UserDefaults = .standard, launchAgent: LaunchAgent = .system) {
         self.defaults = defaults

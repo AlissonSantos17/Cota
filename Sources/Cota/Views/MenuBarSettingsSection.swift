@@ -202,7 +202,8 @@ struct MenuBarSettingsSection: View {
         return MenuBarLabel.exampleSegments(
             for: first,
             format: format,
-            among: selectedQuotes.map(\.code)
+            among: selectedQuotes.map(\.code),
+            destinations: selectedQuotes.map(\.destination)
         )
     }
 
