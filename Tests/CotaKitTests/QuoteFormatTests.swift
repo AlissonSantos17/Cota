@@ -15,6 +15,23 @@ struct QuoteFormatTests {
         #expect(QuoteFormat.value(dec("5.9713")) == "5,9713")
     }
 
+    /// CLP/BRL sits at 0,0051: four decimals would leave one significant digit.
+    @Test func belowATenthKeepsSix() {
+        #expect(QuoteFormat.value(dec("0.005123")) == "0,005123")
+    }
+
+    /// Two decimals would freeze JPY/BRL at 0,04 and CLP/BRL at 0,01.
+    @Test func theMenuBarKeepsPrecisionBelowOne() {
+        #expect(QuoteFormat.menuBar(dec("0.03512")) == "0,03512")
+        #expect(QuoteFormat.menuBar(dec("0.1983")) == "0,1983")
+        #expect(QuoteFormat.menuBar(dec("6.0214")) == "6,02")
+    }
+
+    @Test func rangeBoundsBelowOneDoNotCollapse() {
+        #expect(QuoteFormat.rangeBound(dec("0.005086")) == "0,005086")
+        #expect(QuoteFormat.rangeBound(dec("0.00513")) == "0,005130")
+    }
+
     @Test func belowAThousandKeepsTwo() {
         #expect(QuoteFormat.value(dec("42.5")) == "42,50")
     }

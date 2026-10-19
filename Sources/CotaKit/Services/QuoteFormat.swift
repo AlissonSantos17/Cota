@@ -15,10 +15,15 @@ public enum QuoteFormat {
     /// two places looks frozen.
     private static let precisionCeiling = Decimal(10)
 
+    /// Below this, four decimals stop carrying movement: CLP/BRL sits at
+    /// 0,0051, and the fourth decimal is its first significant digit.
+    private static let smallValueCeiling = Decimal(string: "0.1")!
+
     /// Above this the full number stops fitting in the menu bar.
     private static let abbreviationFloor = Decimal(100_000)
 
-    /// Decimals by magnitude: four below ten, two below a thousand, none above.
+    /// Decimals by magnitude: six below 0,1, four below ten, two below a
+    /// thousand, none above.
     /// Used by the panel, the pairs list and the alerts — everywhere the width
     /// is not disputed and precision is what the reader came for.
     public static func value(_ value: Decimal) -> String {
@@ -29,7 +34,9 @@ public enum QuoteFormat {
     /// paid for by the ~22pt of width it shares with every other menu bar item:
     ///
     /// - it abbreviates above 100.000 (`398k`), and
-    /// - it stops at two decimals, where the panel would show four.
+    /// - it stops at two decimals, where the panel would show four — except
+    ///   below one, where two decimals would print JPY/BRL as `0,04` and
+    ///   CLP/BRL as `0,01`, a value that never moves.
     ///
     /// The second is a real divergence, not an oversight: a fourth decimal
     /// costs about as much width as the currency symbol, and the menu bar is
@@ -37,6 +44,10 @@ public enum QuoteFormat {
     public static func menuBar(_ value: Decimal) -> String {
         if value >= abbreviationFloor {
             return "\(fixed(value / 1000, fractionDigits: 0))k"
+        }
+
+        if value < 1 {
+            return fixed(value, fractionDigits: value < smallValueCeiling ? 5 : 4)
         }
 
         return fixed(value, fractionDigits: value >= decimalCeiling ? 0 : 2)
@@ -47,6 +58,11 @@ public enum QuoteFormat {
     public static func rangeBound(_ value: Decimal) -> String {
         if value >= decimalCeiling {
             return "\(fixed(value / 1000, fractionDigits: 0))k"
+        }
+
+        // Two decimals would collapse a CLP/BRL range to `0,01 – 0,01`.
+        if value < 1 {
+            return Self.value(value)
         }
 
         return fixed(value, fractionDigits: 2)
@@ -133,6 +149,7 @@ public enum QuoteFormat {
     }
 
     private static func fractionDigits(for value: Decimal) -> Int {
+        if value < smallValueCeiling { return 6 }
         if value >= decimalCeiling { return 0 }
         return value >= precisionCeiling ? 2 : 4
     }

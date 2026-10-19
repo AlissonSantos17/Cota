@@ -297,12 +297,17 @@ public final class NotificationService: NSObject, UNUserNotificationCenterDelega
 
     /// Through `QuoteFormat` like every other surface. The banner used to fix
     /// four decimals of its own, which printed BTC as `398.348,0000`.
+    ///
+    /// Names the pair: with more than one destination on offer, `6,02` alone no
+    /// longer says whether it is reais or dollars, and the title only carries
+    /// the origin's flag.
     static func body(for alert: PriceAlert, currentValue: Decimal) -> String {
         let direction = alert.isAbove ? "above" : "below"
         let threshold = QuoteFormat.value(alert.threshold)
         let current = QuoteFormat.value(currentValue)
+        let pair = PairDisplay(id: alert.pair).text
 
-        return "Price is now \(current) (\(direction) your \(threshold) alert)."
+        return "\(pair) is now \(current) (\(direction) your \(threshold) alert)."
     }
 
     static func flag(for code: String) -> String {

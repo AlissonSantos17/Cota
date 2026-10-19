@@ -13,9 +13,15 @@ public struct MenuBarQuote: Equatable, Sendable {
         self.change = change
     }
 
-    /// Origin currency. The destination is constant (BRL) and never labelled.
+    /// Origin currency: what the lead glyph or code names.
     public var code: String {
-        pair.split(separator: "-").first.map(String.init) ?? pair
+        PairDisplay(id: pair).base
+    }
+
+    /// What the value is priced in. Labelled only when it is not BRL for every
+    /// pair in the bar — see `labelsDestination(among:)`.
+    public var destination: String {
+        PairDisplay(id: pair).quote
     }
 
     public var currency: Currency {
@@ -103,6 +109,8 @@ public enum MenuBarLabel {
         let useCodes =
             format == .code
             || (format == .auto && firstCollision(among: quotes.map(\.code)) != nil)
+        let showsDestination =
+            format != .value && labelsDestination(among: quotes.map(\.destination))
 
         var segments: [LabelSegment] = []
 
@@ -113,6 +121,9 @@ public enum MenuBarLabel {
 
             segments.append(contentsOf: lead(for: quote, format: format, useCodes: useCodes))
             segments.append(LabelSegment(formattedValue(quote.bid), .value))
+            if showsDestination {
+                segments.append(contentsOf: destinationSuffix(for: quote))
+            }
             segments.append(contentsOf: tail(for: quote, indicator: indicator))
         }
 
@@ -128,14 +139,35 @@ public enum MenuBarLabel {
     public static func exampleSegments(
         for quote: MenuBarQuote,
         format: MenuBarFormat,
-        among codes: [String]
+        among codes: [String],
+        destinations: [String] = []
     ) -> [LabelSegment] {
         let useCodes =
             format == .code
             || (format == .auto && firstCollision(among: codes) != nil)
+        let showsDestination = format != .value && labelsDestination(among: destinations)
 
         return lead(for: quote, format: format, useCodes: useCodes)
             + [LabelSegment(formattedValue(quote.bid), .value)]
+            + (showsDestination ? destinationSuffix(for: quote) : [])
+    }
+
+    /// Whether each value has to say what it is priced in.
+    ///
+    /// Not while every pair is quoted in BRL: that was the only destination
+    /// Cota offered, and `€ 6,02` is how everyone who set it up still reads
+    /// the bar. Once any pair is priced in something else the implicit real is
+    /// gone — `€ 6,02   € 1,12` would be two euros with nothing saying the
+    /// second is in dollars — so every pair names its destination, the same
+    /// all-or-nothing rule that sends every pair to its code on a collision.
+    public static func labelsDestination(among destinations: [String]) -> Bool {
+        destinations.contains { $0 != "BRL" }
+    }
+
+    /// Code, not symbol: the destination is the quieter half of the label, and
+    /// a second glyph beside the lead (`€ 1,12 $`) reads as noise.
+    private static func destinationSuffix(for quote: MenuBarQuote) -> [LabelSegment] {
+        [LabelSegment(" ", .separator), LabelSegment(quote.destination, .code)]
     }
 
     private static func lead(

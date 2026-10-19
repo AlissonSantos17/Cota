@@ -174,11 +174,23 @@ struct SettingsView: View {
     }
 
     private var addPairRow: some View {
-        let available = SettingsStore.availablePairs.filter { !settings.pairs.contains($0) }
-
+        // Origin first, then destination: a flat list of every offered pair runs
+        // past a hundred entries. Destinations come from the catalog, so a
+        // combination the API would refuse is never on screen.
         return Menu {
-            ForEach(available, id: \.self) { pair in
-                Button(PairDisplay(id: pair).text) { settings.addPair(pair) }
+            ForEach(PairCatalog.currencies, id: \.self) { origin in
+                let destinations = PairCatalog.destinations(from: origin)
+                    .filter { !settings.pairs.contains("\(origin)-\($0)") }
+
+                if !destinations.isEmpty {
+                    Menu(menuTitle(origin, label: origin)) {
+                        ForEach(destinations, id: \.self) { destination in
+                            Button(menuTitle(destination, label: "\(origin)/\(destination)")) {
+                                settings.addPair("\(origin)-\(destination)")
+                            }
+                        }
+                    }
+                }
             }
         } label: {
             ListRow {
@@ -195,6 +207,14 @@ struct SettingsView: View {
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
         .padding(.horizontal, Layout.horizontalPadding)
+    }
+
+    /// The flag leads so the menus can be scanned by eye; crypto, with no
+    /// country, falls back to its symbol.
+    private func menuTitle(_ code: String, label: String) -> String {
+        let currency = Currency.named(code)
+        guard let glyph = currency.flag ?? currency.symbol else { return label }
+        return "\(glyph)  \(label)"
     }
 
     // MARK: - Refresh interval

@@ -345,6 +345,15 @@ struct NotificationServiceTests {
 
     /// Below ten the fourth decimal is where the movement lives, and the shared
     /// rule keeps it — the banner is not a narrower surface than the panel.
+    @Test func theNotificationBodyNamesThePair() {
+        let body = NotificationService.body(
+            for: alert,
+            currentValue: Decimal(string: "6.0123")!
+        )
+
+        #expect(body.hasPrefix("\(PairDisplay(id: alert.pair).text) is now"))
+    }
+
     @Test func theNotificationBodyKeepsPrecisionOnSmallValues() {
         let body = NotificationService.body(
             for: alert,

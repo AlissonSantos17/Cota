@@ -43,6 +43,8 @@ extension Currency {
         "JPY": Currency(code: "JPY", symbol: "¥", flag: "🇯🇵"),
         "CNY": Currency(code: "CNY", symbol: "¥", flag: "🇨🇳"),
         "CHF": Currency(code: "CHF", symbol: "₣", flag: "🇨🇭"),
+        "MXN": Currency(code: "MXN", symbol: "$", flag: "🇲🇽"),
+        "CLP": Currency(code: "CLP", symbol: "$", flag: "🇨🇱"),
         "BTC": Currency(code: "BTC", symbol: "₿"),
         "ETH": Currency(code: "ETH", symbol: "Ξ"),
         // No glyph: "✕" is a multiplication sign, and passing it off as a
