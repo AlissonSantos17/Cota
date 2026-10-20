@@ -17,6 +17,8 @@ mkdir -p "$STAGING/Cota.app/Contents/MacOS"
 cp Cota.app/Contents/Info.plist "$STAGING/Cota.app/Contents/"
 cp -R Cota.app/Contents/Resources "$STAGING/Cota.app/Contents/"
 cp "$BIN_PATH/Cota" "$STAGING/Cota.app/Contents/MacOS/Cota"
+rm -rf "$STAGING/Cota.app/Contents/Resources/Cota_CotaKit.bundle"
+cp -R "$BIN_PATH/Cota_CotaKit.bundle" "$STAGING/Cota.app/Contents/Resources/"
 codesign --force --sign - --identifier "com.alissonfelp.Cota" "$STAGING/Cota.app"
 ln -s /Applications "$STAGING/Applications"
 

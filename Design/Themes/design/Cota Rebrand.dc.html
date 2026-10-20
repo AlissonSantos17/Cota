@@ -1,0 +1,1394 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/lucide-static@0.460.0/font/lucide.css">
+<style>
+body{margin:0;background:#0C0E0D;-webkit-font-smoothing:antialiased}
+a{color:#7BE0AE;text-decoration:none}a:hover{color:#A8EDCB}
+input{outline:none}
+</style>
+</helmet>
+<div style="background:#0C0E0D;color:#E8ECEA;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Geist',system-ui,sans-serif;padding:96px;display:flex;flex-direction:column;gap:140px;min-width:1560px">
+
+<section id="turn-2" data-screen-label="Final 1c + 1d" style="display:flex;flex-direction:column;gap:40px">
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap">
+    <div style="display:flex;flex-direction:column;gap:10px;max-width:920px">
+      <div style="font:500 12px 'Geist Mono',monospace;color:#7BE0AE;letter-spacing:.06em">RODADA 2 · DIREÇÃO ESCOLHIDA</div>
+      <h2 style="margin:0;font:400 64px/1 'Instrument Serif',serif;color:#F2F5F3">Painel <a href="#1c">1c</a> + Settings <a href="#1d">1d</a></h2>
+      <p style="margin:0;font-size:15px;line-height:1.55;color:#A9B3AE;text-wrap:pretty">Os dois compartilham os mesmos dados: adicione um par em Settings → Pares e ele aparece no painel; crie um alerta pelo gráfico e ele aparece em Alertas. Pares cruzados (USD/EUR, BRL/JPY) e cripto contra qualquer moeda. Troque o idioma aqui ou em Settings → Geral.</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <span style="font:500 11px 'Geist Mono',monospace;color:#6E7A74;letter-spacing:.06em">TEMA</span>
+      <div style="display:flex;gap:2px;padding:3px;border-radius:9px;background:rgba(255,255,255,.06)">
+        <sc-for list="{{ f.themeSeg }}" as="s" hint-placeholder-count="4">
+          <div onClick="{{ s.onClick }}" style="font-size:13px;font-weight:{{ s.fw }};color:{{ s.fg }};background:{{ s.bg }};padding:6px 14px;border-radius:6px;cursor:pointer">{{ s.label }}</div>
+        </sc-for>
+      </div>
+      <span style="width:1px;height:20px;background:rgba(255,255,255,.1)"></span>
+      <span style="font:500 11px 'Geist Mono',monospace;color:#6E7A74;letter-spacing:.06em">IDIOMA</span>
+      <div style="display:flex;gap:2px;padding:3px;border-radius:9px;background:rgba(255,255,255,.06)">
+        <sc-for list="{{ f.langs }}" as="s" hint-placeholder-count="2">
+          <div onClick="{{ s.onClick }}" style="font-size:13px;font-weight:{{ s.fw }};color:{{ s.fg }};background:{{ s.bg }};padding:6px 14px;border-radius:6px;cursor:pointer">{{ s.label }}</div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+    <div id="2a" style="width:520px;background:#131715;border:1px solid rgba(255,255,255,.06);border-radius:24px;padding:32px;display:flex;flex-direction:column;gap:24px">
+      <div style="display:flex;align-items:center;gap:10px"><span style="font:500 12px 'Geist Mono',monospace;color:#0E1411;background:#7BE0AE;padding:3px 8px;border-radius:6px">2a</span><span style="font:500 12px 'Geist Mono',monospace;color:#8A9690;letter-spacing:.06em">PAINEL · CLIQUE NUMA LINHA</span></div>
+      <div style="background:{{ f.k.wall }};border-radius:14px;overflow:hidden">
+        <div style="height:26px;background:{{ f.k.barBg }};backdrop-filter:blur(20px);display:flex;align-items:center;justify-content:flex-end;gap:14px;padding:0 12px;font-size:13px;color:{{ f.k.barFg }}">
+          <div style="display:flex;align-items:center;gap:12px;height:22px;padding:0 8px;border-radius:5px;background:{{ f.k.barPill }};font-variant-numeric:tabular-nums">
+            <sc-for list="{{ f.bar }}" as="m" hint-placeholder-count="1">
+              <div style="display:flex;align-items:center;gap:5px;opacity:{{ dim }}"><span>{{ m.lead }}</span><span>{{ m.value }}</span><span style="width:5px;height:5px;border-radius:3px;background:{{ f.k.accent }};opacity:{{ m.dot }}"></span></div>
+            </sc-for>
+          </div>
+          <span>{{ f.t.date }}</span>
+        </div>
+        <div style="display:flex;justify-content:flex-end;padding:8px 14px 28px 14px">
+          <div style="width:360px;background:{{ f.k.bg }};border:1px solid {{ f.k.border }};border-radius:12px;box-shadow:{{ f.k.shadow }};backdrop-filter:{{ f.k.blur }};-webkit-backdrop-filter:{{ f.k.blur }};overflow:hidden;color:{{ f.k.text }}">
+            <div style="height:44px;display:flex;align-items:center;gap:8px;padding:0 16px">
+              <img src="assets/icon.svg" alt="" style="width:20px;height:20px;margin:-2px">
+              <span style="font-size:13px;font-weight:600;flex:1">{{ f.t.rates }}</span>
+              <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:{{ f.k.accent }};background:{{ f.k.accentSoft }};padding:3px 8px;border-radius:10px"><i class="icon-bell" style="font-size:11px"></i><span>{{ f.alertCount }}</span></div>
+            </div>
+            <div style="padding:0 0 6px">
+              <sc-for list="{{ f.rows }}" as="r" hint-placeholder-count="4">
+                <div style="margin:2px 8px;border-radius:10px;background:{{ r.bg }}">
+                  <div onClick="{{ r.toggle }}" style="display:flex;align-items:center;gap:10px;height:50px;padding:0 10px;cursor:pointer">
+                    <div style="position:relative;width:28px;height:28px;flex:none">
+                      <div style="width:28px;height:28px;border-radius:14px;background:{{ f.k.avatar }};display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:{{ f.k.accent }}">{{ r.glyph }}</div>
+                      <sc-if value="{{ r.cross }}" hint-placeholder-val="{{ false }}">
+                        <div style="position:absolute;right:-5px;bottom:-4px;width:17px;height:17px;border-radius:9px;background:{{ f.k.badgeBg }};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:{{ f.k.badgeFg }}">{{ r.qGlyph }}</div>
+                      </sc-if>
+                    </div>
+                    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+                      <span style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</span>
+                      <span style="font-size:11px;color:{{ f.k.text2 }}">{{ r.key }}</span>
+                    </div>
+                    <svg width="56" height="22" style="display:block;overflow:visible;opacity:{{ r.smallOp }}">
+                      <line x1="0" x2="56" y1="{{ r.s.openY }}" y2="{{ r.s.openY }}" style="stroke:{{ f.k.moss }};stroke-width:1;stroke-dasharray:2 3"></line>
+                      <path d="{{ r.s.d }}" fill="none" style="stroke:{{ r.color }};stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round"></path>
+                    </svg>
+                    <div style="width:96px;display:flex;flex-direction:column;align-items:flex-end;gap:1px;opacity:{{ dim }}">
+                      <span style="font-size:13px;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap">{{ r.value }}</span>
+                      <span style="font-size:11px;font-variant-numeric:tabular-nums;color:{{ r.color }};white-space:nowrap">{{ r.change }}</span>
+                    </div>
+                  </div>
+                  <sc-if value="{{ r.isExp }}" hint-placeholder-val="{{ false }}">
+                    <div style="padding:0 10px 12px;display:flex;flex-direction:column;gap:10px">
+                      <div style="position:relative;opacity:{{ dim }}">
+                        <svg width="324" height="116" style="display:block;overflow:visible">
+                          <path d="{{ r.big.area }}" fill="{{ r.tint }}"></path>
+                          <line x1="0" x2="324" y1="{{ r.big.openY }}" y2="{{ r.big.openY }}" style="stroke:{{ f.k.moss }};stroke-width:1;stroke-dasharray:3 4"></line>
+                          <line x1="0" x2="324" y1="{{ r.alertY }}" y2="{{ r.alertY }}" style="stroke:{{ f.k.accent }};stroke-width:1;stroke-dasharray:1 3;opacity:{{ r.alertOp }}"></line>
+                          <path d="{{ r.big.d }}" fill="none" style="stroke:{{ r.color }};stroke-width:2;stroke-linecap:round;stroke-linejoin:round"></path>
+                          <circle cx="{{ r.big.endX }}" cy="{{ r.big.endY }}" r="4" fill="{{ f.k.dot }}"></circle>
+                        </svg>
+                        <sc-if value="{{ r.hasAlert }}" hint-placeholder-val="{{ false }}">
+                          <div style="position:absolute;left:0;top:{{ r.alertTop }};display:flex;align-items:center;gap:4px;font-size:10px;font-weight:600;color:{{ f.k.onAccent }};background:{{ f.k.accent }};padding:2px 6px;border-radius:5px;font-variant-numeric:tabular-nums"><i class="icon-bell" style="font-size:10px"></i>{{ r.alertLabel }}</div>
+                        </sc-if>
+                      </div>
+                      <div style="display:flex;align-items:center;justify-content:space-between">
+                        <div style="display:flex;gap:2px;padding:2px;border-radius:7px;background:{{ f.k.f05 }}">
+                          <sc-for list="{{ f.seg }}" as="s" hint-placeholder-count="3">
+                            <div onClick="{{ s.onClick }}" style="font-size:11px;font-weight:{{ s.fw }};color:{{ s.fg }};background:{{ s.bg }};padding:3px 9px;border-radius:5px;cursor:pointer">{{ s.label }}</div>
+                          </sc-for>
+                        </div>
+                        <div style="display:flex;gap:12px;font-size:11px;color:{{ f.k.text2 }};font-variant-numeric:tabular-nums">
+                          <span>{{ f.t.low }} <span style="color:{{ f.k.text3 }}">{{ r.lo }}</span></span><span>{{ f.t.high }} <span style="color:{{ f.k.text3 }}">{{ r.hi }}</span></span>
+                        </div>
+                      </div>
+                      <div style="display:flex;align-items:center;gap:8px;height:40px;padding:0 6px 0 10px;border-radius:9px;background:{{ f.k.f04 }};border:1px solid {{ f.k.hair }}">
+                        <input value="{{ f.conv }}" onChange="{{ f.onConv }}" onClick="{{ f.stop }}" style="width:70px;border:0;background:transparent;color:{{ f.k.text }};font-size:15px;font-weight:500;font-family:inherit;font-variant-numeric:tabular-nums;text-align:right">
+                        <span style="font-size:12px;font-weight:600;color:{{ f.k.accent }}">{{ r.cFrom }}</span>
+                        <div onClick="{{ f.convSwap }}" title="{{ f.t.swap }}" style="width:24px;height:24px;border-radius:12px;background:{{ f.k.accentChip }};color:{{ f.k.accent }};display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none"><i class="icon-arrow-left-right" style="font-size:11px"></i></div>
+                        <span style="flex:1;min-width:0;text-align:right;font-size:17px;font-weight:600;letter-spacing:-0.01em;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:{{ f.dim }}">{{ r.cOut }}</span>
+                      </div>
+                      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                        <div onClick="{{ r.copy }}" style="height:28px;border-radius:7px;background:{{ f.k.f06 }};display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;color:{{ f.k.text }};cursor:pointer"><i class="{{ r.copyIcon }}" style="font-size:12px"></i>{{ r.copyLabel }}</div>
+                        <div onClick="{{ r.alertAct }}" style="height:28px;border-radius:7px;background:{{ r.aBg }};display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;font-weight:500;color:{{ r.aFg }};cursor:pointer"><i class="{{ r.aIcon }}" style="font-size:12px"></i>{{ r.aLabel }}</div>
+                      </div>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+            <div style="height:1px;background:{{ f.k.hair }}"></div>
+            <div style="height:36px;display:flex;align-items:center;gap:14px;padding:0 16px">
+              <div style="flex:1;display:flex;align-items:center;gap:6px;font-size:11px;color:{{ f.st.color }}">
+                <span style="width:6px;height:6px;border-radius:3px;background:{{ f.st.dot }}"></span><span>{{ f.st.text }}</span>
+              </div>
+              <i class="icon-rotate-cw" style="font-size:13px;color:{{ f.k.text2 }};cursor:pointer"></i>
+              <i onClick="{{ f.openSettings }}" class="icon-settings" style="font-size:13px;color:{{ f.k.text2 }};cursor:pointer"></i>
+              <i class="icon-power" style="font-size:13px;color:{{ f.k.text2 }};cursor:pointer"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="2b" style="width:820px;background:#131715;border:1px solid rgba(255,255,255,.06);border-radius:24px;padding:32px;display:flex;flex-direction:column;gap:24px">
+      <div style="display:flex;align-items:center;gap:10px"><span style="font:500 12px 'Geist Mono',monospace;color:#0E1411;background:#7BE0AE;padding:3px 8px;border-radius:6px">2b</span><span style="font:500 12px 'Geist Mono',monospace;color:#8A9690;letter-spacing:.06em">SETTINGS · ADICIONAR PAR ABERTO</span></div>
+      <div style="position:relative;background:{{ f.k.win }};border:1px solid {{ f.k.winBorder }};border-radius:12px;overflow:hidden;box-shadow:{{ f.k.winShadow }};backdrop-filter:{{ f.k.winBlur }};-webkit-backdrop-filter:{{ f.k.winBlur }};display:grid;grid-template-columns:190px minmax(0,1fr);min-height:600px;color:{{ f.k.text }}">
+        <div style="background:{{ f.k.side }};border-right:1px solid {{ f.k.line }};padding:14px 10px;display:flex;flex-direction:column;gap:2px">
+          <div style="display:flex;gap:8px;padding:2px 6px 18px"><span style="width:12px;height:12px;border-radius:6px;background:#FF5F57"></span><span style="width:12px;height:12px;border-radius:6px;background:#FEBC2E"></span><span style="width:12px;height:12px;border-radius:6px;background:{{ f.k.light3 }}"></span></div>
+          <sc-for list="{{ f.nav }}" as="n" hint-placeholder-count="4">
+            <div onClick="{{ n.onClick }}" style="display:flex;align-items:center;gap:9px;height:30px;padding:0 10px;border-radius:7px;background:{{ n.bg }};color:{{ n.fg }};font-size:13px;cursor:pointer">
+              <i class="{{ n.icon }}" style="font-size:14px"></i><span style="flex:1">{{ n.label }}</span><span style="font-size:11px;color:{{ f.k.text2 }}">{{ n.count }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="padding:22px 26px;display:flex;flex-direction:column;gap:18px;min-width:0">
+          <sc-if value="{{ f.isGeneral }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:17px;font-weight:600">{{ f.t.general }}</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <span style="font-size:13px">{{ f.t.refresh }}</span>
+              <div style="display:flex;gap:2px;padding:2px;border-radius:8px;background:{{ f.k.line }}">
+                <sc-for list="{{ f.intervals }}" as="s" hint-placeholder-count="5">
+                  <div onClick="{{ s.onClick }}" style="flex:1;text-align:center;font-size:12px;font-weight:{{ s.fw }};color:{{ s.fg }};background:{{ s.bg }};padding:6px 0;border-radius:6px;cursor:pointer">{{ s.label }}</div>
+                </sc-for>
+              </div>
+              <span style="font-size:11px;color:{{ f.k.text2 }}">{{ f.t.refreshNote }}</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:20px;padding:12px 0;border-top:1px solid {{ f.k.line }}">
+              <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:13px">{{ f.t.language }}</span><span style="font-size:11px;color:{{ f.k.text2 }}">{{ f.t.languageNote }}</span></div>
+              <div style="display:flex;gap:2px;padding:2px;border-radius:7px;background:{{ f.k.line }}">
+                <sc-for list="{{ f.langsLong }}" as="s" hint-placeholder-count="2">
+                  <div onClick="{{ s.onClick }}" style="font-size:12px;font-weight:{{ s.fw }};color:{{ s.fg }};background:{{ s.bg }};padding:4px 12px;border-radius:5px;cursor:pointer;white-space:nowrap">{{ s.label }}</div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid {{ f.k.line }}">
+              <span style="font-size:13px">{{ f.t.login }}</span>
+              <div style="width:30px;height:18px;border-radius:9px;background:{{ f.k.accent }};display:flex;align-items:center;justify-content:flex-end;padding:0 2px;box-sizing:border-box"><span style="width:14px;height:14px;border-radius:7px;background:#fff"></span></div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ f.isPairs }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div style="font-size:17px;font-weight:600">{{ f.t.pairs }}</div>
+              <div style="font-size:12px;color:{{ f.k.sub }}">{{ f.t.pairsSub }}</div>
+            </div>
+            <div style="display:flex;flex-direction:column">
+              <sc-for list="{{ f.pairRows }}" as="p" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;gap:12px;height:46px;border-bottom:1px solid {{ f.k.line }}">
+                  <i class="icon-grip-vertical" style="font-size:14px;color:{{ f.k.moss }};cursor:grab"></i>
+                  <div style="position:relative;width:26px;height:26px;flex:none">
+                    <div style="width:26px;height:26px;border-radius:13px;background:{{ f.k.avatar }};color:{{ f.k.accent }};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600">{{ p.glyph }}</div>
+                    <sc-if value="{{ p.cross }}" hint-placeholder-val="{{ false }}">
+                      <div style="position:absolute;right:-5px;bottom:-4px;width:16px;height:16px;border-radius:8px;background:{{ f.k.badgeBg }};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:{{ f.k.badgeFg }}">{{ p.qGlyph }}</div>
+                    </sc-if>
+                  </div>
+                  <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+                    <span style="font-size:13px;font-weight:500">{{ p.key }}</span>
+                    <span style="font-size:11px;color:{{ f.k.text2 }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.desc }}</span>
+                  </div>
+                  <span style="width:110px;text-align:right;font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap">{{ p.value }}</span>
+                  <span style="width:70px;text-align:right;font-size:11px;font-variant-numeric:tabular-nums;color:{{ p.color }};white-space:nowrap">{{ p.change }}</span>
+                  <i onClick="{{ p.pin }}" class="icon-pin" title="{{ p.pinTitle }}" style="font-size:14px;color:{{ p.pinColor }};cursor:pointer;width:24px;text-align:center"></i>
+                  <i onClick="{{ p.remove }}" class="icon-x" style="font-size:13px;color:{{ f.k.text2 }};cursor:pointer;width:18px;text-align:center"></i>
+                </div>
+              </sc-for>
+              <div onClick="{{ f.openAdd }}" style="display:flex;align-items:center;gap:8px;height:42px;font-size:13px;color:{{ f.k.accent }};cursor:pointer;width:max-content"><i class="icon-plus" style="font-size:13px"></i>{{ f.t.addPair }}</div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ f.isBar }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div style="font-size:17px;font-weight:600">{{ f.t.menubar }}</div>
+              <div style="font-size:12px;color:{{ f.k.sub }}">{{ f.t.menubarSub }}</div>
+            </div>
+            <div style="height:44px;border-radius:10px;background:{{ f.k.wall }};display:flex;align-items:center;justify-content:flex-end;gap:16px;padding:0 14px;font-size:13px;color:{{ f.k.barFg }}">
+              <div style="display:flex;align-items:center;gap:12px;height:24px;padding:0 9px;border-radius:5px;background:{{ f.k.barPill }};font-variant-numeric:tabular-nums">
+                <sc-for list="{{ f.barPreview }}" as="m" hint-placeholder-count="1">
+                  <div style="display:flex;align-items:center;gap:5px"><span>{{ m.lead }}</span><span>{{ m.value }}</span><span style="font-size:{{ m.indSize }};color:{{ m.color }}">{{ m.ind }}</span></div>
+                </sc-for>
+              </div>
+              <span style="color:{{ f.k.barFg }};opacity:.75">{{ f.t.date }}</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px">
+              <sc-for list="{{ f.formats }}" as="x" hint-placeholder-count="4">
+                <div onClick="{{ x.onClick }}" style="border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px;border:1px solid {{ x.border }};background:{{ x.bg }};cursor:pointer">
+                  <span style="font-size:15px;font-variant-numeric:tabular-nums">{{ x.sample }}</span>
+                  <span style="font-size:11px;color:{{ x.fg }}">{{ x.label }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid {{ f.k.line }}">
+              <span style="font-size:13px">{{ f.t.change }}</span>
+              <div style="display:flex;gap:2px;padding:2px;border-radius:7px;background:{{ f.k.line }}">
+                <sc-for list="{{ f.inds }}" as="s" hint-placeholder-count="3">
+                  <div onClick="{{ s.onClick }}" style="font-size:12px;font-weight:{{ s.fw }};color:{{ s.fg }};background:{{ s.bg }};padding:4px 12px;border-radius:5px;cursor:pointer">{{ s.label }}</div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:20px;padding:6px 0">
+              <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:13px">{{ f.t.dim }}</span><span style="font-size:11px;color:{{ f.k.text2 }}">{{ f.t.dimNote }}</span></div>
+              <div style="width:30px;height:18px;border-radius:9px;background:{{ f.k.accent }};display:flex;align-items:center;justify-content:flex-end;padding:0 2px;box-sizing:border-box"><span style="width:14px;height:14px;border-radius:7px;background:#fff"></span></div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ f.isThemes }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div style="font-size:17px;font-weight:600">{{ f.t.themes }}</div>
+              <div style="font-size:12px;color:{{ f.k.sub }}">{{ f.t.themesSub }}</div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+              <sc-for list="{{ f.themeCards }}" as="c" hint-placeholder-count="4">
+                <div onClick="{{ c.onClick }}" style="border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:10px;border:1px solid {{ c.border }};background:{{ c.cardBg }};cursor:pointer">
+                  <div style="height:132px;border-radius:8px;background:{{ c.k.wall }};display:flex;align-items:flex-start;justify-content:flex-end;padding:12px 14px 0;overflow:hidden;box-sizing:border-box">
+                    <div style="width:196px;border-radius:9px;background:{{ c.k.bg }};border:1px solid {{ c.k.border }};box-shadow:{{ c.k.shadow }};backdrop-filter:{{ c.k.blur }};-webkit-backdrop-filter:{{ c.k.blur }};padding:8px 0 6px;color:{{ c.k.text }}">
+                      <div style="display:flex;align-items:center;gap:6px;padding:0 10px 6px;font-size:10px;font-weight:600"><span style="flex:1">{{ f.t.rates }}</span><span style="font-size:9px;color:{{ c.k.accent }};background:{{ c.k.accentSoft }};padding:1px 6px;border-radius:6px">2</span></div>
+                      <sc-for list="{{ c.rows }}" as="m" hint-placeholder-count="3">
+                        <div style="display:flex;align-items:center;gap:7px;height:30px;margin:0 4px;padding:0 6px;border-radius:6px;background:{{ m.bg }}">
+                          <span style="width:18px;height:18px;border-radius:9px;background:{{ c.k.avatar }};color:{{ c.k.accent }};font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center;flex:none">{{ m.glyph }}</span>
+                          <div style="flex:1;min-width:0;display:flex;flex-direction:column"><span style="font-size:9px;font-weight:500">{{ m.name }}</span><span style="font-size:8px;color:{{ c.k.text2 }}">{{ m.key }}</span></div>
+                          <div style="display:flex;flex-direction:column;align-items:flex-end;font-variant-numeric:tabular-nums"><span style="font-size:9px;font-weight:500">{{ m.value }}</span><span style="font-size:8px;color:{{ m.color }}">{{ m.change }}</span></div>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:10px;padding:0 4px 4px">
+                    <div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:13px;font-weight:500;color:{{ c.fg }}">{{ c.label }}</span><span style="font-size:11px;color:{{ f.k.text2 }}">{{ c.desc }}</span></div>
+                    <span style="width:16px;height:16px;border-radius:8px;border:1.5px solid {{ c.radio }};display:flex;align-items:center;justify-content:center;box-sizing:border-box;flex:none"><span style="width:8px;height:8px;border-radius:4px;background:{{ f.k.accent }};opacity:{{ c.radioOp }}"></span></span>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:20px;padding:12px 0;border-top:1px solid {{ f.k.line }}">
+              <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:13px">{{ f.t.followSys }}</span><span style="font-size:11px;color:{{ f.k.text2 }}">{{ f.t.followSysNote }}</span></div>
+              <div onClick="{{ f.toggleFollow }}" style="width:30px;height:18px;border-radius:9px;background:{{ f.followBg }};display:flex;align-items:center;justify-content:{{ f.followJust }};padding:0 2px;box-sizing:border-box;cursor:pointer;flex:none"><span style="width:14px;height:14px;border-radius:7px;background:#fff"></span></div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ f.isAlerts }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div style="font-size:17px;font-weight:600">{{ f.t.alerts }}</div>
+              <div style="font-size:12px;color:{{ f.k.sub }}">{{ f.t.alertsSub }}</div>
+            </div>
+            <div style="background:{{ f.k.f04 }};border:1px solid {{ f.k.hair }};border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:13px;color:{{ f.k.text3 }}">
+                <span>{{ f.t.notifyWhen }}</span>
+                <div onClick="{{ f.cyclePair }}" style="display:flex;align-items:center;gap:5px;height:26px;padding:0 8px;border-radius:6px;background:{{ f.k.f08 }};color:{{ f.k.text }};font-weight:500;cursor:pointer"><span>{{ f.np.glyph }}</span>{{ f.np.key }}<i class="icon-chevrons-up-down" style="font-size:10px;color:{{ f.k.text2 }}"></i></div>
+                <div onClick="{{ f.flipDir }}" style="display:flex;align-items:center;gap:4px;height:26px;padding:0 8px;border-radius:6px;background:{{ f.k.f08 }};color:{{ f.k.text }};font-weight:500;cursor:pointer">{{ f.dirLabel }}<i class="icon-chevrons-up-down" style="font-size:10px;color:{{ f.k.text2 }}"></i></div>
+                <div style="display:flex;align-items:center;gap:4px;height:26px;padding:0 8px;border-radius:6px;background:{{ f.k.f08 }};border:1px solid {{ f.k.accentBorder }}">
+                  <span style="color:{{ f.k.text2 }}">{{ f.np.qs }}</span>
+                  <input value="{{ f.th }}" onChange="{{ f.onTh }}" style="width:76px;border:0;background:transparent;color:{{ f.k.text }};font-size:13px;font-weight:500;font-family:inherit;font-variant-numeric:tabular-nums">
+                </div>
+                <div style="flex:1"></div>
+                <div onClick="{{ f.create }}" style="height:28px;padding:0 12px;border-radius:7px;background:{{ f.k.accent }};color:{{ f.k.onAccent }};font-size:12px;font-weight:600;display:flex;align-items:center;cursor:pointer" >{{ f.t.createAlert }}</div>
+              </div>
+              <div style="font-size:11px;color:{{ f.k.text2 }};font-variant-numeric:tabular-nums">{{ f.hint }}</div>
+            </div>
+            <div style="display:flex;flex-direction:column">
+              <sc-for list="{{ f.alerts }}" as="al" hint-placeholder-count="3">
+                <div style="display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid {{ f.k.line }};opacity:{{ al.op }}">
+                  <div style="width:28px;height:28px;border-radius:14px;background:{{ f.k.avatar }};color:{{ f.k.accent }};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600">{{ al.glyph }}</div>
+                  <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
+                    <span style="font-size:13px">{{ al.text }}</span>
+                    <div style="display:flex;align-items:center;gap:8px">
+                      <div style="width:140px;height:3px;border-radius:2px;background:{{ f.k.f08 }};overflow:hidden"><div style="height:3px;width:{{ al.prog }};background:{{ al.barColor }}"></div></div>
+                      <span style="font-size:11px;color:{{ al.noteColor }};font-variant-numeric:tabular-nums">{{ al.note }}</span>
+                    </div>
+                  </div>
+                  <div onClick="{{ al.toggle }}" style="width:30px;height:18px;border-radius:9px;background:{{ al.tBg }};display:flex;align-items:center;justify-content:{{ al.tJust }};padding:0 2px;box-sizing:border-box;cursor:pointer"><span style="width:14px;height:14px;border-radius:7px;background:#fff"></span></div>
+                  <i onClick="{{ al.remove }}" class="icon-x" style="font-size:13px;color:{{ f.k.text2 }};cursor:pointer"></i>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+
+        <sc-if value="{{ f.adding }}" hint-placeholder-val="{{ true }}">
+          <div style="position:absolute;inset:0;background:{{ f.k.veil }};display:flex;justify-content:center;align-items:flex-start;padding-top:0">
+            <div style="width:500px;background:{{ f.k.sheet }};backdrop-filter:{{ f.k.winBlur }};-webkit-backdrop-filter:{{ f.k.winBlur }};border:1px solid {{ f.k.sheetBorder }};border-top:0;border-radius:0 0 14px 14px;box-shadow:{{ f.k.shadow }};display:flex;flex-direction:column">
+              <div style="padding:18px 20px 12px;display:flex;flex-direction:column;gap:12px">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                  <span style="font-size:15px;font-weight:600">{{ f.t.addPair }}</span>
+                  <i onClick="{{ f.closeAdd }}" class="icon-x" style="font-size:14px;color:{{ f.k.text2 }};cursor:pointer"></i>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;height:32px;padding:0 10px;border-radius:8px;background:{{ f.k.line }};border:1px solid {{ f.k.f08 }}">
+                  <i class="icon-search" style="font-size:13px;color:{{ f.k.text2 }}"></i>
+                  <input value="{{ f.q }}" onChange="{{ f.onQ }}" placeholder="{{ f.t.search }}" style="flex:1;border:0;background:transparent;color:{{ f.k.text }};font-size:13px;font-family:inherit">
+                </div>
+                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px">
+                  <span style="font-size:11px;color:{{ f.k.text2 }}">{{ f.t.suggested }}</span>
+                  <sc-for list="{{ f.sugg }}" as="g" hint-placeholder-count="4">
+                    <div onClick="{{ g.onClick }}" style="display:flex;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:12px;background:{{ f.k.line }};font-size:12px;cursor:pointer" ><span>{{ g.glyphs }}</span>{{ g.key }}</div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) 36px minmax(0,1fr);border-top:1px solid {{ f.k.hair }};border-bottom:1px solid {{ f.k.hair }}">
+                <div style="display:flex;flex-direction:column;min-width:0">
+                  <div style="padding:10px 14px 4px;font:500 11px 'Geist Mono',monospace;color:{{ f.k.text2 }};letter-spacing:.05em">{{ f.t.from }}</div>
+                  <div style="height:250px;overflow:auto;padding:0 6px 8px">
+                    <sc-for list="{{ f.fromGroups }}" as="gr" hint-placeholder-count="2">
+                      <div style="padding:8px 8px 4px;font-size:10px;font-weight:600;color:{{ f.k.moss }};text-transform:uppercase;letter-spacing:.06em">{{ gr.label }}</div>
+                      <sc-for list="{{ gr.items }}" as="it" hint-placeholder-count="5">
+                        <div onClick="{{ it.onClick }}" style="display:flex;align-items:center;gap:9px;height:32px;padding:0 8px;border-radius:7px;background:{{ it.bg }};opacity:{{ it.op }};cursor:pointer" >
+                          <span style="width:18px;text-align:center;font-size:14px;color:{{ f.k.accent }}">{{ it.glyph }}</span>
+                          <span style="font-size:13px;font-weight:600;color:{{ it.fg }};width:34px">{{ it.code }}</span>
+                          <span style="flex:1;min-width:0;font-size:12px;color:{{ f.k.text2 }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ it.name }}</span>
+                        </div>
+                      </sc-for>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:center;border-left:1px solid {{ f.k.line }};border-right:1px solid {{ f.k.line }}">
+                  <div onClick="{{ f.swap }}" title="{{ f.t.swap }}" style="width:26px;height:26px;border-radius:13px;background:{{ f.k.accentChip }};color:{{ f.k.accent }};display:flex;align-items:center;justify-content:center;cursor:pointer"><i class="icon-arrow-left-right" style="font-size:12px"></i></div>
+                </div>
+                <div style="display:flex;flex-direction:column;min-width:0">
+                  <div style="padding:10px 14px 4px;font:500 11px 'Geist Mono',monospace;color:{{ f.k.text2 }};letter-spacing:.05em">{{ f.t.to }}</div>
+                  <div style="height:250px;overflow:auto;padding:0 6px 8px">
+                    <sc-for list="{{ f.toGroups }}" as="gr" hint-placeholder-count="2">
+                      <div style="padding:8px 8px 4px;font-size:10px;font-weight:600;color:{{ f.k.moss }};text-transform:uppercase;letter-spacing:.06em">{{ gr.label }}</div>
+                      <sc-for list="{{ gr.items }}" as="it" hint-placeholder-count="5">
+                        <div onClick="{{ it.onClick }}" style="display:flex;align-items:center;gap:9px;height:32px;padding:0 8px;border-radius:7px;background:{{ it.bg }};opacity:{{ it.op }};cursor:pointer" >
+                          <span style="width:18px;text-align:center;font-size:14px;color:{{ f.k.accent }}">{{ it.glyph }}</span>
+                          <span style="font-size:13px;font-weight:600;color:{{ it.fg }};width:34px">{{ it.code }}</span>
+                          <span style="flex:1;min-width:0;font-size:12px;color:{{ f.k.text2 }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ it.name }}</span>
+                        </div>
+                      </sc-for>
+                    </sc-for>
+                  </div>
+                </div>
+              </div>
+              <div style="padding:14px 20px 16px;display:flex;align-items:center;gap:14px">
+                <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+                  <span style="font-size:11px;color:{{ f.pv.noteColor }}">{{ f.pv.note }}</span>
+                  <span style="font-size:15px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ f.pv.text }}</span>
+                </div>
+                <div onClick="{{ f.closeAdd }}" style="height:30px;padding:0 14px;border-radius:7px;background:{{ f.k.hair }};font-size:13px;display:flex;align-items:center;cursor:pointer">{{ f.t.cancel }}</div>
+                <div onClick="{{ f.add }}" style="height:30px;padding:0 14px;border-radius:7px;background:{{ f.pv.btnBg }};color:{{ f.pv.btnFg }};font-size:13px;font-weight:600;display:flex;align-items:center;cursor:pointer">{{ f.t.add }}</div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="brief" data-screen-label="Brief" style="display:flex;flex-direction:column;gap:72px;max-width:1560px">
+  <header style="display:grid;grid-template-columns:auto 1fr;gap:40px;align-items:end">
+    <img src="assets/icon.svg" alt="Ícone do Cota" style="width:132px;height:132px;display:block;margin:-14px">
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div style="font:500 13px 'Geist Mono',monospace;color:#7BE0AE;letter-spacing:.06em">COTA · BRIEF DE REBRANDING · OUTUBRO 2026</div>
+      <h1 style="margin:0;font:400 96px/0.95 'Instrument Serif',serif;letter-spacing:-0.02em;color:#F2F5F3">A cota antes da pergunta.</h1>
+    </div>
+  </header>
+
+  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:48px;border-top:1px solid rgba(255,255,255,.1);padding-top:40px">
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="font:500 12px 'Geist Mono',monospace;color:#8A9690;letter-spacing:.06em">ESSÊNCIA</div>
+      <p style="margin:0;font-size:19px;line-height:1.5;color:#E8ECEA;text-wrap:pretty">O Cota responde “qual a cota do dólar hoje?” antes de alguém perguntar. O real é a régua: o mundo convertido para a moeda de quem usa.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="font:500 12px 'Geist Mono',monospace;color:#8A9690;letter-spacing:.06em">PARA QUEM</div>
+      <div style="display:grid;grid-template-columns:auto 1fr;gap:8px 16px;font-size:15px;line-height:1.45">
+        <span style="color:#7BE0AE">Viajante</span><span style="color:#C4CCC8">quanto vai custar lá fora</span>
+        <span style="color:#7BE0AE">Importador</span><span style="color:#C4CCC8">quando fechar o câmbio</span>
+        <span style="color:#7BE0AE">Investidor</span><span style="color:#C4CCC8">tendência e alertas</span>
+        <span style="color:#7BE0AE">Curioso</span><span style="color:#C4CCC8">como anda a economia</span>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="font:500 12px 'Geist Mono',monospace;color:#8A9690;letter-spacing:.06em">PROMESSA</div>
+      <p style="margin:0;font:400 40px/1.1 'Instrument Serif',serif;color:#F2F5F3">Pequeno, honesto e silencioso até importar.</p>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:24px">
+    <div style="font:500 12px 'Geist Mono',monospace;color:#8A9690;letter-spacing:.06em">PRINCÍPIOS DE DESIGN</div>
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px">
+      <div style="background:#131715;border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:10px">
+        <div style="font:500 13px 'Geist Mono',monospace;color:#4B5C55">01</div>
+        <div style="font-size:18px;font-weight:600">Olhada, não leitura</div>
+        <p style="margin:0;font-size:14px;line-height:1.55;color:#A9B3AE;text-wrap:pretty">A barra mostra um número. O painel explica a tendência. Nenhuma tela pede mais de dois segundos.</p>
+      </div>
+      <div style="background:#131715;border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:10px">
+        <div style="font:500 13px 'Geist Mono',monospace;color:#4B5C55">02</div>
+        <div style="font-size:18px;font-weight:600">O real como régua</div>
+        <p style="margin:0;font-size:14px;line-height:1.55;color:#A9B3AE;text-wrap:pretty">Valores em R$, nomes em português (“Euro”, não “EUR/BRL”) e conversão a um toque: 100 € = R$ 570,64.</p>
+      </div>
+      <div style="background:#131715;border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:10px">
+        <div style="font:500 13px 'Geist Mono',monospace;color:#4B5C55">03</div>
+        <div style="font-size:18px;font-weight:600">Honesto com o tempo</div>
+        <p style="margin:0;font-size:14px;line-height:1.55;color:#A9B3AE;text-wrap:pretty">Dado velho fica escurecido e datado, nunca escondido. O ponto branco marca sempre o último valor conhecido.</p>
+      </div>
+      <div style="background:#131715;border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:10px">
+        <div style="font:500 13px 'Geist Mono',monospace;color:#4B5C55">04</div>
+        <div style="font-size:18px;font-weight:600">Silêncio com propósito</div>
+        <p style="margin:0;font-size:14px;line-height:1.55;color:#A9B3AE;text-wrap:pretty">Sem conta, sem badge, sem notificação de marketing. Só toca quando um alerta seu é cruzado.</p>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:48px">
+    <div style="display:flex;flex-direction:column;gap:20px">
+      <div style="font:500 12px 'Geist Mono',monospace;color:#8A9690;letter-spacing:.06em">MERCADO · O QUE LEVAMOS PARA O COTA</div>
+      <div style="display:flex;flex-direction:column">
+        <div style="display:grid;grid-template-columns:150px minmax(0,1fr) minmax(0,1fr);gap:20px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.08);font:500 11px 'Geist Mono',monospace;color:#6E7A74;letter-spacing:.05em">
+          <span>APP</span><span>O QUE FAZ BEM</span><span>NO COTA</span>
+        </div>
+        <div style="display:grid;grid-template-columns:150px minmax(0,1fr) minmax(0,1fr);gap:20px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:14px;line-height:1.45">
+          <span style="font-weight:600">Uptick</span><span style="color:#A9B3AE">Alertas por preço e por variação %, rotação de ativos na barra</span><span style="color:#E8ECEA">Alerta por % do dia (1c, 1d)</span>
+        </div>
+        <div style="display:grid;grid-template-columns:150px minmax(0,1fr) minmax(0,1fr);gap:20px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:14px;line-height:1.45">
+          <span style="font-weight:600">StockDock</span><span style="color:#A9B3AE">Régua de faixa mostra onde o preço está entre mínima e máxima</span><span style="color:#E8ECEA">Régua de mín–máx no lugar do texto “5,70 – 5,74” (1b)</span>
+        </div>
+        <div style="display:grid;grid-template-columns:150px minmax(0,1fr) minmax(0,1fr);gap:20px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:14px;line-height:1.45">
+          <span style="font-weight:600">Stock Ticker</span><span style="color:#A9B3AE">Vários formatos de rótulo na barra</span><span style="color:#E8ECEA">Formatos como cartões com prévia ao vivo (1d)</span>
+        </div>
+        <div style="display:grid;grid-template-columns:150px minmax(0,1fr) minmax(0,1fr);gap:20px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:14px;line-height:1.45">
+          <span style="font-weight:600">Wise</span><span style="color:#A9B3AE">Conversor imediato e alerta de câmbio em linguagem simples</span><span style="color:#E8ECEA">Conversor no topo do painel (1b) e alerta como frase (1d)</span>
+        </div>
+        <div style="display:grid;grid-template-columns:150px minmax(0,1fr) minmax(0,1fr);gap:20px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:14px;line-height:1.45">
+          <span style="font-weight:600">Bolsa (Apple)</span><span style="color:#A9B3AE">Gráfico grande ao focar um ativo, linha de abertura</span><span style="color:#E8ECEA">Linha que expande no lugar, com o alerta desenhado no gráfico (1c)</span>
+        </div>
+      </div>
+      <p style="margin:0;font-size:14px;line-height:1.55;color:#A9B3AE;text-wrap:pretty">O que <span style="color:#E8ECEA">não</span> levamos: carteira, notícias, conta. Concorrentes são feitos para bolsa americana em dólar. O Cota ocupa um espaço vazio: <span style="color:#7BE0AE">câmbio em real, em português, sem servidor</span>.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:20px">
+      <div style="font:500 12px 'Geist Mono',monospace;color:#8A9690;letter-spacing:.06em">TOM DE VOZ · DIRETO, BRASILEIRO, SEM JARGÃO</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 20px minmax(0,1.3fr);gap:10px;align-items:center;font-size:14px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08)">
+          <span style="color:#6E7A74;text-decoration:line-through">Quotes</span><span style="color:#4B5C55">→</span><span>Cotações</span>
+        </div>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 20px minmax(0,1.3fr);gap:10px;align-items:center;font-size:14px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08)">
+          <span style="color:#6E7A74;text-decoration:line-through">Updated 1 min ago</span><span style="color:#4B5C55">→</span><span>Atualizado há 1 min</span>
+        </div>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 20px minmax(0,1.3fr);gap:10px;align-items:center;font-size:14px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08)">
+          <span style="color:#6E7A74;text-decoration:line-through">Couldn’t update</span><span style="color:#4B5C55">→</span><span>Sem conexão · valores de 14:20</span>
+        </div>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 20px minmax(0,1.3fr);gap:10px;align-items:center;font-size:14px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08)">
+          <span style="color:#6E7A74;text-decoration:line-through">EUR/BRL above 5,7100</span><span style="color:#4B5C55">→</span><span>Avise quando o euro passar de R$ 5,75</span>
+        </div>
+      </div>
+      <div style="background:#1A1F1C;border-radius:14px;padding:14px 16px;display:grid;grid-template-columns:36px 1fr;gap:12px;align-items:center;border:1px solid rgba(255,255,255,.06)">
+        <img src="assets/icon.svg" alt="" style="width:36px;height:36px;display:block">
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <div style="font-size:13px;font-weight:600">O euro passou de R$ 5,75</div>
+          <div style="font-size:13px;color:#A9B3AE">Agora R$ 5,7612 · ▲ 0,96% hoje</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:48px">
+    <div style="display:flex;flex-direction:column;gap:20px">
+      <div style="font:500 12px 'Geist Mono',monospace;color:#8A9690;letter-spacing:.06em">COR · TIRADA DO ÍCONE QUE JÁ EXISTE</div>
+      <div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px">
+        <div style="display:flex;flex-direction:column;gap:8px"><div style="height:88px;border-radius:12px;background:#111714;border:1px solid rgba(255,255,255,.1)"></div><div style="font-size:13px;font-weight:600">Noite</div><div style="font:400 11px 'Geist Mono',monospace;color:#8A9690">#111714</div></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><div style="height:88px;border-radius:12px;background:#1B2420"></div><div style="font-size:13px;font-weight:600">Grafite</div><div style="font:400 11px 'Geist Mono',monospace;color:#8A9690">#1B2420</div></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><div style="height:88px;border-radius:12px;background:#4B5C55"></div><div style="font-size:13px;font-weight:600">Musgo</div><div style="font:400 11px 'Geist Mono',monospace;color:#8A9690">#4B5C55</div></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><div style="height:88px;border-radius:12px;background:#7BE0AE"></div><div style="font-size:13px;font-weight:600">Menta · alta</div><div style="font:400 11px 'Geist Mono',monospace;color:#8A9690">#7BE0AE</div></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><div style="height:88px;border-radius:12px;background:#FF8A7A"></div><div style="font-size:13px;font-weight:600">Coral · baixa</div><div style="font:400 11px 'Geist Mono',monospace;color:#8A9690">#FF8A7A</div></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><div style="height:88px;border-radius:12px;background:#F6F4EF"></div><div style="font-size:13px;font-weight:600">Papel</div><div style="font:400 11px 'Geist Mono',monospace;color:#8A9690">#F6F4EF</div></div>
+      </div>
+      <p style="margin:0;font-size:14px;line-height:1.55;color:#A9B3AE;text-wrap:pretty">Hoje o ícone é verde-menta sobre quase-preto, mas o app usa o azul do sistema. O rebranding leva a cor do ícone para dentro do produto. Alta e baixa sempre com seta, nunca só cor.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div style="font:500 12px 'Geist Mono',monospace;color:#8A9690;letter-spacing:.06em">TIPO</div>
+        <div style="font-size:44px;font-weight:600;letter-spacing:-0.02em;font-variant-numeric:tabular-nums">5,7064</div>
+        <div style="font-size:13px;color:#A9B3AE;line-height:1.5">SF Pro, algarismos tabulares: todo número cai na mesma coluna.</div>
+        <div style="font:400 40px 'New York','Instrument Serif',ui-serif,serif">R$ 570,64</div>
+        <div style="font-size:13px;color:#A9B3AE;line-height:1.5">New York (serifada do sistema) só para valores em destaque na 1b.</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div style="font:500 12px 'Geist Mono',monospace;color:#8A9690;letter-spacing:.06em">MOVIMENTO</div>
+        <div style="display:flex;flex-direction:column;gap:12px;font-size:13px;line-height:1.5;color:#C4CCC8">
+          <div><span style="color:#7BE0AE;font-family:'Geist Mono',monospace">120ms</span> · dígitos que mudaram rolam na atualização</div>
+          <div><span style="color:#7BE0AE;font-family:'Geist Mono',monospace">180ms</span> · painel abre e linhas expandem com ease-out</div>
+          <div><span style="color:#7BE0AE;font-family:'Geist Mono',monospace">2s</span> · “Cota” some e dá lugar ao valor (já existe)</div>
+          <div><span style="color:#7BE0AE;font-family:'Geist Mono',monospace">0</span> · nada pisca, nada pulsa sem motivo</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="turn-1" data-screen-label="Propostas" style="display:flex;flex-direction:column;gap:40px">
+  <div style="display:flex;align-items:baseline;gap:20px;border-top:1px solid rgba(255,255,255,.1);padding-top:40px">
+    <h2 style="margin:0;font:400 56px 'Instrument Serif',serif;color:#F2F5F3">Propostas</h2>
+    <p style="margin:0;font-size:15px;color:#A9B3AE;max-width:820px;text-wrap:pretty">Três direções para o painel, uma para Settings. Tudo é clicável: períodos, linhas, conversor, alertas. Recomendação: base <a href="#1a">1a</a>, com o conversor da <a href="#1b">1b</a> e a linha expansível da <a href="#1c">1c</a>.</p>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+
+    <div id="1a" style="width:500px;background:#131715;border:1px solid rgba(255,255,255,.06);border-radius:24px;padding:32px;display:flex;flex-direction:column;gap:24px">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px"><span style="font:500 12px 'Geist Mono',monospace;color:#0E1411;background:#7BE0AE;padding:3px 8px;border-radius:6px">1a</span><span style="font:500 12px 'Geist Mono',monospace;color:#8A9690;letter-spacing:.06em">NATIVO, REFINADO · RISCO BAIXO</span></div>
+        <div style="font:400 34px/1.1 'Instrument Serif',serif">O par da barra vira o herói.</div>
+        <p style="margin:0;font-size:14px;line-height:1.55;color:#A9B3AE;text-wrap:pretty">Mesma estrutura de hoje, com hierarquia. O par que você fixou na barra abre grande, com gráfico e faixa; os outros ficam em lista compacta. Clique em qualquer linha para promovê-la.</p>
+      </div>
+      <div style="background:#2E3438;border-radius:14px;overflow:hidden">
+        <div style="height:26px;background:rgba(10,12,14,.55);display:flex;align-items:center;justify-content:flex-end;gap:14px;padding:0 12px;font-size:13px;color:#fff">
+          <div style="display:flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:5px;background:rgba(255,255,255,.2)">
+            <img src="assets/menubar.svg" alt="" style="width:13px;height:13px;filter:invert(1)">
+            <span style="font-variant-numeric:tabular-nums">€ 5,71</span><span style="color:#FF8A7A;font-size:10px">▾</span>
+          </div>
+          <span style="font-variant-numeric:tabular-nums">Sex 16 out 14:32</span>
+        </div>
+        <div style="display:flex;justify-content:flex-end;padding:8px 14px 28px 14px">
+          <div style="width:340px;background:rgba(30,33,31,.92);backdrop-filter:blur(30px);border:1px solid rgba(255,255,255,.1);border-radius:12px;box-shadow:0 20px 50px rgba(0,0,0,.45);overflow:hidden">
+            <div style="padding:14px 16px 12px;display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:rgba(255,255,255,.6)"><span style="color:#fff;font-weight:500">{{ a.hero.name }}</span><span>{{ a.hero.code }}/BRL</span></div>
+                <div style="display:flex;gap:2px;padding:2px;border-radius:7px;background:rgba(255,255,255,.06)">
+                  <sc-for list="{{ a.seg }}" as="s" hint-placeholder-count="3">
+                    <div onClick="{{ s.onClick }}" style="font-size:11px;font-weight:{{ s.fw }};color:{{ s.fg }};background:{{ s.bg }};padding:3px 9px;border-radius:5px;cursor:pointer">{{ s.label }}</div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="display:flex;align-items:baseline;gap:8px;opacity:{{ dim }}">
+                <span style="font-size:15px;color:rgba(255,255,255,.5)">R$</span>
+                <span style="font-size:32px;font-weight:600;letter-spacing:-0.02em;font-variant-numeric:tabular-nums;color:#fff">{{ a.hero.value }}</span>
+                <span style="font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;color:{{ a.hero.color }};background:{{ a.hero.tint }};padding:2px 6px;border-radius:5px">{{ a.hero.change }}</span>
+              </div>
+              <div style="opacity:{{ dim }};padding-top:4px">
+                <svg width="308" height="64" style="display:block;overflow:visible">
+                  <path d="{{ a.hero.area }}" fill="{{ a.hero.tint }}"></path>
+                  <line x1="0" x2="308" y1="{{ a.hero.openY }}" y2="{{ a.hero.openY }}" style="stroke:rgba(255,255,255,.18);stroke-width:1;stroke-dasharray:2 3"></line>
+                  <path d="{{ a.hero.d }}" fill="none" style="stroke:{{ a.hero.color }};stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"></path>
+                  <circle cx="{{ a.hero.endX }}" cy="{{ a.hero.endY }}" r="3.5" fill="#fff"></circle>
+                </svg>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,.5);font-variant-numeric:tabular-nums">
+                <span>mín {{ a.hero.lo }}</span><span>abertura {{ a.hero.open }}</span><span>máx {{ a.hero.hi }}</span>
+              </div>
+            </div>
+            <div style="height:1px;background:rgba(255,255,255,.08)"></div>
+            <div style="padding:6px 6px">
+              <sc-for list="{{ a.rest }}" as="r" hint-placeholder-count="3">
+                <div onClick="{{ r.onClick }}" style="display:flex;align-items:center;gap:10px;height:44px;padding:0 10px;border-radius:8px;cursor:pointer" style-hover="background:rgba(255,255,255,.06)">
+                  <div style="width:26px;height:26px;border-radius:8px;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff">{{ r.sym }}</div>
+                  <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+                    <span style="font-size:13px;font-weight:500;color:#fff">{{ r.name }}</span>
+                    <span style="font-size:11px;color:rgba(255,255,255,.5);font-variant-numeric:tabular-nums">{{ r.range }}</span>
+                  </div>
+                  <svg width="56" height="20" style="display:block;overflow:visible;opacity:{{ dim }}">
+                    <path d="{{ r.d }}" fill="none" style="stroke:{{ r.color }};stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round"></path>
+                  </svg>
+                  <div style="width:80px;display:flex;flex-direction:column;align-items:flex-end;gap:1px;opacity:{{ dim }}">
+                    <span style="font-size:13px;font-variant-numeric:tabular-nums;color:#fff">{{ r.value }}</span>
+                    <span style="font-size:11px;font-variant-numeric:tabular-nums;color:{{ r.color }}">{{ r.change }}</span>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="height:1px;background:rgba(255,255,255,.08)"></div>
+            <div style="height:36px;display:flex;align-items:center;gap:14px;padding:0 16px">
+              <div style="flex:1;display:flex;align-items:center;gap:6px;font-size:11px;color:{{ st.color }}">
+                <span style="width:6px;height:6px;border-radius:3px;background:{{ st.dot }}"></span><span>{{ st.text }}</span>
+              </div>
+              <i class="icon-rotate-cw" style="font-size:13px;color:rgba(255,255,255,.55);cursor:pointer"></i>
+              <i class="icon-settings" style="font-size:13px;color:rgba(255,255,255,.55);cursor:pointer"></i>
+              <i class="icon-power" style="font-size:13px;color:rgba(255,255,255,.55);cursor:pointer"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="font:500 11px 'Geist Mono',monospace;color:#6E7A74;letter-spacing:.06em">BARRA DE MENUS</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <div style="display:flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:6px;background:#1F2522;font-size:13px"><img src="assets/menubar.svg" alt="" style="width:13px;height:13px;filter:invert(1)"><span>€ 5,71</span><span style="color:#FF8A7A;font-size:10px">▾</span></div>
+          <div style="display:flex;align-items:center;gap:10px;height:24px;padding:0 10px;border-radius:6px;background:#1F2522;font-size:13px;font-variant-numeric:tabular-nums"><span>€ 5,71<span style="color:#FF8A7A;font-size:10px"> ▾</span></span><span>$ 5,07<span style="color:#FF8A7A;font-size:10px"> ▾</span></span></div>
+          <div style="display:flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:6px;background:#1F2522;font-size:13px;color:rgba(255,255,255,.35)"><span>€ 5,71</span><span style="font-size:10px">· 18 min</span></div>
+        </div>
+        <div style="font-size:12px;color:#8A9690;line-height:1.5">O glifo do ícone abre o rótulo (opcional). Dado velho: escurece e diz há quanto tempo.</div>
+      </div>
+    </div>
+
+    <div id="1b" style="width:500px;background:#131715;border:1px solid rgba(255,255,255,.06);border-radius:24px;padding:32px;display:flex;flex-direction:column;gap:24px">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px"><span style="font:500 12px 'Geist Mono',monospace;color:#0E1411;background:#7BE0AE;padding:3px 8px;border-radius:6px">1b</span><span style="font:500 12px 'Geist Mono',monospace;color:#8A9690;letter-spacing:.06em">EM REAL · IDENTIDADE MAIS FORTE</span></div>
+        <div style="font:400 34px/1.1 'Instrument Serif',serif">Quanto dá em real?</div>
+        <p style="margin:0;font-size:14px;line-height:1.55;color:#A9B3AE;text-wrap:pretty">O painel responde à pergunta do brasileiro: um conversor no topo e a lista lida como frase, “1 euro = R$ 5,7064”. A régua mostra onde o preço está na faixa do período. Digite um valor; clique numa moeda para converter.</p>
+      </div>
+      <div style="background:#CFC9BE;border-radius:14px;overflow:hidden">
+        <div style="height:26px;background:rgba(255,255,255,.45);display:flex;align-items:center;justify-content:flex-end;gap:14px;padding:0 12px;font-size:13px;color:#1B1D1C">
+          <div style="display:flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:5px;background:rgba(0,0,0,.1)">
+            <span style="font-variant-numeric:tabular-nums">€ 5,71</span><span style="color:#C23B2B;font-size:10px">▾</span>
+          </div>
+          <span>Sex 16 out 14:32</span>
+        </div>
+        <div style="display:flex;justify-content:flex-end;padding:8px 14px 28px 14px">
+          <div style="width:340px;background:rgba(250,249,246,.96);border:1px solid rgba(0,0,0,.1);border-radius:12px;box-shadow:0 20px 50px rgba(40,30,10,.22);overflow:hidden;color:#1B1D1C">
+            <div style="padding:16px 16px 14px;display:flex;flex-direction:column;gap:10px;background:#FFFFFF">
+              <div style="font-size:11px;color:#6B6F6C">Converter</div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="display:flex;align-items:center;gap:6px;height:34px;padding:0 6px 0 10px;border-radius:8px;border:1px solid rgba(0,0,0,.12);background:#FAF9F6">
+                  <input value="{{ b.conv }}" onChange="{{ b.onConv }}" style="width:58px;border:0;background:transparent;font-size:16px;font-variant-numeric:tabular-nums;color:#1B1D1C;text-align:right;font-family:inherit">
+                  <div onClick="{{ b.cycle }}" style="display:flex;align-items:center;gap:3px;font-size:12px;font-weight:600;padding:3px 6px;border-radius:5px;background:rgba(0,0,0,.06);cursor:pointer">{{ b.cp.code }}<i class="icon-chevrons-up-down" style="font-size:10px;color:#6B6F6C"></i></div>
+                </div>
+                <span style="color:#9A9D9A;font-size:14px">=</span>
+                <span style="font:400 30px 'New York','Instrument Serif',ui-serif,serif;font-variant-numeric:tabular-nums;letter-spacing:-0.01em;opacity:{{ dim }};white-space:nowrap">{{ b.out }}</span>
+              </div>
+            </div>
+            <div style="height:1px;background:rgba(0,0,0,.08)"></div>
+            <div style="display:flex;gap:16px;padding:10px 16px 2px">
+              <sc-for list="{{ b.seg }}" as="s" hint-placeholder-count="3">
+                <div onClick="{{ s.onClick }}" style="font-size:12px;font-weight:{{ s.fw }};color:{{ s.fg }};padding:4px 0;border-bottom:2px solid {{ s.bg }};cursor:pointer">{{ s.label }}</div>
+              </sc-for>
+            </div>
+            <div style="padding:4px 6px 6px">
+              <sc-for list="{{ b.rows }}" as="r" hint-placeholder-count="4">
+                <div onClick="{{ r.onClick }}" style="display:grid;grid-template-columns:minmax(0,1fr) 112px;gap:4px 12px;align-items:center;padding:10px 10px;border-radius:8px;background:{{ r.sel }};cursor:pointer" style-hover="background:rgba(0,0,0,.04)">
+                  <span style="font:400 16px 'New York','Instrument Serif',ui-serif,serif">{{ r.one }}</span>
+                  <span style="font-size:14px;font-weight:500;font-variant-numeric:tabular-nums;opacity:{{ dim }};white-space:nowrap;text-align:right">R$ {{ r.value }}</span>
+                  <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:#8A8D8A;font-variant-numeric:tabular-nums">
+                    <span>{{ r.lo }}</span>
+                    <div style="position:relative;width:110px;height:3px;border-radius:2px;background:rgba(0,0,0,.09)">
+                      <div style="position:absolute;top:-3px;left:{{ r.pos }};width:9px;height:9px;margin-left:-4.5px;border-radius:5px;background:#1B1D1C;border:2px solid #FAF9F6;box-sizing:border-box"></div>
+                    </div>
+                    <span>{{ r.hi }}</span>
+                  </div>
+                  <span style="font-size:11px;font-weight:500;font-variant-numeric:tabular-nums;color:{{ r.color }};text-align:right;white-space:nowrap">{{ r.change }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="height:1px;background:rgba(0,0,0,.08)"></div>
+            <div style="height:36px;display:flex;align-items:center;gap:14px;padding:0 16px">
+              <div style="flex:1;font-size:11px;color:{{ stB.color }}">{{ stB.text }} · AwesomeAPI</div>
+              <i class="icon-rotate-cw" style="font-size:13px;color:#6B6F6C"></i>
+              <i class="icon-settings" style="font-size:13px;color:#6B6F6C"></i>
+              <i class="icon-power" style="font-size:13px;color:#6B6F6C"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="font:500 11px 'Geist Mono',monospace;color:#6E7A74;letter-spacing:.06em">BARRA DE MENUS</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <div style="display:flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:6px;background:#E9E5DD;color:#1B1D1C;font-size:13px">€ 5,71<span style="color:#C23B2B;font-size:10px">▾</span></div>
+          <div style="display:flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:6px;background:#E9E5DD;color:#1B1D1C;font-size:13px">🇪🇺 5,71</div>
+          <div style="display:flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:6px;background:#E9E5DD;color:#1B1D1C;font-size:13px">₿ 398k<span style="color:#1E8A5A;font-size:10px">▴</span></div>
+        </div>
+        <div style="font-size:12px;color:#8A9690;line-height:1.5">Funciona igual no modo claro e escuro do macOS. A serifada aparece só nos valores grandes.</div>
+      </div>
+    </div>
+
+    <div id="1c" style="width:520px;background:#131715;border:1px solid rgba(255,255,255,.06);border-radius:24px;padding:32px;display:flex;flex-direction:column;gap:24px">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px"><span style="font:500 12px 'Geist Mono',monospace;color:#0E1411;background:#7BE0AE;padding:3px 8px;border-radius:6px">1c</span><span style="font:500 12px 'Geist Mono',monospace;color:#8A9690;letter-spacing:.06em">FOCO E ALERTAS · MAIS PODER</span></div>
+        <div style="font:400 34px/1.1 'Instrument Serif',serif">Abra a linha, veja o limite.</div>
+        <p style="margin:0;font-size:14px;line-height:1.55;color:#A9B3AE;text-wrap:pretty">Paleta do ícone por inteiro. Cada linha expande no lugar com gráfico grande, abertura e a linha do seu alerta desenhada. Criar alerta sai do Settings e fica a um clique do gráfico.</p>
+      </div>
+      <div style="background:#262B2E;border-radius:14px;overflow:hidden">
+        <div style="height:26px;background:rgba(10,12,14,.55);display:flex;align-items:center;justify-content:flex-end;gap:14px;padding:0 12px;font-size:13px;color:#fff">
+          <div style="display:flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:5px;background:rgba(255,255,255,.2)">
+            <span style="font-variant-numeric:tabular-nums">€ 5,71</span><span style="width:5px;height:5px;border-radius:3px;background:#7BE0AE"></span>
+          </div>
+          <span>Sex 16 out 14:32</span>
+        </div>
+        <div style="display:flex;justify-content:flex-end;padding:8px 14px 28px 14px">
+          <div style="width:360px;background:#111714;border:1px solid rgba(255,255,255,.09);border-radius:12px;box-shadow:0 20px 50px rgba(0,0,0,.5);overflow:hidden">
+            <div style="height:44px;display:flex;align-items:center;gap:8px;padding:0 16px">
+              <img src="assets/icon.svg" alt="" style="width:20px;height:20px;margin:-2px">
+              <span style="font-size:13px;font-weight:600;flex:1">Cotações</span>
+              <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#7BE0AE;background:rgba(123,224,174,.1);padding:3px 8px;border-radius:10px"><i class="icon-bell" style="font-size:11px"></i><span>{{ c.alertCount }}</span></div>
+            </div>
+            <div style="padding:0 0 6px">
+              <sc-for list="{{ c.rows }}" as="r" hint-placeholder-count="4">
+                <div style="margin:2px 8px;border-radius:10px;background:{{ r.bg }}">
+                  <div onClick="{{ r.toggle }}" style="display:flex;align-items:center;gap:10px;height:50px;padding:0 10px;cursor:pointer">
+                    <div style="width:28px;height:28px;border-radius:14px;background:#1B2420;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#7BE0AE">{{ r.sym }}</div>
+                    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+                      <span style="font-size:13px;font-weight:500;color:#F2F5F3">{{ r.name }}</span>
+                      <span style="font-size:11px;color:#7E8B85">{{ r.code }}/BRL</span>
+                    </div>
+                    <svg width="64" height="22" style="display:block;overflow:visible;opacity:{{ r.smallOp }}">
+                      <line x1="0" x2="64" y1="{{ r.openY }}" y2="{{ r.openY }}" style="stroke:#4B5C55;stroke-width:1;stroke-dasharray:2 3"></line>
+                      <path d="{{ r.d }}" fill="none" style="stroke:{{ r.color }};stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round"></path>
+                    </svg>
+                    <div style="width:84px;display:flex;flex-direction:column;align-items:flex-end;gap:1px;opacity:{{ dim }}">
+                      <span style="font-size:13px;font-weight:500;font-variant-numeric:tabular-nums;color:#F2F5F3">{{ r.value }}</span>
+                      <span style="font-size:11px;font-variant-numeric:tabular-nums;color:{{ r.color }}">{{ r.change }}</span>
+                    </div>
+                  </div>
+                  <sc-if value="{{ r.isExp }}" hint-placeholder-val="{{ false }}">
+                    <div style="padding:0 10px 12px;display:flex;flex-direction:column;gap:10px">
+                      <div style="position:relative;opacity:{{ dim }}">
+                        <svg width="324" height="116" style="display:block;overflow:visible">
+                          <path d="{{ r.big.area }}" fill="{{ r.tint }}"></path>
+                          <line x1="0" x2="324" y1="{{ r.big.openY }}" y2="{{ r.big.openY }}" style="stroke:#4B5C55;stroke-width:1;stroke-dasharray:3 4"></line>
+                          <line x1="0" x2="324" y1="{{ r.alertY }}" y2="{{ r.alertY }}" style="stroke:#7BE0AE;stroke-width:1;stroke-dasharray:1 3;opacity:.8"></line>
+                          <path d="{{ r.big.d }}" fill="none" style="stroke:{{ r.color }};stroke-width:2;stroke-linecap:round;stroke-linejoin:round"></path>
+                          <circle cx="{{ r.big.endX }}" cy="{{ r.big.endY }}" r="4" fill="#FFFFFF"></circle>
+                        </svg>
+                        <div style="position:absolute;left:0;top:{{ r.alertTop }};display:flex;align-items:center;gap:4px;font-size:10px;font-weight:600;color:#0E1411;background:#7BE0AE;padding:2px 6px;border-radius:5px;font-variant-numeric:tabular-nums"><i class="icon-bell" style="font-size:10px"></i>{{ r.alertLabel }}</div>
+                      </div>
+                      <div style="display:flex;align-items:center;justify-content:space-between">
+                        <div style="display:flex;gap:2px;padding:2px;border-radius:7px;background:rgba(255,255,255,.05)">
+                          <sc-for list="{{ c.seg }}" as="s" hint-placeholder-count="3">
+                            <div onClick="{{ s.onClick }}" style="font-size:11px;font-weight:{{ s.fw }};color:{{ s.fg }};background:{{ s.bg }};padding:3px 9px;border-radius:5px;cursor:pointer">{{ s.label }}</div>
+                          </sc-for>
+                        </div>
+                        <div style="display:flex;gap:12px;font-size:11px;color:#7E8B85;font-variant-numeric:tabular-nums">
+                          <span>mín <span style="color:#C4CCC8">{{ r.lo }}</span></span><span>máx <span style="color:#C4CCC8">{{ r.hi }}</span></span>
+                        </div>
+                      </div>
+                      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                        <div style="height:28px;border-radius:7px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;color:#E8ECEA;cursor:pointer" style-hover="background:rgba(255,255,255,.1)"><i class="icon-copy" style="font-size:12px"></i>Copiar {{ r.value }}</div>
+                        <div style="height:28px;border-radius:7px;background:rgba(123,224,174,.14);display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;font-weight:500;color:#7BE0AE;cursor:pointer" style-hover="background:rgba(123,224,174,.22)"><i class="icon-plus" style="font-size:12px"></i>Novo alerta</div>
+                      </div>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+            <div style="height:1px;background:rgba(255,255,255,.07)"></div>
+            <div style="height:36px;display:flex;align-items:center;gap:14px;padding:0 16px">
+              <div style="flex:1;display:flex;align-items:center;gap:6px;font-size:11px;color:{{ st.color }}">
+                <span style="width:6px;height:6px;border-radius:3px;background:{{ st.dot }}"></span><span>{{ st.text }}</span>
+              </div>
+              <i class="icon-rotate-cw" style="font-size:13px;color:#7E8B85"></i>
+              <i class="icon-settings" style="font-size:13px;color:#7E8B85"></i>
+              <i class="icon-power" style="font-size:13px;color:#7E8B85"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="font:500 11px 'Geist Mono',monospace;color:#6E7A74;letter-spacing:.06em">BARRA DE MENUS</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <div style="display:flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:6px;background:#1F2522;font-size:13px">€ 5,71<span style="width:5px;height:5px;border-radius:3px;background:#7BE0AE"></span></div>
+          <div style="display:flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:6px;background:#1F2522;font-size:13px">€ 5,71<span style="font-size:11px;color:#FF8A7A">−0,16%</span></div>
+          <div style="display:flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:6px;background:#7BE0AE;color:#0E1411;font-size:13px;font-weight:600"><i class="icon-bell" style="font-size:11px"></i>€ 5,76</div>
+        </div>
+        <div style="font-size:12px;color:#8A9690;line-height:1.5">Ponto menta: há alerta ativo para o par. Alerta disparado: o rótulo acende até você abrir o painel.</div>
+      </div>
+    </div>
+
+    <div id="1d" style="width:760px;background:#131715;border:1px solid rgba(255,255,255,.06);border-radius:24px;padding:32px;display:flex;flex-direction:column;gap:24px">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px"><span style="font:500 12px 'Geist Mono',monospace;color:#0E1411;background:#7BE0AE;padding:3px 8px;border-radius:6px">1d</span><span style="font:500 12px 'Geist Mono',monospace;color:#8A9690;letter-spacing:.06em">SETTINGS · SERVE PARA AS TRÊS</span></div>
+        <div style="font:400 34px/1.1 'Instrument Serif',serif">Configurar como quem escreve uma frase.</div>
+        <p style="margin:0;font-size:14px;line-height:1.55;color:#A9B3AE;text-wrap:pretty">Barra lateral no lugar de abas, como os Ajustes do macOS. Alertas viram frases com a distância até o alvo; formatos da barra viram cartões com prévia ao vivo. Navegue pelas quatro seções.</p>
+      </div>
+      <div style="background:#1C211F;border:1px solid rgba(255,255,255,.1);border-radius:12px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.4);display:grid;grid-template-columns:180px minmax(0,1fr);min-height:440px">
+        <div style="background:#161B18;border-right:1px solid rgba(255,255,255,.06);padding:14px 10px;display:flex;flex-direction:column;gap:2px">
+          <div style="display:flex;gap:8px;padding:2px 6px 18px"><span style="width:12px;height:12px;border-radius:6px;background:#FF5F57"></span><span style="width:12px;height:12px;border-radius:6px;background:#FEBC2E"></span><span style="width:12px;height:12px;border-radius:6px;background:#3A403D"></span></div>
+          <sc-for list="{{ d.nav }}" as="n" hint-placeholder-count="4">
+            <div onClick="{{ n.onClick }}" style="display:flex;align-items:center;gap:9px;height:30px;padding:0 10px;border-radius:7px;background:{{ n.bg }};color:{{ n.fg }};font-size:13px;cursor:pointer">
+              <i class="{{ n.icon }}" style="font-size:14px"></i><span>{{ n.label }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="padding:22px 26px;display:flex;flex-direction:column;gap:18px">
+          <sc-if value="{{ d.isAlerts }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div style="font-size:17px;font-weight:600">Alertas</div>
+              <div style="font-size:12px;color:#8A9690">Avisamos quando um preço cruzar o limite. Funciona enquanto o Cota estiver aberto.</div>
+            </div>
+            <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:13px;color:#C4CCC8">
+                <span>Avise quando o</span>
+                <div onClick="{{ d.cyclePair }}" style="display:flex;align-items:center;gap:4px;height:26px;padding:0 8px;border-radius:6px;background:rgba(255,255,255,.08);color:#F2F5F3;font-weight:500;cursor:pointer">{{ d.np.lower }}<i class="icon-chevrons-up-down" style="font-size:10px;color:#7E8B85"></i></div>
+                <div onClick="{{ d.flipDir }}" style="display:flex;align-items:center;gap:4px;height:26px;padding:0 8px;border-radius:6px;background:rgba(255,255,255,.08);color:#F2F5F3;font-weight:500;cursor:pointer">{{ d.dirLabel }}<i class="icon-chevrons-up-down" style="font-size:10px;color:#7E8B85"></i></div>
+                <div style="display:flex;align-items:center;gap:4px;height:26px;padding:0 8px;border-radius:6px;background:rgba(255,255,255,.08);border:1px solid rgba(123,224,174,.4)">
+                  <span style="color:#7E8B85">R$</span>
+                  <input value="{{ d.th }}" onChange="{{ d.onTh }}" style="width:72px;border:0;background:transparent;color:#F2F5F3;font-size:13px;font-weight:500;font-family:inherit;font-variant-numeric:tabular-nums">
+                </div>
+                <div style="flex:1"></div>
+                <div onClick="{{ d.create }}" style="height:28px;padding:0 12px;border-radius:7px;background:#7BE0AE;color:#0E1411;font-size:12px;font-weight:600;display:flex;align-items:center;cursor:pointer" style-hover="background:#94E8BE">Criar alerta</div>
+              </div>
+              <div style="font-size:11px;color:#7E8B85;font-variant-numeric:tabular-nums">{{ d.hint }}</div>
+            </div>
+            <div style="display:flex;flex-direction:column">
+              <sc-for list="{{ d.alerts }}" as="al" hint-placeholder-count="3">
+                <div style="display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.06);opacity:{{ al.op }}">
+                  <div style="width:28px;height:28px;border-radius:14px;background:#1B2420;color:#7BE0AE;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600">{{ al.sym }}</div>
+                  <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
+                    <span style="font-size:13px;color:#F2F5F3">{{ al.text }}</span>
+                    <div style="display:flex;align-items:center;gap:8px">
+                      <div style="width:140px;height:3px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden"><div style="height:3px;width:{{ al.prog }};background:{{ al.barColor }}"></div></div>
+                      <span style="font-size:11px;color:{{ al.noteColor }};font-variant-numeric:tabular-nums">{{ al.note }}</span>
+                    </div>
+                  </div>
+                  <div onClick="{{ al.toggle }}" style="width:30px;height:18px;border-radius:9px;background:{{ al.tBg }};display:flex;align-items:center;justify-content:{{ al.tJust }};padding:0 2px;box-sizing:border-box;cursor:pointer"><span style="width:14px;height:14px;border-radius:7px;background:#fff"></span></div>
+                  <i onClick="{{ al.remove }}" class="icon-x" style="font-size:13px;color:#7E8B85;cursor:pointer"></i>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ d.isBar }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div style="font-size:17px;font-weight:600">Barra de menus</div>
+              <div style="font-size:12px;color:#8A9690">Os pares marcados em Pares aparecem aqui, na ordem da lista.</div>
+            </div>
+            <div style="height:44px;border-radius:10px;background:#2E3438;display:flex;align-items:center;justify-content:flex-end;gap:16px;padding:0 14px;font-size:13px;color:#fff">
+              <div style="display:flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:5px;background:rgba(255,255,255,.18);font-variant-numeric:tabular-nums">
+                <span>{{ d.prevLead }}</span><span>5,71</span><span style="font-size:{{ d.indSize }};color:#FF8A7A">{{ d.prevInd }}</span>
+              </div>
+              <span style="color:rgba(255,255,255,.75)">Sex 16 out 14:32</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px">
+              <sc-for list="{{ d.formats }}" as="f" hint-placeholder-count="4">
+                <div onClick="{{ f.onClick }}" style="border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px;border:1px solid {{ f.border }};background:{{ f.bg }};cursor:pointer">
+                  <span style="font-size:15px;font-variant-numeric:tabular-nums;color:#F2F5F3">{{ f.sample }}</span>
+                  <span style="font-size:11px;color:{{ f.fg }}">{{ f.label }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+              <span style="font-size:13px">Variação</span>
+              <div style="display:flex;gap:2px;padding:2px;border-radius:7px;background:rgba(255,255,255,.06)">
+                <sc-for list="{{ d.inds }}" as="s" hint-placeholder-count="3">
+                  <div onClick="{{ s.onClick }}" style="font-size:12px;font-weight:{{ s.fw }};color:{{ s.fg }};background:{{ s.bg }};padding:4px 12px;border-radius:5px;cursor:pointer">{{ s.label }}</div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:20px;padding:6px 0">
+              <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:13px">Escurecer dados antigos</span><span style="font-size:11px;color:#7E8B85">Só na barra. O painel sempre marca dados antigos.</span></div>
+              <div style="width:30px;height:18px;border-radius:9px;background:#7BE0AE;display:flex;align-items:center;justify-content:flex-end;padding:0 2px;box-sizing:border-box"><span style="width:14px;height:14px;border-radius:7px;background:#fff"></span></div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ d.isGeneral }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:17px;font-weight:600">Geral</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <span style="font-size:13px">Atualizar a cada</span>
+              <div style="display:flex;gap:2px;padding:2px;border-radius:8px;background:rgba(255,255,255,.06)">
+                <sc-for list="{{ d.intervals }}" as="s" hint-placeholder-count="5">
+                  <div onClick="{{ s.onClick }}" style="flex:1;text-align:center;font-size:12px;font-weight:{{ s.fw }};color:{{ s.fg }};background:{{ s.bg }};padding:6px 0;border-radius:6px;cursor:pointer">{{ s.label }}</div>
+                </sc-for>
+              </div>
+              <span style="font-size:11px;color:#7E8B85">Entre uma atualização e outra, o Cota mostra o último valor conhecido.</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid rgba(255,255,255,.06)">
+              <span style="font-size:13px">Abrir ao iniciar sessão</span>
+              <div style="width:30px;height:18px;border-radius:9px;background:#7BE0AE;display:flex;align-items:center;justify-content:flex-end;padding:0 2px;box-sizing:border-box"><span style="width:14px;height:14px;border-radius:7px;background:#fff"></span></div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ d.isPairs }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div style="font-size:17px;font-weight:600">Pares</div>
+              <div style="font-size:12px;color:#8A9690">Arraste para reordenar. O alfinete coloca o par na barra de menus.</div>
+            </div>
+            <div style="display:flex;flex-direction:column">
+              <sc-for list="{{ d.pairs }}" as="p" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;gap:12px;height:44px;border-bottom:1px solid rgba(255,255,255,.06)">
+                  <i class="icon-grip-vertical" style="font-size:14px;color:#4B5C55;cursor:grab"></i>
+                  <div style="width:26px;height:26px;border-radius:13px;background:#1B2420;color:#7BE0AE;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600">{{ p.sym }}</div>
+                  <span style="flex:1;font-size:13px">{{ p.name }} <span style="color:#7E8B85">{{ p.code }}</span></span>
+                  <span style="width:90px;text-align:right;font-size:13px;font-variant-numeric:tabular-nums">{{ p.value }}</span>
+                  <span style="width:64px;text-align:right;font-size:11px;font-variant-numeric:tabular-nums;color:{{ p.color }}">{{ p.change }}</span>
+                  <i onClick="{{ p.pin }}" class="icon-pin" style="font-size:14px;color:{{ p.pinColor }};cursor:pointer;width:24px;text-align:center"></i>
+                </div>
+              </sc-for>
+              <div style="display:flex;align-items:center;gap:8px;height:40px;font-size:13px;color:#7BE0AE;cursor:pointer"><i class="icon-plus" style="font-size:13px"></i>Adicionar par</div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="hoje" data-screen-label="Hoje" style="display:flex;flex-direction:column;gap:40px">
+  <div style="display:flex;align-items:baseline;gap:20px;border-top:1px solid rgba(255,255,255,.1);padding-top:40px">
+    <h2 style="margin:0;font:400 56px 'Instrument Serif',serif;color:#F2F5F3">Hoje</h2>
+    <p style="margin:0;font-size:15px;color:#A9B3AE">Recriação da versão atual, a partir do código (PanelView, SettingsView). Ponto de partida das propostas.</p>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+    <div style="display:flex;flex-direction:column;gap:20px">
+      <div style="height:24px;background:#1A1A1A;border-radius:6px;display:flex;align-items:center;padding:0 12px;gap:4px;width:max-content;font-size:13px;color:#fff;font-variant-numeric:tabular-nums">€ 5,71 <span style="color:#FF453A;font-size:9px">▼</span></div>
+      <div style="width:360px;background:#242424;border:1px solid rgba(255,255,255,.12);border-radius:10px;overflow:hidden;color:#fff;box-shadow:0 18px 40px rgba(0,0,0,.4)">
+        <div style="height:44px;display:flex;align-items:center;gap:8px;padding:0 16px">
+          <span style="font-size:13px;font-weight:500;flex:1">Quotes</span>
+          <div style="width:108px;height:22px;box-sizing:border-box;padding:3px;border-radius:7px;background:rgba(255,255,255,.1);display:flex;gap:2px">
+            <sc-for list="{{ cur.seg }}" as="s" hint-placeholder-count="3">
+              <div onClick="{{ s.onClick }}" style="flex:1;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:{{ s.fw }};color:{{ s.fg }};background:{{ s.bg }};border-radius:5px;cursor:pointer">{{ s.label }}</div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="height:1px;background:rgba(255,255,255,.1)"></div>
+        <sc-for list="{{ cur.rows }}" as="r" hint-placeholder-count="2">
+          <div style="display:flex;align-items:center;gap:8px;height:48px;padding:0 16px;border-bottom:{{ r.sep }}">
+            <div style="width:24px;height:24px;border-radius:12px;background:rgba(10,132,255,.15);color:#0A84FF;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600">{{ r.sym }}</div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:2px">
+              <span style="font-size:13px"><span style="font-weight:500">{{ r.code }}</span><span style="color:rgba(255,255,255,.55)">/BRL</span></span>
+              <span style="font-size:11px;color:rgba(255,255,255,.55);font-variant-numeric:tabular-nums">{{ r.range }}</span>
+            </div>
+            <svg width="60" height="24" style="display:block">
+              <line x1="0" x2="60" y1="{{ r.openY }}" y2="{{ r.openY }}" style="stroke:rgba(255,255,255,.2);stroke-width:1;stroke-dasharray:2 2"></line>
+              <path d="{{ r.d }}" fill="none" style="stroke:{{ r.color }};stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round"></path>
+            </svg>
+            <div style="width:84px;display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+              <span style="font-size:13px;font-variant-numeric:tabular-nums">{{ r.value }}</span>
+              <span style="font-size:11px;font-variant-numeric:tabular-nums;color:{{ r.color }}">{{ r.change }}</span>
+            </div>
+          </div>
+        </sc-for>
+        <div style="height:1px;background:rgba(255,255,255,.1)"></div>
+        <div style="height:38px;display:flex;align-items:center;gap:12px;padding:0 16px">
+          <span style="flex:1;font-size:11px;color:rgba(255,255,255,.55)">Updated 1 min ago</span>
+          <i class="icon-rotate-cw" style="font-size:12px;color:rgba(255,255,255,.55)"></i>
+          <i class="icon-settings" style="font-size:12px;color:rgba(255,255,255,.55)"></i>
+          <i class="icon-power" style="font-size:12px;color:rgba(255,255,255,.55)"></i>
+        </div>
+      </div>
+    </div>
+
+    <div style="width:494px;background:#2A2A2A;border:1px solid rgba(255,255,255,.14);border-radius:12px;overflow:hidden;color:#fff;box-shadow:0 18px 40px rgba(0,0,0,.4)">
+      <div style="height:30px;background:#323232;display:flex;align-items:center;padding:0 12px;position:relative">
+        <div style="display:flex;gap:8px"><span style="width:12px;height:12px;border-radius:6px;background:#FF5F57"></span><span style="width:12px;height:12px;border-radius:6px;background:#FEBC2E"></span><span style="width:12px;height:12px;border-radius:6px;background:#5A5A5A"></span></div>
+        <span style="position:absolute;left:0;right:0;text-align:center;font-size:13px;font-weight:600;color:rgba(255,255,255,.65)">Settings</span>
+      </div>
+      <div style="padding:16px">
+        <div style="display:flex;justify-content:center;margin-bottom:-12px;position:relative">
+          <div style="display:flex;gap:1px;padding:1px;border-radius:7px;border:1px solid rgba(255,255,255,.14);background:#2E2E2E">
+            <sc-for list="{{ cur.tabs }}" as="t" hint-placeholder-count="4">
+              <div onClick="{{ t.onClick }}" style="font-size:13px;padding:2px 12px;border-radius:5px;background:{{ t.bg }};cursor:pointer">{{ t.label }}</div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.025);border-radius:6px;padding-top:12px">
+          <sc-if value="{{ cur.isGen }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:16px 0">
+              <div style="font-size:11px;color:rgba(255,255,255,.55);padding:0 16px 8px">Refresh interval</div>
+              <div style="margin:0 16px;height:28px;box-sizing:border-box;padding:3px;border-radius:7px;background:rgba(255,255,255,.07);display:flex;gap:2px">
+                <sc-for list="{{ cur.intervals }}" as="s" hint-placeholder-count="5">
+                  <div onClick="{{ s.onClick }}" style="flex:1;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:{{ s.fw }};color:{{ s.fg }};background:{{ s.bg }};border-radius:5px;cursor:pointer">{{ s.label }}</div>
+                </sc-for>
+              </div>
+              <div style="font-size:11px;color:rgba(255,255,255,.28);padding:6px 16px 0">Values are cached between refreshes.</div>
+            </div>
+            <div style="height:1px;background:rgba(255,255,255,.1)"></div>
+            <div style="padding:16px 0">
+              <div style="display:flex;align-items:center;height:34px;padding:0 16px 0 38px">
+                <span style="flex:1;font-size:12px">Launch at login</span>
+                <div style="width:26px;height:15px;border-radius:8px;background:#0A84FF;display:flex;justify-content:flex-end;align-items:center;padding:0 1px;box-sizing:border-box"><span style="width:13px;height:13px;border-radius:7px;background:#E6E6E6"></span></div>
+              </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ cur.isPairs }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:16px 0">
+              <div style="display:flex;align-items:center;gap:8px;height:22px;padding:0 16px 0 38px;font-size:11px;color:rgba(255,255,255,.55)">
+                <span style="flex:1">Pair</span><span style="width:96px;text-align:right">Rate</span><span style="width:64px;text-align:right">Change</span><span style="width:60px;text-align:center">Menu bar</span><span style="width:18px"></span>
+              </div>
+              <sc-for list="{{ cur.rows }}" as="r" hint-placeholder-count="2">
+                <div style="display:flex;align-items:center;gap:8px;height:34px;margin:0 16px;border-bottom:{{ r.sep }}">
+                  <div style="width:14px;display:grid;grid-template-columns:repeat(2,2.5px);gap:2px;justify-content:center"><span style="width:2.5px;height:2.5px;border-radius:2px;background:rgba(255,255,255,.35)"></span><span style="width:2.5px;height:2.5px;border-radius:2px;background:rgba(255,255,255,.35)"></span><span style="width:2.5px;height:2.5px;border-radius:2px;background:rgba(255,255,255,.35)"></span><span style="width:2.5px;height:2.5px;border-radius:2px;background:rgba(255,255,255,.35)"></span><span style="width:2.5px;height:2.5px;border-radius:2px;background:rgba(255,255,255,.35)"></span><span style="width:2.5px;height:2.5px;border-radius:2px;background:rgba(255,255,255,.35)"></span></div>
+                  <span style="flex:1;font-size:12px"><span style="font-weight:500">{{ r.code }}</span><span style="color:rgba(255,255,255,.55)">/BRL</span></span>
+                  <span style="width:96px;text-align:right;font-size:12px;font-variant-numeric:tabular-nums">{{ r.value }}</span>
+                  <span style="width:64px;text-align:right;font-size:11px;font-weight:500;font-variant-numeric:tabular-nums;color:{{ r.color }}">{{ r.change }}</span>
+                  <div style="width:60px;display:flex;justify-content:center"><div style="width:14px;height:14px;border-radius:3px;background:{{ r.cb }};display:flex;align-items:center;justify-content:center"><i class="icon-check" style="font-size:10px;color:#fff;opacity:{{ r.cbOp }}"></i></div></div>
+                  <i class="icon-x" style="width:18px;font-size:11px;color:rgba(255,255,255,.5);opacity:{{ r.xOp }}"></i>
+                </div>
+              </sc-for>
+              <div style="display:flex;align-items:center;gap:8px;height:34px;padding:10px 16px 0">
+                <i class="icon-plus" style="width:14px;text-align:center;font-size:12px;color:rgba(255,255,255,.55)"></i><span style="font-size:12px">Add pair</span>
+              </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ cur.isMb }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:16px 0">
+              <div style="font-size:11px;color:rgba(255,255,255,.55);padding:0 16px 8px">Preview</div>
+              <div style="margin:0 16px;height:26px;border-radius:6px;background:rgba(255,255,255,.07);display:flex;align-items:center;padding:0 8px;gap:4px;font-size:13px;font-variant-numeric:tabular-nums">€  5,71 <span style="color:#FF453A;font-size:9px">▼</span></div>
+            </div>
+            <div style="height:1px;background:rgba(255,255,255,.1)"></div>
+            <div style="padding:16px 0">
+              <div style="font-size:11px;color:rgba(255,255,255,.55);padding:0 16px 8px">Format</div>
+              <sc-for list="{{ cur.formats }}" as="f" hint-placeholder-count="4">
+                <div onClick="{{ f.onClick }}" style="display:flex;align-items:center;gap:8px;height:34px;margin:0 16px;border-bottom:{{ f.sep }};cursor:pointer">
+                  <div style="width:16px;display:flex;justify-content:center"><div style="width:12px;height:12px;border-radius:7px;box-sizing:border-box;border:{{ f.ring }};background:{{ f.fill }};display:flex;align-items:center;justify-content:center"><span style="width:5px;height:5px;border-radius:3px;background:#fff;opacity:{{ f.dotOp }}"></span></div></div>
+                  <span style="flex:1;font-size:12px">{{ f.label }}</span>
+                  <span style="width:104px;text-align:right;font-size:12px;font-variant-numeric:tabular-nums"><span style="color:rgba(255,255,255,.55);font-size:11px">{{ f.lead }}</span>  5,71</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="height:1px;background:rgba(255,255,255,.1)"></div>
+            <div style="padding:16px 0">
+              <div style="font-size:11px;color:rgba(255,255,255,.55);padding:0 16px 8px">Change indicator</div>
+              <div style="margin:0 16px;height:28px;box-sizing:border-box;padding:3px;border-radius:7px;background:rgba(255,255,255,.07);display:flex;gap:2px">
+                <sc-for list="{{ cur.inds }}" as="s" hint-placeholder-count="3">
+                  <div onClick="{{ s.onClick }}" style="flex:1;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:{{ s.fw }};color:{{ s.fg }};background:{{ s.bg }};border-radius:5px;cursor:pointer">{{ s.label }}</div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="height:1px;background:rgba(255,255,255,.1)"></div>
+            <div style="padding:16px 0">
+              <div style="display:flex;align-items:center;height:34px;padding:0 16px 0 38px">
+                <span style="flex:1;font-size:12px">Dim when data is stale</span>
+                <div style="width:26px;height:15px;border-radius:8px;background:#0A84FF;display:flex;justify-content:flex-end;align-items:center;padding:0 1px;box-sizing:border-box"><span style="width:13px;height:13px;border-radius:7px;background:#E6E6E6"></span></div>
+              </div>
+              <div style="font-size:11px;color:rgba(255,255,255,.28);padding:0 16px 6px 38px">Applies to the menu bar only. The popover always marks stale data.</div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ cur.isAlerts }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:16px 16px">
+              <div style="display:flex;align-items:center;gap:8px;height:34px;border-bottom:1px solid rgba(255,255,255,.1)">
+                <span style="width:84px;font-size:12px"><span style="font-weight:500">EUR</span><span style="color:rgba(255,255,255,.55)">/BRL</span></span>
+                <span style="width:72px;font-size:11px;color:rgba(255,255,255,.55)">above</span>
+                <span style="flex:1;text-align:right;font-size:12px;font-variant-numeric:tabular-nums">5,7100</span>
+                <div style="width:26px;height:15px;border-radius:8px;background:#0A84FF;display:flex;justify-content:flex-end;align-items:center;padding:0 1px;box-sizing:border-box"><span style="width:13px;height:13px;border-radius:7px;background:#E6E6E6"></span></div>
+                <i class="icon-x" style="width:18px;text-align:center;font-size:11px;color:rgba(255,255,255,.55)"></i>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;height:34px">
+                <div style="width:84px;height:20px;box-sizing:border-box;border-radius:5px;background:#5B5B5B;display:flex;align-items:center;justify-content:space-between;padding:0 2px 0 7px;font-size:11px">Pair<span style="width:14px;height:16px;border-radius:4px;background:#0A84FF;display:flex;align-items:center;justify-content:center"><i class="icon-chevrons-up-down" style="font-size:9px"></i></span></div>
+                <div style="width:72px;height:20px;box-sizing:border-box;border-radius:5px;background:#5B5B5B;display:flex;align-items:center;justify-content:space-between;padding:0 2px 0 7px;font-size:11px">above<span style="width:14px;height:16px;border-radius:4px;background:#0A84FF;display:flex;align-items:center;justify-content:center"><i class="icon-chevrons-up-down" style="font-size:9px"></i></span></div>
+                <div style="flex:1;height:20px;box-sizing:border-box;border-radius:4px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);font-size:11px;color:rgba(255,255,255,.3);display:flex;align-items:center;justify-content:flex-end;padding:0 6px">Value</div>
+                <div style="height:20px;padding:0 8px;border-radius:5px;background:rgba(255,255,255,.08);font-size:11px;color:rgba(255,255,255,.3);display:flex;align-items:center">Add</div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;lang&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;pt&quot;,&quot;en&quot;],&quot;default&quot;:&quot;pt&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Estado&quot;},&quot;stale&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Estado&quot;},&quot;pairCount&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;2&quot;,&quot;3&quot;,&quot;4&quot;],&quot;default&quot;:&quot;4&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Estado&quot;}}">
+const rng = (a) => () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+const PAIRS = [
+  { code: 'EUR', sym: '€', name: 'Euro', lower: 'euro', one: '1 euro', bid: 5.7064, ch: { '24h': -0.16, '7d': 0.41, '30d': -1.28 }, seed: 11 },
+  { code: 'USD', sym: '$', name: 'Dólar', lower: 'dólar', one: '1 dólar', bid: 5.0694, ch: { '24h': -0.56, '7d': -0.92, '30d': -2.4 }, seed: 23 },
+  { code: 'GBP', sym: '£', name: 'Libra', lower: 'libra', one: '1 libra', bid: 6.6812, ch: { '24h': 0.22, '7d': 0.65, '30d': 1.1 }, seed: 37 },
+  { code: 'BTC', sym: '₿', name: 'Bitcoin', lower: 'bitcoin', one: '1 bitcoin', bid: 398420, ch: { '24h': 1.84, '7d': -3.2, '30d': 6.9 }, seed: 51, crypto: true },
+];
+const ALERT = { EUR: 5.75, USD: 5.0, GBP: 6.75, BTC: 410000 };
+const N = { '24h': 96, '7d': 8, '30d': 31 };
+const fmt = (v, d) => v.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
+const val = (p, v) => p.crypto ? fmt(v, 0) : fmt(v, 4);
+const bound = (p, v) => p.crypto ? Math.round(v / 1000) + 'k' : fmt(v, 2);
+const pct = (c) => (c < 0 ? '▼ ' : '▲ ') + fmt(Math.abs(c), 2) + '%';
+const PAL = {
+  sys: { up: '#32D74B', down: '#FF453A', upT: 'rgba(50,215,75,.12)', downT: 'rgba(255,69,58,.12)' },
+  dark: { up: '#7BE0AE', down: '#FF8A7A', upT: 'rgba(123,224,174,.12)', downT: 'rgba(255,138,122,.12)' },
+  light: { up: '#1E8A5A', down: '#C23B2B', upT: 'rgba(30,138,90,.1)', downT: 'rgba(194,59,43,.1)' },
+};
+function series(p, per) {
+  const n = N[per], r = rng(p.seed * 7 + n), end = p.bid, start = end / (1 + p.ch[per] / 100);
+  const w = [0];
+  for (let i = 1; i < n; i++) w.push(w[i - 1] + (r() - 0.5) * (r() < 0.08 ? 6 : 1));
+  const we = w[n - 1];
+  const vol = Math.abs(start) * (per === '24h' ? 0.0011 : 0.004) * (p.crypto ? 2.5 : 1);
+  return w.map((x, i) => start + (end - start) * i / (n - 1) + (x - we * i / (n - 1)) * vol);
+}
+function geom(vals, w, h, extra) {
+  const all = extra != null ? vals.concat([extra]) : vals;
+  let lo = Math.min(...all), hi = Math.max(...all);
+  const open = vals[0];
+  if ((hi - lo) / Math.abs(open) < 0.005) { const half = Math.abs(open) * 0.0025; lo = Math.min(lo, open - half); hi = Math.max(hi, open + half); }
+  const pad = 3, y = (v) => pad + (h - 2 * pad) * (1 - (v - lo) / (hi - lo)), sx = w / (vals.length - 1);
+  const pts = vals.map((v, i) => [i * sx, y(v)]);
+  const d = 'M' + pts.map((q) => q[0].toFixed(1) + ' ' + q[1].toFixed(1)).join(' L');
+  const last = pts[pts.length - 1];
+  return { d, area: d + ' L' + w + ' ' + h + ' L0 ' + h + ' Z', openY: y(open).toFixed(1), endX: last[0], endY: last[1], y };
+}
+function build(p, per, w, h, pal, extra) {
+  const vals = series(p, per), lo = Math.min(...vals), hi = Math.max(...vals), c = p.ch[per], up = c >= 0;
+  const g = geom(vals, w, h, extra);
+  return { ...p, d: g.d, area: g.area, openY: g.openY, endX: g.endX, endY: g.endY, y: g.y,
+    value: val(p, p.bid), range: bound(p, lo) + ' – ' + bound(p, hi), lo: bound(p, lo), hi: bound(p, hi), open: bound(p, vals[0]),
+    change: pct(c), color: up ? pal.up : pal.down, tint: up ? pal.upT : pal.downT,
+    pos: Math.max(0, Math.min(100, (p.bid - lo) / (hi - lo) * 100)).toFixed(1) + '%' };
+}
+const CUR = {
+  BRL: { f: '🇧🇷', s: 'R$', r: 1, pt: 'Real', en: 'Brazilian real' },
+  USD: { f: '🇺🇸', s: 'US$', r: 5.0402, pt: 'Dólar americano', en: 'US dollar' },
+  EUR: { f: '🇪🇺', s: '€', r: 5.648, pt: 'Euro', en: 'Euro' },
+  GBP: { f: '🇬🇧', s: '£', r: 6.712, pt: 'Libra esterlina', en: 'British pound' },
+  JPY: { f: '🇯🇵', s: '¥', r: 0.03342, pt: 'Iene', en: 'Japanese yen' },
+  CHF: { f: '🇨🇭', s: 'CHF', r: 6.3215, pt: 'Franco suíço', en: 'Swiss franc' },
+  CAD: { f: '🇨🇦', s: 'C$', r: 3.6018, pt: 'Dólar canadense', en: 'Canadian dollar' },
+  AUD: { f: '🇦🇺', s: 'A$', r: 3.284, pt: 'Dólar australiano', en: 'Australian dollar' },
+  CNY: { f: '🇨🇳', s: 'CN¥', r: 0.7074, pt: 'Yuan chinês', en: 'Chinese yuan' },
+  ARS: { f: '🇦🇷', s: 'AR$', r: 0.00412, pt: 'Peso argentino', en: 'Argentine peso' },
+  MXN: { f: '🇲🇽', s: 'MX$', r: 0.2731, pt: 'Peso mexicano', en: 'Mexican peso' },
+  CLP: { f: '🇨🇱', s: 'CLP$', r: 0.00531, pt: 'Peso chileno', en: 'Chilean peso' },
+  BTC: { f: '₿', s: '₿', r: 398420, pt: 'Bitcoin', en: 'Bitcoin', c: 1 },
+  ETH: { f: 'Ξ', s: 'Ξ', r: 14210, pt: 'Ethereum', en: 'Ether', c: 1 },
+  XRP: { f: '✕', s: 'XRP', r: 12.84, pt: 'XRP', en: 'XRP', c: 1 },
+};
+const GL = { BRL: 'R$', USD: '$', EUR: '€', GBP: '£', JPY: '¥', CHF: 'Fr', CAD: 'C$', AUD: 'A$', CNY: '元', ARS: '$', MXN: '$', CLP: '$', BTC: '₿', ETH: 'Ξ', XRP: 'X' };
+const DEST = { BRL: ['USD','EUR','GBP','JPY','CHF','CAD','AUD','CNY','ARS','MXN','CLP'], USD: ['BRL','EUR','GBP','JPY','CHF','CAD','AUD','CNY','ARS','MXN','CLP'], EUR: ['BRL','USD','GBP','JPY','CHF','CAD','AUD','CNY','ARS','MXN','CLP'], GBP: ['BRL','USD','EUR','JPY','CHF','AUD'], JPY: ['BRL','USD','EUR'], CHF: ['BRL','USD','EUR','JPY'], CAD: ['BRL','USD','EUR','JPY'], AUD: ['BRL','USD','EUR','JPY','CHF'], CNY: ['BRL','USD','EUR','JPY'], ARS: ['BRL','USD','EUR','CLP'], MXN: ['BRL','USD','EUR'], CLP: ['BRL','USD','EUR'], BTC: ['BRL','USD','EUR'], ETH: ['BRL','USD','EUR'], XRP: ['BRL','USD','EUR'] };
+const FIAT = ['BRL', 'USD', 'EUR', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'CNY', 'ARS', 'MXN', 'CLP'], CRYPTO = ['BTC', 'ETH', 'XRP'];
+const FIX = { 'EUR/BRL': -0.84, 'USD/BRL': -0.48, 'USD/EUR': 0.15, 'BTC/BRL': 1.84 };
+const hashS = (s) => Math.abs([...s].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) | 0, 7));
+function mkPair(b, q) {
+  const key = b + '/' + q, seed = hashS(key), r = rng(seed), k = (CUR[b].c || CUR[q].c) ? 3 : 1;
+  return { key, b, q, bid: CUR[b].r / CUR[q].r, seed: seed % 997, crypto: !!(CUR[b].c || CUR[q].c),
+    ch: { '24h': FIX[key] ?? (r() - 0.5) * 2.2 * k, '7d': (r() - 0.5) * 5 * k, '30d': (r() - 0.5) * 9 * k } };
+}
+const THEMES = {
+  cota: { win: '#1C211F', side: '#161B18', sheet: '#1F2622', sub: '#8A9690', winBorder: 'rgba(255,255,255,.1)', line: 'rgba(255,255,255,.06)', f08: 'rgba(255,255,255,.08)', sheetBorder: 'rgba(255,255,255,.12)', toggleOff: 'rgba(255,255,255,.15)', radioOff: 'rgba(255,255,255,.25)', accentBorder: 'rgba(123,224,174,.4)', accentHover: '#94E8BE', veil: 'rgba(6,9,8,.55)', winShadow: '0 20px 50px rgba(0,0,0,.4)', amber: '#F5C26B', winBlur: 'none', sideBlur: 'none', light3: '#3A403D', wall: '#262B2E', barBg: 'rgba(10,12,14,.55)', barFg: '#fff', barPill: 'rgba(255,255,255,.2)', bg: '#111714', border: 'rgba(255,255,255,.09)', shadow: '0 20px 50px rgba(0,0,0,.5)', blur: 'none', text: '#F2F5F3', text2: '#7E8B85', text3: '#C4CCC8', avatar: '#1B2420', accent: '#7BE0AE', accentSoft: 'rgba(123,224,174,.1)', accentMid: 'rgba(123,224,174,.14)', accentChip: 'rgba(123,224,174,.12)', accentSel: 'rgba(123,224,174,.16)', onAccent: '#0E1411', moss: '#4B5C55', rowExp: '#17201C', hair: 'rgba(255,255,255,.07)', f04: 'rgba(255,255,255,.04)', f05: 'rgba(255,255,255,.05)', f06: 'rgba(255,255,255,.06)', badgeBg: 'rgba(17,23,20,.35)', badgeFg: 'rgba(123,224,174,.35)', dot: '#FFFFFF', up: '#7BE0AE', down: '#FF8A7A', upT: 'rgba(123,224,174,.12)', downT: 'rgba(255,138,122,.12)', status: 'rgba(255,255,255,.55)' },
+  dark: { win: '#232426', side: '#1C1D1F', sheet: '#2A2B2E', sub: '#98989D', winBorder: 'rgba(255,255,255,.1)', line: 'rgba(255,255,255,.07)', f08: 'rgba(255,255,255,.09)', sheetBorder: 'rgba(255,255,255,.12)', toggleOff: 'rgba(255,255,255,.16)', radioOff: 'rgba(255,255,255,.25)', accentBorder: 'rgba(123,224,174,.4)', accentHover: '#94E8BE', veil: 'rgba(0,0,0,.5)', winShadow: '0 20px 50px rgba(0,0,0,.45)', amber: '#F5C26B', winBlur: 'none', sideBlur: 'none', light3: '#48484A', wall: '#2A2A2D', barBg: 'rgba(10,10,12,.55)', barFg: '#fff', barPill: 'rgba(255,255,255,.2)', bg: '#1E1F21', border: 'rgba(255,255,255,.1)', shadow: '0 20px 50px rgba(0,0,0,.5)', blur: 'none', text: '#F5F5F7', text2: '#8E8E93', text3: '#C7C7CC', avatar: '#2C2D30', accent: '#7BE0AE', accentSoft: 'rgba(123,224,174,.1)', accentMid: 'rgba(123,224,174,.14)', accentChip: 'rgba(123,224,174,.12)', accentSel: 'rgba(123,224,174,.16)', onAccent: '#0E1411', moss: '#545458', rowExp: '#28292C', hair: 'rgba(255,255,255,.08)', f04: 'rgba(255,255,255,.04)', f05: 'rgba(255,255,255,.06)', f06: 'rgba(255,255,255,.07)', badgeBg: 'rgba(30,31,33,.35)', badgeFg: 'rgba(123,224,174,.35)', dot: '#FFFFFF', up: '#7BE0AE', down: '#FF8A7A', upT: 'rgba(123,224,174,.1)', downT: 'rgba(255,138,122,.1)', status: 'rgba(255,255,255,.55)' },
+  light: { win: '#FFFFFF', side: '#F4F6F5', sheet: '#FFFFFF', sub: '#5E6863', winBorder: 'rgba(0,0,0,.12)', line: 'rgba(0,0,0,.07)', f08: 'rgba(0,0,0,.06)', sheetBorder: 'rgba(0,0,0,.12)', toggleOff: 'rgba(0,0,0,.14)', radioOff: 'rgba(0,0,0,.25)', accentBorder: 'rgba(19,138,85,.45)', accentHover: '#1A9E63', veil: 'rgba(20,30,25,.25)', winShadow: '0 20px 50px rgba(20,30,25,.18)', amber: '#B07A12', winBlur: 'none', sideBlur: 'none', light3: '#D0D5D2', wall: '#D5DBD8', barBg: 'rgba(255,255,255,.6)', barFg: '#111714', barPill: 'rgba(0,0,0,.1)', bg: '#FFFFFF', border: 'rgba(0,0,0,.1)', shadow: '0 20px 50px rgba(20,30,25,.18)', blur: 'none', text: '#111714', text2: '#6B7570', text3: '#3E4743', avatar: '#E6F2EB', accent: '#138A55', accentSoft: 'rgba(19,138,85,.1)', accentMid: 'rgba(19,138,85,.12)', accentChip: 'rgba(19,138,85,.1)', accentSel: 'rgba(19,138,85,.14)', onAccent: '#FFFFFF', moss: '#B4BEB9', rowExp: '#F2F6F4', hair: 'rgba(0,0,0,.08)', f04: 'rgba(0,0,0,.03)', f05: 'rgba(0,0,0,.045)', f06: 'rgba(0,0,0,.05)', badgeBg: 'rgba(255,255,255,.45)', badgeFg: 'rgba(19,138,85,.5)', dot: '#111714', up: '#138A55', down: '#D4483B', upT: 'rgba(19,138,85,.1)', downT: 'rgba(212,72,59,.1)', status: 'rgba(17,23,20,.6)' },
+  glass: { win: 'rgba(24,32,28,.38)', side: 'rgba(255,255,255,.06)', sheet: 'rgba(30,40,35,.62)', sub: 'rgba(255,255,255,.66)', winBorder: 'rgba(255,255,255,.22)', line: 'rgba(255,255,255,.12)', f08: 'rgba(255,255,255,.12)', sheetBorder: 'rgba(255,255,255,.25)', toggleOff: 'rgba(255,255,255,.22)', radioOff: 'rgba(255,255,255,.4)', accentBorder: 'rgba(142,240,191,.55)', accentHover: '#A8F5CF', veil: 'rgba(0,0,0,.25)', winShadow: 'inset 0 1px 0 rgba(255,255,255,.28), 0 20px 50px rgba(0,0,0,.35)', amber: '#FFD27F', winBlur: 'blur(30px) saturate(180%)', sideBlur: 'none', light3: 'rgba(255,255,255,.3)', wall: 'radial-gradient(120% 90% at 85% 0%, #3E8A6B 0%, rgba(62,138,107,0) 55%), radial-gradient(90% 80% at 0% 100%, #3B4F8E 0%, rgba(59,79,142,0) 60%), #1B2626', barBg: 'rgba(255,255,255,.08)', barFg: '#fff', barPill: 'rgba(255,255,255,.18)', bg: 'rgba(24,32,28,.42)', border: 'rgba(255,255,255,.22)', shadow: 'inset 0 1px 0 rgba(255,255,255,.28), inset 0 -1px 0 rgba(255,255,255,.06), 0 20px 50px rgba(0,0,0,.35)', blur: 'blur(28px) saturate(180%)', text: '#FFFFFF', text2: 'rgba(255,255,255,.62)', text3: 'rgba(255,255,255,.85)', avatar: 'rgba(255,255,255,.12)', accent: '#8EF0BF', accentSoft: 'rgba(142,240,191,.16)', accentMid: 'rgba(142,240,191,.2)', accentChip: 'rgba(142,240,191,.18)', accentSel: 'rgba(255,255,255,.18)', onAccent: '#0E1411', moss: 'rgba(255,255,255,.35)', rowExp: 'rgba(255,255,255,.08)', hair: 'rgba(255,255,255,.14)', f04: 'rgba(255,255,255,.08)', f05: 'rgba(255,255,255,.1)', f06: 'rgba(255,255,255,.12)', badgeBg: 'rgba(255,255,255,.08)', badgeFg: 'rgba(142,240,191,.5)', dot: '#FFFFFF', up: '#8EF0BF', down: '#FF9C8F', upT: 'rgba(142,240,191,.14)', downT: 'rgba(255,156,143,.14)', status: 'rgba(255,255,255,.7)' },
+};
+const T = {
+  pt: { date: 'Sex 16 out 14:32', rates: 'Cotações', low: 'mín', high: 'máx', copy: 'Copiar', copied: 'Copiado', newAlert: 'Novo alerta', removeAlert: 'Remover alerta',
+    above: 'acima de', below: 'abaixo de', updated: 'Atualizado agora', stale: 'Dados de 18 min atrás · tentando de novo',
+    general: 'Geral', pairs: 'Pares', menubar: 'Barra de menus', alerts: 'Alertas', themes: 'Temas', themesSub: 'Muda as cores do painel e do Settings. A barra de menus segue o macOS.', followSys: 'Seguir o macOS', followSysNote: 'No modo claro do macOS usa Claro; no escuro, o tema escolhido.', thNames: { cota: ['Cota', 'Padrão · menta sobre noite'], dark: ['Escuro', 'Cinza neutro, como o macOS'], light: ['Claro', 'Para o modo claro do macOS'], glass: ['Liquid Glass', 'Translúcido, o fundo aparece'] },
+    refresh: 'Atualizar a cada', refreshNote: 'Entre uma atualização e outra, o Cota mostra o último valor conhecido.', language: 'Idioma', languageNote: 'Muda textos, nomes das moedas e o formato dos números.', login: 'Abrir ao iniciar sessão',
+    pairsSub: 'Arraste para reordenar. O alfinete coloca o par na barra de menus.', addPair: 'Adicionar par', pin: 'Mostrar na barra de menus', of: 'em',
+    menubarSub: 'Os pares com alfinete aparecem aqui, na ordem da lista.', change: 'Variação', dim: 'Escurecer dados antigos', dimNote: 'Só na barra. O painel sempre marca dados antigos.',
+    fmts: ['Símbolo', 'Código', 'Bandeira', 'Só o valor'], inds: ['Nenhum', 'Seta', 'Percentual'],
+    alertsSub: 'Avisamos quando um preço cruzar o limite. Funciona enquanto o Cota estiver aberto.', notifyWhen: 'Avise quando', rises: 'passar de', falls: 'cair abaixo de', createAlert: 'Criar alerta',
+    enterValue: 'Digite um valor, por exemplo 5,75', now: 'Agora', away: 'faltam', onTarget: 'no alvo', fireNow: 'já está do outro lado, dispara agora',
+    fromTarget: 'do alvo', off: 'Desligado', paused: 'Pausado · cotação com mais de 1 h',
+    search: 'Buscar moeda, código ou país', suggested: 'Sugestões', from: 'DE', to: 'PARA', currencies: 'Moedas', crypto: 'Cripto', swap: 'Inverter',
+    cancel: 'Cancelar', add: 'Adicionar', exists: 'Já está na sua lista', preview: 'Prévia' },
+  en: { date: 'Fri Oct 16 2:32 PM', rates: 'Rates', low: 'low', high: 'high', copy: 'Copy', copied: 'Copied', newAlert: 'New alert', removeAlert: 'Remove alert',
+    above: 'above', below: 'below', updated: 'Updated just now', stale: 'Data from 18 min ago · retrying',
+    general: 'General', pairs: 'Pairs', menubar: 'Menu bar', alerts: 'Alerts', themes: 'Themes', themesSub: 'Changes the colors of the panel and Settings. The menu bar follows macOS.', followSys: 'Follow macOS', followSysNote: 'Uses Light when macOS is light; your chosen theme when it is dark.', thNames: { cota: ['Cota', 'Default · mint on night'], dark: ['Dark', 'Neutral gray, like macOS'], light: ['Light', 'For macOS light mode'], glass: ['Liquid Glass', 'Translucent, lets the wallpaper through'] },
+    refresh: 'Refresh every', refreshNote: 'Between refreshes, Cota shows the last known value.', language: 'Language', languageNote: 'Changes labels, currency names and number format.', login: 'Open at login',
+    pairsSub: 'Drag to reorder. The pin puts a pair in the menu bar.', addPair: 'Add pair', pin: 'Show in menu bar', of: 'in',
+    menubarSub: 'Pinned pairs appear here, in list order.', change: 'Change', dim: 'Dim stale data', dimNote: 'Menu bar only. The panel always marks stale data.',
+    fmts: ['Symbol', 'Code', 'Flag', 'Value only'], inds: ['None', 'Arrow', 'Percent'],
+    alertsSub: 'We let you know when a price crosses your limit. Works while Cota is running.', notifyWhen: 'Notify me when', rises: 'rises above', falls: 'falls below', createAlert: 'Create alert',
+    enterValue: 'Enter a value, e.g. 5.75', now: 'Now', away: 'away', onTarget: 'on target', fireNow: 'already past it, fires now',
+    fromTarget: 'from target', off: 'Off', paused: 'Paused · rate older than 1 h',
+    search: 'Search currency, code or country', suggested: 'Suggested', from: 'FROM', to: 'TO', currencies: 'Currencies', crypto: 'Crypto', swap: 'Swap',
+    cancel: 'Cancel', add: 'Add', exists: 'Already in your list', preview: 'Preview' },
+};
+const parseNum = (s) => { const t = String(s).replace(/[^\d,.-]/g, ''); const n = t.includes(',') ? parseFloat(t.replace(/\./g, '').replace(',', '.')) : parseFloat(t); return isNaN(n) ? null : n; };
+
+class Component extends DCLogic {
+  state = { cur: '24h', curTab: 'Menu bar', curInt: '2m', curFmt: 'Automatic', curInd: 'Arrow',
+    hero: 'EUR', p1a: '24h', p1b: '24h', conv: '100', convPair: 0, p1c: '24h', exp: 'EUR',
+    s1d: 'alertas', np: 0, above: true, th: '5,75', fmt1d: 'sym', ind1d: 'seta', int1d: '2m', pinned: { EUR: true },
+    alerts: [
+      { id: 1, code: 'EUR', above: true, v: 5.75, on: true },
+      { id: 2, code: 'USD', above: false, v: 5.0, on: true, paused: true },
+      { id: 3, code: 'BTC', above: true, v: 410000, on: false },
+    ] };
+
+  seg(opts, sel, key, on, offFg) {
+    return opts.map((o) => {
+      const k = typeof o === 'string' ? o : o.k, label = typeof o === 'string' ? o : o.label, s = sel === k;
+      return { label, onClick: () => this.setState({ [key]: k }), bg: s ? on.bg : 'transparent', fg: s ? on.fg : offFg, fw: s ? 600 : 400 };
+    });
+  }
+
+  renderVals() {
+    const S = this.state, stale = !!this.props.stale, count = Number(this.props.pairCount ?? 4);
+    const list = PAIRS.slice(0, Math.max(2, Math.min(4, count)));
+    const dim = stale ? 0.5 : 1;
+    const st = stale ? { text: 'Dados de 18 min atrás · tentando de novo', color: '#F5C26B', dot: '#F5C26B' } : { text: 'Atualizado agora', color: 'rgba(255,255,255,.55)', dot: '#7BE0AE' };
+    const stB = stale ? { text: 'Dados de 18 min atrás', color: '#A0661A' } : { text: 'Atualizado agora', color: '#6B6F6C' };
+    const periods = ['24h', '7d', '30d'];
+    const mint = { bg: 'rgba(123,224,174,.16)', fg: '#7BE0AE' };
+
+    // current
+    const curPairs = PAIRS.slice(0, 2);
+    const curRows = curPairs.map((p, i) => ({ ...build(p, S.cur, 60, 24, PAL.sys), sep: i < curPairs.length - 1 ? '1px solid rgba(255,255,255,.1)' : '0', cb: i === 0 ? '#0A84FF' : 'rgba(255,255,255,.22)', cbOp: i === 0 ? 1 : 0, xOp: i === 1 ? 1 : 0 }));
+    const blue = { bg: '#0A84FF', fg: '#fff' };
+    const fmts = [['Automatic', '€'], ['Currency code', 'EUR'], ['Flag', '🇪🇺'], ['Value only', '']];
+    const cur = {
+      seg: this.seg(periods, S.cur, 'cur', blue, 'rgba(255,255,255,.85)'),
+      rows: curRows,
+      tabs: ['General', 'Pairs', 'Menu bar', 'Alerts'].map((t) => ({ label: t, onClick: () => this.setState({ curTab: t }), bg: S.curTab === t ? 'rgba(255,255,255,.2)' : 'transparent' })),
+      isGen: S.curTab === 'General', isPairs: S.curTab === 'Pairs', isMb: S.curTab === 'Menu bar', isAlerts: S.curTab === 'Alerts',
+      intervals: this.seg(['30s', '1m', '2m', '5m', '10m'], S.curInt, 'curInt', blue, 'rgba(255,255,255,.85)'),
+      inds: this.seg(['None', 'Arrow', 'Percent'], S.curInd, 'curInd', blue, 'rgba(255,255,255,.85)'),
+      formats: fmts.map(([l, lead], i) => { const s = S.curFmt === l; return { label: l, lead, onClick: () => this.setState({ curFmt: l }), sep: i < 3 ? '1px solid rgba(255,255,255,.1)' : '0', ring: s ? '0' : '1px solid rgba(255,255,255,.4)', fill: s ? '#0A84FF' : 'transparent', dotOp: s ? 1 : 0 }; }),
+    };
+
+    // 1a
+    const heroP = list.find((p) => p.code === S.hero) || list[0];
+    const a = {
+      seg: this.seg(periods, S.p1a, 'p1a', mint, 'rgba(255,255,255,.6)'),
+      hero: build(heroP, S.p1a, 308, 64, PAL.dark),
+      rest: list.filter((p) => p !== heroP).map((p) => ({ ...build(p, S.p1a, 56, 20, PAL.dark), onClick: () => this.setState({ hero: p.code }) })),
+    };
+
+    // 1b
+    const cp = list[S.convPair % list.length];
+    const n = parseNum(S.conv);
+    const b = {
+      conv: S.conv, cp,
+      onConv: (e) => this.setState({ conv: e.target.value }),
+      cycle: () => this.setState({ convPair: (S.convPair + 1) % list.length }),
+      out: n == null ? '—' : 'R$ ' + fmt(n * cp.bid, 2),
+      seg: this.seg([{ k: '24h', label: 'Hoje' }, { k: '7d', label: '7 dias' }, { k: '30d', label: '30 dias' }], S.p1b, 'p1b', { bg: '#1B1D1C', fg: '#1B1D1C' }, '#8A8D8A'),
+      rows: list.map((p, i) => ({ ...build(p, S.p1b, 10, 10, PAL.light), sel: i === S.convPair % list.length ? 'rgba(0,0,0,.045)' : 'transparent', onClick: () => this.setState({ convPair: i }) })),
+    };
+
+    // 1c
+    const c = {
+      seg: this.seg(periods, S.p1c, 'p1c', mint, '#7E8B85'),
+      alertCount: S.alerts.filter((x) => x.on).length,
+      rows: list.map((p) => {
+        const isExp = S.exp === p.code, r = build(p, S.p1c, 64, 22, PAL.dark);
+        const big = build(p, S.p1c, 324, 116, PAL.dark, ALERT[p.code]);
+        const ay = big.y(ALERT[p.code]);
+        return { ...r, isExp, big, alertY: ay.toFixed(1), alertTop: Math.max(0, ay - 9).toFixed(0) + 'px',
+          alertLabel: (ALERT[p.code] >= p.bid ? 'acima de ' : 'abaixo de ') + (p.crypto ? fmt(ALERT[p.code], 0) : fmt(ALERT[p.code], 2)),
+          bg: isExp ? '#17201C' : 'transparent', smallOp: isExp ? 0 : 1,
+          toggle: () => this.setState({ exp: isExp ? null : p.code }) };
+      }),
+    };
+
+    // 1d
+    const np = PAIRS[S.np % PAIRS.length];
+    const thN = parseNum(S.th);
+    const dist = thN == null ? null : (thN - np.bid) / np.bid * 100;
+    const navDefs = [['geral', 'Geral', 'icon-sliders-horizontal'], ['pares', 'Pares', 'icon-list'], ['barra', 'Barra de menus', 'icon-panel-top'], ['alertas', 'Alertas', 'icon-bell']];
+    const leadFor = { sym: '€', code: 'EUR', flag: '🇪🇺', val: '' };
+    const d = {
+      nav: navDefs.map(([k, l, ic]) => ({ label: l, icon: ic, onClick: () => this.setState({ s1d: k }), bg: S.s1d === k ? 'rgba(123,224,174,.14)' : 'transparent', fg: S.s1d === k ? '#7BE0AE' : '#C4CCC8' })),
+      isAlerts: S.s1d === 'alertas', isBar: S.s1d === 'barra', isGeneral: S.s1d === 'geral', isPairs: S.s1d === 'pares',
+      np, th: S.th, onTh: (e) => this.setState({ th: e.target.value }),
+      cyclePair: () => this.setState({ np: (S.np + 1) % PAIRS.length, th: PAIRS[(S.np + 1) % PAIRS.length].crypto ? '410.000' : fmt(PAIRS[(S.np + 1) % PAIRS.length].bid * (S.above ? 1.01 : 0.99), 2) }),
+      flipDir: () => this.setState({ above: !S.above }),
+      dirLabel: S.above ? 'passar de' : 'cair abaixo de',
+      hint: thN == null ? 'Digite um valor, por exemplo 5,75' : 'Hoje: R$ ' + val(np, np.bid) + ' · ' + (Math.abs(dist) < 0.005 ? 'no alvo' : 'faltam ' + fmt(Math.abs(dist), 2) + '%') + ((S.above && dist < 0) || (!S.above && dist > 0) ? ' · já está do outro lado, dispara agora' : ''),
+      create: () => { if (thN == null) return; this.setState({ alerts: S.alerts.concat([{ id: Date.now(), code: np.code, above: S.above, v: thN, on: true }]) }); },
+      alerts: S.alerts.map((al) => {
+        const p = PAIRS.find((x) => x.code === al.code), dd = Math.abs((al.v - p.bid) / p.bid * 100);
+        return { sym: p.sym, text: p.name + (al.above ? ' acima de R$ ' : ' abaixo de R$ ') + (p.crypto ? fmt(al.v, 0) : fmt(al.v, 2)),
+          prog: Math.max(6, 100 - dd * 25).toFixed(0) + '%', barColor: al.paused ? '#F5C26B' : '#7BE0AE',
+          note: al.paused ? 'Pausado · cotação com mais de 1 h' : (al.on ? 'a ' + fmt(dd, 2) + '% do alvo' : 'Desligado'),
+          noteColor: al.paused ? '#F5C26B' : '#7E8B85', op: al.on ? 1 : 0.55,
+          tBg: al.on ? '#7BE0AE' : 'rgba(255,255,255,.15)', tJust: al.on ? 'flex-end' : 'flex-start',
+          toggle: () => this.setState({ alerts: S.alerts.map((x) => x.id === al.id ? { ...x, on: !x.on } : x) }),
+          remove: () => this.setState({ alerts: S.alerts.filter((x) => x.id !== al.id) }) };
+      }),
+      formats: [['sym', '€ 5,71', 'Símbolo'], ['code', 'EUR 5,71', 'Código'], ['flag', '🇪🇺 5,71', 'Bandeira'], ['val', '5,71', 'Só o valor']].map(([k, s, l]) => ({ sample: s, label: l, onClick: () => this.setState({ fmt1d: k }), border: S.fmt1d === k ? '#7BE0AE' : 'rgba(255,255,255,.08)', bg: S.fmt1d === k ? 'rgba(123,224,174,.08)' : 'rgba(255,255,255,.03)', fg: S.fmt1d === k ? '#7BE0AE' : '#7E8B85' })),
+      inds: this.seg([{ k: 'nenhum', label: 'Nenhum' }, { k: 'seta', label: 'Seta' }, { k: 'pct', label: 'Percentual' }], S.ind1d, 'ind1d', mint, '#C4CCC8'),
+      intervals: this.seg(['30s', '1m', '2m', '5m', '10m'], S.int1d, 'int1d', mint, '#C4CCC8'),
+      prevLead: leadFor[S.fmt1d], prevInd: S.ind1d === 'seta' ? '▾' : S.ind1d === 'pct' ? '−0,16%' : '', indSize: S.ind1d === 'seta' ? '10px' : '11px',
+      pairs: PAIRS.map((p) => ({ ...build(p, '24h', 10, 10, PAL.dark), pinColor: S.pinned[p.code] ? '#7BE0AE' : '#4B5C55', pin: () => this.setState({ pinned: { ...S.pinned, [p.code]: !S.pinned[p.code] } }) })),
+    };
+
+    return { dim, st, stB, cur, a, b, c, d, f: this.final(stale) };
+  }
+
+  final(stale) {
+    const S = this.state, lang = S.lang ?? (this.props.lang === 'en' ? 'en' : 'pt'), t = T[lang], L = lang === 'en' ? 'en-US' : 'pt-BR';
+    const F = S.f2 || {
+      pairs: [{ b: 'EUR', q: 'BRL', pin: true }, { b: 'USD', q: 'BRL', pin: false }, { b: 'USD', q: 'EUR', pin: false }, { b: 'BTC', q: 'BRL', pin: false }],
+      alerts: [{ id: 1, pair: 'EUR/BRL', above: true, v: 5.7, on: true }, { id: 2, pair: 'USD/BRL', above: false, v: 5, on: true, paused: true }, { id: 3, pair: 'BTC/BRL', above: true, v: 410000, on: false }],
+      per: '24h', exp: 'EUR/BRL', sec: 'pares', adding: true, from: 'USD', to: 'JPY', q: '', np: 0, above: true, th: null, fmt: 'sym', ind: 'seta', int: '2m', copied: null };
+    const up = (patch) => this.setState((s) => ({ f2: { ...(s.f2 || F), ...(typeof patch === 'function' ? patch(s.f2 || F) : patch) } }));
+    const nf = (v, dd) => v.toLocaleString(L, { minimumFractionDigits: dd, maximumFractionDigits: dd });
+    const dec = (v) => v >= 1000 ? 0 : v >= 100 ? 2 : v >= 0.01 ? 4 : 6;
+    const vv = (v) => nf(v, dec(v));
+    const sh = (v) => v >= 1000 ? nf(Math.round(v / 1000), 0) + 'k' : nf(v, v >= 1 ? 2 : 4);
+    const thS = (v) => nf(v, v >= 1000 ? 0 : v >= 1 ? 2 : 4);
+    const pc = (ch) => (ch < 0 ? '▼ ' : '▲ ') + nf(Math.abs(ch), 2) + '%';
+    const nm = (code) => CUR[code][lang];
+    const parse = (s) => { if (s == null) return null; let x = String(s).replace(/[^\d,.-]/g, ''); x = lang === 'en' ? x.replace(/,/g, '') : (x.includes(',') ? x.replace(/\./g, '').replace(',', '.') : x); const n = parseFloat(x); return isNaN(n) ? null : n; };
+    const pal = PAL.dark, HM = { bg: 'rgba(123,224,174,.16)', fg: '#7BE0AE' };
+    const thKey = F.theme || 'cota', k = THEMES[thKey], mint = { bg: k.accentSel, fg: thKey === 'glass' ? '#fff' : k.accent };
+    const segF = (opts, sel, key, offFg) => opts.map(([k, label]) => { const s = sel === k; return { label, onClick: () => up({ [key]: k }), bg: s ? mint.bg : 'transparent', fg: s ? mint.fg : offFg, fw: s ? 600 : 400 }; });
+    const P = F.pairs.map((x) => ({ ...mkPair(x.b, x.q), pin: x.pin }));
+    const alertOf = (key) => F.alerts.find((a) => a.pair === key && a.on);
+    const langSeg = (labels, m, off) => [['pt', labels[0]], ['en', labels[1]]].map(([kk, l]) => { const s = lang === kk; return { label: l, onClick: () => this.setState({ lang: kk }), bg: s ? m.bg : 'transparent', fg: s ? m.fg : off, fw: s ? 600 : 400 }; });
+
+    const rows = P.map((p) => {
+      const isExp = F.exp === p.key, al = alertOf(p.key);
+      const vals = series(p, F.per), lo = Math.min(...vals), hi = Math.max(...vals), ch = p.ch[F.per], upc = ch >= 0;
+      const s = geom(vals, 56, 22), big = geom(vals, 324, 116, al ? al.v : null);
+      const ay = al ? big.y(al.v) : 0;
+      return { key: p.key, name: nm(p.b), glyph: GL[p.b], cross: true, qGlyph: GL[p.q], s, big, isExp,
+        value: CUR[p.q].s + ' ' + vv(p.bid), change: pc(ch), color: upc ? k.up : k.down, tint: upc ? k.upT : k.downT,
+        lo: sh(lo), hi: sh(hi), bg: isExp ? k.rowExp : 'transparent', smallOp: isExp ? 0 : 1,
+        hasAlert: !!al, alertOp: al ? 0.8 : 0, alertY: ay.toFixed(1), alertTop: Math.max(0, ay - 9).toFixed(0) + 'px',
+        alertLabel: al ? (al.above ? t.above : t.below) + ' ' + thS(al.v) : '',
+        toggle: () => up({ exp: isExp ? null : p.key }),
+        cFrom: F.convInv ? p.q : p.b,
+        cOut: (() => { const n = parse(F.conv ?? '100'); if (n == null) return '—'; const v = F.convInv ? n / p.bid : n * p.bid; const sym = CUR[F.convInv ? p.b : p.q].s; return sym + ' ' + nf(v, v >= 1000 ? 2 : v >= 1 ? 2 : v >= 0.01 ? 4 : 8); })(),
+        copyLabel: F.copied === p.key ? t.copied : t.copy + ' ' + vv(p.bid), copyIcon: F.copied === p.key ? 'icon-check' : 'icon-copy',
+        copy: () => { try { navigator.clipboard.writeText(vv(p.bid)); } catch (e) {} up({ copied: p.key }); setTimeout(() => up({ copied: null }), 1400); },
+        aLabel: al ? t.removeAlert : t.newAlert, aIcon: al ? 'icon-bell-off' : 'icon-plus', aBg: al ? k.f06 : k.accentMid, aFg: al ? k.text : k.accent,
+        alertAct: () => up((cur) => ({ alerts: al ? cur.alerts.filter((x) => x.id !== al.id) : cur.alerts.concat([{ id: Date.now(), pair: p.key, above: true, v: Number((p.bid * 1.008).toFixed(p.bid >= 1000 ? 0 : p.bid >= 1 ? 2 : 4)), on: true }]) })) };
+    });
+
+    const pinned = P.filter((p) => p.pin);
+    const lead = (p) => ({ sym: CUR[p.b].s, code: p.b, flag: CUR[p.b].f, val: '' })[F.fmt];
+    const barItems = (pinned.length ? pinned : [P[0]]).map((p) => ({ lead: lead(p), value: sh(p.bid), dot: alertOf(p.key) ? 1 : 0,
+      ind: F.ind === 'seta' ? (p.ch['24h'] < 0 ? '▾' : '▴') : F.ind === 'pct' ? (p.ch['24h'] < 0 ? '−' : '+') + nf(Math.abs(p.ch['24h']), 2) + '%' : '',
+      indSize: F.ind === 'seta' ? '10px' : '11px', color: p.ch['24h'] < 0 ? pal.down : pal.up }));
+
+    const np = P[F.np % P.length];
+    const thStr = F.th ?? thS(np.bid * (F.above ? 1.01 : 0.99));
+    const thN = parse(thStr), dist = thN == null ? null : (thN - np.bid) / np.bid * 100;
+
+    const qq = F.q.trim().toLowerCase();
+    const match = (code) => !qq || code.toLowerCase().includes(qq) || CUR[code].pt.toLowerCase().includes(qq) || CUR[code].en.toLowerCase().includes(qq);
+    const groups = (side) => [[t.currencies, FIAT], [t.crypto, CRYPTO]].map(([label, codes]) => ({ label, items: codes.filter(match).map((code) => {
+      const sel = side === 'from' ? F.from === code : F.to === code, dis = side === 'to' && !DEST[F.from].includes(code);
+      return { code, glyph: GL[code], name: nm(code), bg: sel ? k.accentMid : 'transparent', fg: sel ? k.accent : k.text, op: dis ? 0.3 : 1,
+        onClick: dis ? undefined : () => up(side === 'from' ? { from: code, to: DEST[code].includes(F.to) ? F.to : DEST[code][0] } : { to: code }) };
+    }) })).filter((g) => g.items.length);
+    const exists = P.some((p) => p.key === F.from + '/' + F.to);
+    const pvP = mkPair(F.from, F.to);
+    const sugg = [['USD', 'EUR'], ['GBP', 'BRL'], ['BTC', 'USD'], ['ARS', 'BRL'], ['ETH', 'BRL'], ['JPY', 'BRL']].filter(([b, q]) => !P.some((p) => p.key === b + '/' + q)).slice(0, 4)
+      .map(([b, q]) => ({ key: b + '/' + q, glyphs: GL[b], onClick: () => up({ from: b, to: q }) }));
+
+    return {
+      t, dim: stale ? 0.5 : 1,
+      langs: langSeg(['PT-BR', 'EN'], HM, '#C4CCC8'), langsLong: langSeg(['Português (Brasil)', 'English'], mint, k.text3),
+      st: stale ? { text: t.stale, color: thKey === 'light' ? '#B07A12' : k.amber, dot: thKey === 'light' ? '#D99A1E' : k.amber } : { text: t.updated, color: k.status, dot: k.accent },
+      seg: [['24h', '24h'], ['7d', '7d'], ['30d', '30d']].map(([kk, label]) => { const s = F.per === kk; return { label, onClick: () => up({ per: kk }), bg: s ? k.accentSel : 'transparent', fg: s ? (thKey === 'glass' ? '#fff' : k.accent) : k.text2, fw: s ? 600 : 400 }; }),
+      k, isThemes: F.sec === 'temas',
+      themeSeg: ['cota', 'dark', 'light', 'glass'].map((kk) => { const s = thKey === kk; return { label: t.thNames[kk][0], onClick: () => up({ theme: kk }), bg: s ? HM.bg : 'transparent', fg: s ? HM.fg : '#C4CCC8', fw: s ? 600 : 400 }; }),
+      themeCards: ['cota', 'dark', 'light', 'glass'].map((kk) => { const s = thKey === kk, tk = THEMES[kk]; return { k: tk, label: t.thNames[kk][0], desc: t.thNames[kk][1], onClick: () => up({ theme: kk }),
+        border: s ? k.accent : k.f08, cardBg: s ? k.accentSoft : k.f04, fg: s ? k.accent : k.text, radio: s ? k.accent : k.radioOff, radioOp: s ? 1 : 0,
+        rows: P.slice(0, 3).map((p, j) => ({ glyph: GL[p.b], name: nm(p.b), key: p.key, value: CUR[p.q].s + ' ' + sh(p.bid), change: pc(p.ch['24h']), color: p.ch['24h'] < 0 ? tk.down : tk.up, bg: j === 0 ? tk.rowExp : 'transparent' })) }; }),
+      followBg: F.follow ? k.accent : k.toggleOff, followJust: F.follow ? 'flex-end' : 'flex-start', toggleFollow: () => up({ follow: !F.follow }),
+      conv: F.conv ?? '100', onConv: (e) => up({ conv: e.target.value }), convSwap: () => up({ convInv: !F.convInv }), stop: (e) => e.stopPropagation(),
+      alertCount: F.alerts.filter((a) => a.on).length, rows, bar: barItems, barPreview: barItems,
+      openSettings: () => up({ sec: 'geral', adding: false }),
+      nav: [['geral', t.general, 'icon-sliders-horizontal', ''], ['pares', t.pairs, 'icon-list', String(P.length)], ['barra', t.menubar, 'icon-panel-top', ''], ['temas', t.themes, 'icon-palette', ''], ['alertas', t.alerts, 'icon-bell', String(F.alerts.filter((a) => a.on).length)]]
+        .map(([k, l, ic, count]) => ({ label: l, icon: ic, count, onClick: () => up({ sec: k, adding: false }), bg: F.sec === k ? k.accentMid : 'transparent', fg: F.sec === k ? k.accent : k.text3 })),
+      isGeneral: F.sec === 'geral', isPairs: F.sec === 'pares', isBar: F.sec === 'barra', isAlerts: F.sec === 'alertas',
+      intervals: segF(['30s', '1m', '2m', '5m', '10m'].map((x) => [x, x]), F.int, 'int', k.text3),
+      pairRows: P.map((p, i) => ({ key: p.key, glyph: GL[p.b], cross: true, qGlyph: GL[p.q], desc: nm(p.b) + ' ' + t.of + ' ' + (lang === 'pt' ? nm(p.q).toLowerCase() : nm(p.q).replace(/^Euro$|^Ether$/, (m) => m.toLowerCase())),
+        value: CUR[p.q].s + ' ' + vv(p.bid), change: pc(p.ch['24h']), color: p.ch['24h'] < 0 ? k.down : k.up,
+        pinColor: p.pin ? k.accent : k.moss, pinTitle: t.pin,
+        pin: () => up((cur) => ({ pairs: cur.pairs.map((x, j) => j === i ? { ...x, pin: !x.pin } : x) })),
+        remove: () => up((cur) => cur.pairs.length > 1 ? { pairs: cur.pairs.filter((_, j) => j !== i), np: 0 } : {}) })),
+      openAdd: () => up({ adding: true, q: '' }), closeAdd: () => up({ adding: false }), adding: F.adding && F.sec === 'pares',
+      q: F.q, onQ: (e) => up({ q: e.target.value }), sugg,
+      fromGroups: groups('from'), toGroups: groups('to'),
+      swap: () => { if (DEST[F.to].includes(F.from)) up({ from: F.to, to: F.from }); },
+      pv: { text: '1 ' + (lang === 'pt' ? nm(F.from).toLowerCase() : nm(F.from)) + ' = ' + CUR[F.to].s + ' ' + vv(pvP.bid), note: exists ? t.exists : t.preview + ' · ' + F.from + '/' + F.to, noteColor: exists ? k.amber : k.text2,
+        btnBg: exists ? k.f08 : k.accent, btnFg: exists ? k.text2 : k.onAccent },
+      add: () => { if (exists) return; up((cur) => ({ pairs: cur.pairs.concat([{ b: F.from, q: F.to, pin: false }]), adding: false, exp: F.from + '/' + F.to })); },
+      formats: [['sym', CUR.EUR.s + ' 5,65', 0], ['code', 'EUR 5,65', 1], ['flag', CUR.EUR.f + ' 5,65', 2], ['val', '5,65', 3]].map(([k, s, i]) => ({ sample: lang === 'en' ? s.replace(',', '.') : s, label: t.fmts[i], onClick: () => up({ fmt: k }),
+        border: F.fmt === k ? k.accent : k.f08, bg: F.fmt === k ? k.accentSoft : k.f04, fg: F.fmt === k ? k.accent : k.text2 })),
+      inds: segF([['nenhum', t.inds[0]], ['seta', t.inds[1]], ['pct', t.inds[2]]], F.ind, 'ind', k.text3),
+      np: { key: np.key, glyph: GL[np.b], qs: CUR[np.q].s }, th: thStr,
+      onTh: (e) => up({ th: e.target.value }),
+      cyclePair: () => up({ np: (F.np + 1) % P.length, th: null }),
+      flipDir: () => up({ above: !F.above, th: F.th }),
+      dirLabel: F.above ? t.rises : t.falls,
+      hint: thN == null ? t.enterValue : t.now + ': ' + CUR[np.q].s + ' ' + vv(np.bid) + ' · ' + (Math.abs(dist) < 0.005 ? t.onTarget : (lang === 'en' ? nf(Math.abs(dist), 2) + '% ' + t.away : t.away + ' ' + nf(Math.abs(dist), 2) + '%')) + ((F.above && dist < 0) || (!F.above && dist > 0) ? ' · ' + t.fireNow : ''),
+      create: () => { if (thN == null) return; up((cur) => ({ alerts: cur.alerts.concat([{ id: Date.now(), pair: np.key, above: F.above, v: thN, on: true }]) })); },
+      alerts: F.alerts.filter((al) => P.some((p) => p.key === al.pair) || al.pair.includes('/')).map((al) => {
+        const [b, q] = al.pair.split('/'), p = mkPair(b, q), dd = Math.abs((al.v - p.bid) / p.bid * 100);
+        return { glyph: GL[b], text: al.pair + ' ' + (al.above ? t.above : t.below) + ' ' + CUR[q].s + ' ' + thS(al.v),
+          prog: Math.max(6, 100 - dd * 25).toFixed(0) + '%', barColor: al.paused ? k.amber : k.accent,
+          note: al.paused ? t.paused : (al.on ? nf(dd, 2) + '% ' + t.fromTarget : t.off), noteColor: al.paused ? k.amber : k.text2, op: al.on ? 1 : 0.55,
+          tBg: al.on ? k.accent : k.toggleOff, tJust: al.on ? 'flex-end' : 'flex-start',
+          toggle: () => up((cur) => ({ alerts: cur.alerts.map((x) => x.id === al.id ? { ...x, on: !x.on } : x) })),
+          remove: () => up((cur) => ({ alerts: cur.alerts.filter((x) => x.id !== al.id) })) };
+      }),
+    };
+  }
+
+  componentDidUpdate(prev) { if (prev.lang !== this.props.lang && this.props.lang) this.setState({ lang: this.props.lang }); }
+}
+</script>
+</body>
+</html>

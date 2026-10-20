@@ -40,7 +40,8 @@ struct MenuBarLabelView: View {
             for: store.menuBarQuotes,
             format: settings.menuBarFormat,
             indicator: settings.menuBarIndicator,
-            holdActive: store.launchHoldActive
+            holdActive: store.launchHoldActive,
+            alertPairs: settings.alertPairs
         )
     }
 
@@ -143,6 +144,16 @@ enum MenuBarLabelImage {
         let result = NSMutableAttributedString()
 
         for segment in segments {
+            if segment.role == .alertDot {
+                result.append(alertDot(dimmed: dimmed))
+                continue
+            }
+
+            if segment.role == .separator, segment.text == MenuBarLabel.pairSeparator {
+                result.append(pairGap())
+                continue
+            }
+
             result.append(
                 NSAttributedString(
                     string: segment.text,
@@ -155,6 +166,42 @@ enum MenuBarLabelImage {
 
         return result
     }
+
+    /// 12pt between pairs, whatever the menu bar font: one space kerned out
+    /// to the width, rather than spaces that grow and shrink with the font.
+    private static let pairGapWidth: CGFloat = 12
+
+    private static func pairGap() -> NSAttributedString {
+        let space = NSAttributedString(string: " ", attributes: [.font: baseFont])
+        return NSAttributedString(
+            string: " ",
+            attributes: [.font: baseFont, .kern: pairGapWidth - space.size().width]
+        )
+    }
+
+    /// A 5pt mint dot centred on the digits, for a pair with an alert on.
+    private static func alertDot(dimmed: Bool) -> NSAttributedString {
+        let diameter: CGFloat = 5
+        let color = dimmed ? NSColor.tertiaryLabelColor : mint
+        let size = NSSize(width: diameter, height: diameter)
+        let image = NSImage(size: size, flipped: false) { rect in
+            color.setFill()
+            NSBezierPath(ovalIn: rect).fill()
+            return true
+        }
+
+        let attachment = NSTextAttachment()
+        attachment.image = image
+        let digitMiddle = (baseFont.capHeight - diameter) / 2
+        attachment.bounds = NSRect(x: 0, y: digitMiddle, width: diameter, height: diameter)
+
+        let dot = NSMutableAttributedString(attachment: attachment)
+        dot.addAttribute(.font, value: baseFont, range: NSRange(location: 0, length: dot.length))
+        return dot
+    }
+
+    private static let mint = NSColor(
+        srgbRed: 0x7B / 255, green: 0xE0 / 255, blue: 0xAE / 255, alpha: 1)
 
     private static func font(for role: LabelSegment.Role) -> NSFont {
         switch role {
@@ -182,7 +229,7 @@ enum MenuBarLabelImage {
             case .down: return .systemRed
             case .flat: return .labelColor
             }
-        case .lead, .value, .separator:
+        case .lead, .value, .separator, .alertDot:
             return .labelColor
         }
     }

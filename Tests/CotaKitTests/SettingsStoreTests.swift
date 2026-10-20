@@ -353,4 +353,29 @@ struct SettingsStoreTests {
         let reopened = SettingsStore(defaults: defaults)
         #expect(reopened.menuBarFormat == .value)
     }
+
+    // MARK: - Language
+
+    @Test func languageDefaultsToSystem() {
+        let store = SettingsStore(defaults: freshDefaults(), launchAgent: .stub(enabled: false))
+        #expect(store.language == .system)
+    }
+
+    @Test func languageIsPersisted() {
+        let defaults = freshDefaults()
+        let store = SettingsStore(defaults: defaults, launchAgent: .stub(enabled: false))
+        store.language = .en
+
+        let reloaded = SettingsStore(defaults: defaults, launchAgent: .stub(enabled: false))
+        #expect(reloaded.language == .en)
+    }
+
+    /// A store that does not drive localization must leave the process-wide
+    /// language alone; tests build dozens of stores in parallel.
+    @Test func aStoreThatDoesNotDriveLocalizationLeavesItAlone() {
+        let before = L10n.language
+        let store = SettingsStore(defaults: freshDefaults(), launchAgent: .stub(enabled: false))
+        store.language = before == .en ? .ptBR : .en
+        #expect(L10n.language == before)
+    }
 }

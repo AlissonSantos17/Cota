@@ -45,6 +45,9 @@ public struct LabelSegment: Equatable, Sendable {
         /// system tint and reads badly over a light or busy wallpaper.
         case indicator(Trend)
         case separator
+        /// The mint dot after a pair with an alert on. Drawn as a shape, not
+        /// as the text it carries.
+        case alertDot
     }
 
     public let text: String
@@ -99,7 +102,8 @@ public enum MenuBarLabel {
         for quotes: [MenuBarQuote],
         format: MenuBarFormat,
         indicator: ChangeIndicator,
-        holdActive: Bool = false
+        holdActive: Bool = false,
+        alertPairs: Set<String> = []
     ) -> [LabelSegment] {
         if holdActive {
             return []
@@ -125,10 +129,18 @@ public enum MenuBarLabel {
                 segments.append(contentsOf: destinationSuffix(for: quote))
             }
             segments.append(contentsOf: tail(for: quote, indicator: indicator))
+            if alertPairs.contains(quote.pair) {
+                segments.append(LabelSegment(" ", .separator))
+                segments.append(LabelSegment(alertDot, .alertDot))
+            }
         }
 
         return segments
     }
+
+    /// Text stand-in for the alert dot, for anything that reads the label as
+    /// a string — accessibility above all.
+    public static let alertDot = "●"
 
     /// One pair rendered the way a given format would render it, judged against
     /// the collisions of the whole selection rather than of that pair alone.
@@ -255,7 +267,7 @@ public enum MenuBarLabel {
 
     public static func disabledReason(for format: MenuBarFormat, pairCount: Int) -> String? {
         guard format == .value, pairCount > 1 else { return nil }
-        return "Available with a single pair — two values with no labels can't be told apart."
+        return L10n.t("menuBar.format.valueOnlyReason")
     }
 
     /// The first symbol claimed by two or more of the given currencies.
@@ -291,15 +303,9 @@ public enum MenuBarLabel {
     public static func collisionNote(among codes: [String]) -> String? {
         guard let collision = firstCollision(among: codes) else { return nil }
 
-        let names: String
-        if collision.codes.count == 2 {
-            names = "\(collision.codes[0]) and \(collision.codes[1]) both"
-        } else {
-            let head = collision.codes.dropLast().joined(separator: ", ")
-            names = "\(head) and \(collision.codes[collision.codes.count - 1]) all"
-        }
-
-        return "Using codes — \(names) use the \(collision.symbol) symbol."
+        let head = collision.codes.dropLast().joined(separator: ", ")
+        let last = collision.codes[collision.codes.count - 1]
+        return L10n.t("menuBar.collision", head, last, collision.symbol)
     }
 
     // MARK: - Numbers

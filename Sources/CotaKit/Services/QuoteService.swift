@@ -17,13 +17,13 @@ public enum QuoteError: LocalizedError, Equatable {
     public var errorDescription: String? {
         switch self {
         case .invalidURL:
-            return "The API URL is invalid."
+            return L10n.t("error.invalidURL")
         case .httpError(let statusCode):
-            return "The API returned HTTP error \(statusCode)."
+            return L10n.t("error.http", "\(statusCode)")
         case .invalidResponse:
-            return "The API returned an invalid response."
+            return L10n.t("error.invalidResponse")
         case .invalidValue(let field):
-            return "The field '\(field)' returned an invalid value."
+            return L10n.t("error.invalidValue", field)
         }
     }
 }

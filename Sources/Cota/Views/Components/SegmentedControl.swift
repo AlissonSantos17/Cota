@@ -1,15 +1,10 @@
 import SwiftUI
 
-/// Label colour for the selected segment. The fill is `controlAccentColor`,
-/// which the user may have set to any hue, and which shifts again under
-/// "Increase contrast" — so the text on top has to come from the matching
-/// system token rather than a fixed white.
-private let selectedLabelColor = Color(nsColor: .alternateSelectedControlTextColor)
-
-/// Segmented control whose segments always have identical widths.
+/// Mint segmented control.
 ///
-/// The stock control sizes each segment to its label, which leaves "30s"
-/// wider than "1m" and stops the group short of the right margin.
+/// The selected segment is a tint of the brand colour rather than
+/// `controlAccentColor`: the panel and Settings are always dark and always
+/// mint, whatever accent the person picked for the rest of the system.
 struct SegmentedControl<Value: Hashable>: View {
     struct Segment {
         let label: String
@@ -21,41 +16,60 @@ struct SegmentedControl<Value: Hashable>: View {
         }
     }
 
+    /// The panel's control is smaller and sits on a darker surface.
+    enum Style {
+        case panel
+        case settings
+
+        var fontSize: CGFloat { self == .panel ? 11 : 12 }
+        var padding: EdgeInsets {
+            self == .panel
+                ? EdgeInsets(top: 3, leading: 9, bottom: 3, trailing: 9)
+                : EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12)
+        }
+        var track: Color { self == .panel ? CotaTheme.panelSegmentTrack : CotaTheme.segmentTrack }
+        var unselected: Color { self == .panel ? CotaTheme.textSecondary : CotaTheme.textControl }
+    }
+
     let segments: [Segment]
     @Binding var selection: Value
-    var height: CGFloat = 28
+    var style: Style = .settings
+    /// Equal-width segments across the whole row, as for the refresh
+    /// interval. Otherwise each segment is as wide as its label.
+    var fillsWidth = false
 
     var body: some View {
         HStack(spacing: 2) {
             ForEach(segments, id: \.value) { segment in
+                let isSelected = selection == segment.value
+
                 Button {
                     selection = segment.value
                 } label: {
                     Text(segment.label)
                         .font(
-                            .system(
-                                size: 11, weight: selection == segment.value ? .semibold : .regular)
+                            .system(size: style.fontSize, weight: isSelected ? .semibold : .regular)
                         )
-                        .foregroundStyle(
-                            selection == segment.value ? selectedLabelColor : Color.primary
+                        .foregroundStyle(isSelected ? CotaTheme.mint : style.unselected)
+                        .lineLimit(1)
+                        .fixedSize()
+                        .padding(style.padding)
+                        .frame(maxWidth: fillsWidth ? .infinity : nil)
+                        .background(
+                            RoundedRectangle(cornerRadius: CotaTheme.Radius.segment)
+                                .fill(isSelected ? CotaTheme.mintSelected : Color.clear)
                         )
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .background(
-                    RoundedRectangle(cornerRadius: 5)
-                        .fill(selection == segment.value ? Color.accentColor : Color.clear)
-                )
-                .accessibilityAddTraits(selection == segment.value ? [.isSelected] : [])
+                .accessibilityAddTraits(isSelected ? [.isSelected] : [])
             }
         }
-        .padding(3)
-        .frame(height: height)
+        .padding(2)
         .background(
-            RoundedRectangle(cornerRadius: 7)
-                .fill(Color(nsColor: .quaternaryLabelColor).opacity(0.4))
+            RoundedRectangle(cornerRadius: CotaTheme.Radius.segmentTrack)
+                .fill(style.track)
         )
-        .animation(.easeInOut(duration: 0.15), value: selection)
+        .animation(CotaTheme.Motion.digits, value: selection)
     }
 }

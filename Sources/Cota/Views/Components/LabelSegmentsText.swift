@@ -20,7 +20,14 @@ struct LabelSegmentsText: View {
     }
 
     private func text(for segment: LabelSegment) -> Text {
-        Text(segment.text)
+        if segment.role == .alertDot {
+            return Text(segment.text)
+                .font(.system(size: size * 0.45))
+                .foregroundColor(CotaTheme.mint)
+                .baselineOffset(size * 0.22)
+        }
+
+        return Text(segment.text)
             .font(font(for: segment.role))
             .foregroundColor(color(for: segment.role))
     }
@@ -37,15 +44,15 @@ struct LabelSegmentsText: View {
     private func color(for role: LabelSegment.Role) -> Color {
         switch role {
         case .code:
-            return Color(nsColor: .tertiaryLabelColor)
+            return CotaTheme.textSecondary
         case .indicator(let trend):
             switch trend {
-            case .up: return .green
-            case .down: return .red
-            case .flat: return Color(nsColor: .secondaryLabelColor)
+            case .up: return CotaTheme.mint
+            case .down: return CotaTheme.coral
+            case .flat: return CotaTheme.textControl
             }
-        case .lead, .value, .separator:
-            return Color(nsColor: .secondaryLabelColor)
+        case .lead, .value, .separator, .alertDot:
+            return CotaTheme.textPrimary
         }
     }
 }

@@ -13,6 +13,10 @@ BIN_PATH=$(swift build $SDK_FLAGS --show-bin-path)
 
 mkdir -p Cota.app/Contents/MacOS
 cp "$BIN_PATH/Cota" Cota.app/Contents/MacOS/Cota
+# The strings ship in CotaKit's resource bundle. Bundle.module looks for it in
+# Contents/Resources first; without it the app shows raw keys.
+rm -rf Cota.app/Contents/Resources/Cota_CotaKit.bundle
+cp -R "$BIN_PATH/Cota_CotaKit.bundle" Cota.app/Contents/Resources/
 
 codesign --force --sign - --identifier "com.alissonfelp.Cota" Cota.app
 
