@@ -53,13 +53,20 @@ public enum L10n {
 
     private static var bundle = makeBundle(for: language)
 
+    /// SwiftPM's native build system (Swift 6.1 and the CI) writes the folder
+    /// as `pt-br.lproj`; the newer one keeps `pt-BR.lproj`. Bundle lookups
+    /// match case exactly, so both spellings are tried — without the second,
+    /// Portuguese silently fell back to English.
     private static func makeBundle(for language: AppLanguage) -> Bundle {
-        guard let path = Bundle.module.path(forResource: language.lproj, ofType: "lproj"),
-            let bundle = Bundle(path: path)
-        else {
-            return .module
+        let names = [language.lproj, language.lproj.lowercased()]
+        for name in names {
+            if let path = Bundle.module.path(forResource: name, ofType: "lproj"),
+                let bundle = Bundle(path: path)
+            {
+                return bundle
+            }
         }
-        return bundle
+        return .module
     }
 
     public static func t(_ key: String) -> String {
