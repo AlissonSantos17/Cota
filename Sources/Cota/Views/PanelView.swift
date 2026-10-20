@@ -7,6 +7,7 @@ struct PanelView: View {
     @ObservedObject var settings: SettingsStore
 
     @ObservedObject private var panelState = PanelState.shared
+    @ObservedObject private var theme = ThemeController.shared
     /// The converter's amount and direction are shared by every row, so
     /// opening the next pair converts the same 100.
     @State private var convertAmount = "100"
@@ -20,17 +21,20 @@ struct PanelView: View {
             // grow the panel, not scroll or clip inside a fixed frame.
             .fixedSize(horizontal: false, vertical: true)
             .syncsWindowHeight()
-            .background(CotaTheme.night)
+            .background(
+                ThemeSurface(
+                    CotaTheme.night, in: RoundedRectangle(cornerRadius: CotaTheme.Radius.panel))
+            )
             .overlay(
                 RoundedRectangle(cornerRadius: CotaTheme.Radius.panel)
                     .strokeBorder(CotaTheme.panelBorder, lineWidth: 1)
             )
             .foregroundStyle(CotaTheme.textPrimary)
-            .environment(\.colorScheme, .dark)
+            .environment(\.colorScheme, CotaTheme.palette.colorScheme)
             .background { shortcutButtons }
-            // The language lives in the settings store; reading it here makes
-            // the whole panel redraw when it changes.
-            .id(settings.language)
+            // The language and the theme both redraw the whole panel in place
+            // when they change.
+            .id(ThemeKey(language: settings.language, theme: theme.active))
     }
 
     /// Settings is a window of its own, not a second page of the popover.

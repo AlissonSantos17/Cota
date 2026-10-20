@@ -133,3 +133,17 @@
 "error.http" = "A API respondeu com erro HTTP %@.";
 "error.invalidResponse" = "A API devolveu uma resposta inválida.";
 "error.invalidValue" = "O campo '%@' veio com um valor inválido.";
+
+/* Temas */
+"settings.themes" = "Temas";
+"themes.subtitle" = "Muda as cores do painel e do Settings. A barra de menus segue o macOS.";
+"themes.cota" = "Cota";
+"themes.cota.note" = "Padrão · menta sobre noite";
+"themes.dark" = "Escuro";
+"themes.dark.note" = "Cinza neutro, como o macOS";
+"themes.light" = "Claro";
+"themes.light.note" = "Para o modo claro do macOS";
+"themes.glass" = "Liquid Glass";
+"themes.glass.note" = "Translúcido, o fundo aparece";
+"themes.followSystem" = "Seguir o macOS";
+"themes.followSystemNote" = "No modo claro do macOS usa Claro; no escuro, o tema escolhido.";

@@ -200,8 +200,8 @@ private struct ChipMenu<Value: Hashable>: View {
             }
             .padding(6)
             .frame(minWidth: 140)
-            .background(CotaTheme.sheet)
-            .environment(\.colorScheme, .dark)
+            .background(ThemeSurface(CotaTheme.sheet))
+            .environment(\.colorScheme, CotaTheme.palette.colorScheme)
         }
     }
 }

@@ -28,7 +28,7 @@ struct AddPairSheet: View {
             footer
         }
         .frame(width: CotaTheme.Size.sheetWidth)
-        .background(CotaTheme.sheet)
+        .background(ThemeSurface(CotaTheme.sheet, in: SheetShape(open: true)))
         .clipShape(SheetShape())
         .overlay(SheetShape(open: true).stroke(CotaTheme.sheetBorder, lineWidth: 1))
         .shadow(color: .black.opacity(0.55), radius: 30, y: 30)

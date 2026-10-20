@@ -6,5 +6,6 @@
 - Fonte da verdade para pares: `PairCatalog`. A folha "Adicionar par" desabilita destinos que não existem no catálogo.
 - Todo texto visível passa por `L10n.t` com chave em `Sources/CotaKit/Resources/*.lproj/Localizable.strings` (as duas línguas têm as mesmas chaves). Nada de string solta em view.
 - `L10n` e os textos ficam no `CotaKit`, não no app: `QuoteFormat`, `MenuBarLabel` e as notificações também precisam do idioma.
-- Cores e medidas vêm de `CotaTheme`. Nada de hex solto em view.
+- Cores e medidas vêm de `CotaTheme`. Nada de hex solto em view. Os tokens leem a paleta do tema ativo (`CotaTheme.palette`); uma cor nova entra em `Palette` com valor para os quatro temas.
+- Temas (Cota, Escuro, Claro, Liquid Glass): especificação em `Design/Themes/README.md`. Superfícies de fundo usam `ThemeSurface`, não `.background(cor)`, para o Glass funcionar.
 - Rode `make` / `scripts/test.sh` e `scripts/lint.sh` antes de concluir.

@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import CotaKit
 import SwiftUI
 
@@ -14,6 +15,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private static var shared: SettingsWindowController?
 
     private let navigation: SettingsNavigation
+    private var themeObservation: AnyCancellable?
 
     /// Opens the window on a section, or brings the existing one forward and
     /// moves it there. One instance only: the gear is in the panel footer,
@@ -50,9 +52,6 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         // The sidebar runs up under the traffic lights, as in the design.
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
-        // Dark only: a light variant has not been designed yet.
-        window.appearance = NSAppearance(named: .darkAqua)
-        window.backgroundColor = NSColor(CotaTheme.window)
         window.isReleasedWhenClosed = false
         window.contentView = NSHostingView(
             rootView: SettingsView(settings: settings, store: store, navigation: navigation)
@@ -63,6 +62,21 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
 
         super.init(window: window)
         window.delegate = self
+        applyTheme()
+        themeObservation = ThemeController.shared.$active
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.applyTheme() }
+    }
+
+    /// The window's own chrome: the title bar's appearance and what shows
+    /// behind the SwiftUI content. On glass the window has to be clear, or the
+    /// material has nothing to blur.
+    private func applyTheme() {
+        guard let window else { return }
+        let palette = CotaTheme.palette
+        window.appearance = palette.appearance
+        window.isOpaque = !palette.isGlass
+        window.backgroundColor = palette.isGlass ? .clear : NSColor(CotaTheme.window)
     }
 
     @available(*, unavailable)

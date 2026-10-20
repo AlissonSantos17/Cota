@@ -29,6 +29,7 @@ struct CotaApp: App {
 
     init() {
         let settings = SettingsStore(drivesLocalization: true)
+        ThemeController.shared.attach(to: settings)
         let store = QuoteStore(settings: settings)
         store.start()
         _settings = StateObject(wrappedValue: settings)

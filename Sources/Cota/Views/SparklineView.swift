@@ -61,7 +61,7 @@ struct PriceChartView: View {
                     )
 
                 SparklineEndDot(values: values, domain: domain)
-                    .fill(Color.white)
+                    .fill(CotaTheme.chartDot)
 
                 if let alert {
                     alertLabel(alert, domain: domain)

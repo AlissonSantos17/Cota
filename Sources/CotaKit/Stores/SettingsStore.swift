@@ -15,6 +15,8 @@ public final class SettingsStore: ObservableObject {
         static let menuBarIndicator = "menuBarIndicator"
         static let dimWhenStale = "dimWhenStale"
         static let language = "appLanguage"
+        static let theme = "appTheme"
+        static let followsSystemAppearance = "themeFollowsSystem"
 
         /// Read once, to migrate, then never again. Left in place rather than
         /// deleted: an install that rolls back to the previous build finds its
@@ -75,6 +77,16 @@ public final class SettingsStore: ObservableObject {
         }
     }
 
+    /// Settings → Temas. Drawn by `ThemeController`, which also weighs the
+    /// system appearance when `followsSystemAppearance` is on.
+    @Published public var theme: AppTheme {
+        didSet { defaults.set(theme.rawValue, forKey: Keys.theme) }
+    }
+
+    @Published public var followsSystemAppearance: Bool {
+        didSet { defaults.set(followsSystemAppearance, forKey: Keys.followsSystemAppearance) }
+    }
+
     @Published public var launchAtLogin = false
 
     @Published public var alerts: [PriceAlert] = []
@@ -124,6 +136,10 @@ public final class SettingsStore: ObservableObject {
         self.language =
             defaults.string(forKey: Keys.language)
             .flatMap(AppLanguage.init(rawValue:)) ?? .system
+        self.theme =
+            defaults.string(forKey: Keys.theme)
+            .flatMap(AppTheme.init(rawValue:)) ?? .cota
+        self.followsSystemAppearance = defaults.bool(forKey: Keys.followsSystemAppearance)
 
         self.alerts = Self.loadAlerts(from: defaults)
 

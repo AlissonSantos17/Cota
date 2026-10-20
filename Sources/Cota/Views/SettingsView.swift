@@ -5,6 +5,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     case general
     case pairs
     case menuBar
+    case themes
     case alerts
 
     var id: String { rawValue }
@@ -14,6 +15,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         case .general: return L10n.t("settings.general")
         case .pairs: return L10n.t("settings.pairs")
         case .menuBar: return L10n.t("settings.menuBar")
+        case .themes: return L10n.t("settings.themes")
         case .alerts: return L10n.t("settings.alerts")
         }
     }
@@ -23,6 +25,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         case .general: return "slider.horizontal.3"
         case .pairs: return "list.bullet"
         case .menuBar: return "menubar.rectangle"
+        case .themes: return "paintpalette"
         case .alerts: return "bell"
         }
     }
@@ -36,12 +39,13 @@ final class SettingsNavigation: ObservableObject {
     @Published var isAddingPair = false
 }
 
-/// The contents of the Settings window: a sidebar of four sections and the
+/// The contents of the Settings window: a sidebar of five sections and the
 /// selected one beside it.
 struct SettingsView: View {
     @ObservedObject var settings: SettingsStore
     @ObservedObject var store: QuoteStore
     @ObservedObject var navigation: SettingsNavigation
+    @ObservedObject private var theme = ThemeController.shared
 
     var body: some View {
         HStack(spacing: 0) {
@@ -57,15 +61,15 @@ struct SettingsView: View {
         // bar, so it is taller than the content size the window was given.
         .frame(width: CotaTheme.Size.settingsWindow.width)
         .frame(minHeight: CotaTheme.Size.settingsWindow.height, maxHeight: .infinity)
-        .background(CotaTheme.window)
+        .background(ThemeSurface(CotaTheme.window))
         .foregroundStyle(CotaTheme.textPrimary)
         .overlay { addPairOverlay }
         .animation(CotaTheme.Motion.expand, value: navigation.isAddingPair)
-        .environment(\.colorScheme, .dark)
+        .environment(\.colorScheme, CotaTheme.palette.colorScheme)
         .ignoresSafeArea()
-        // The language lives in the settings store; keying the tree on it
-        // redraws every label when it changes.
-        .id(settings.language)
+        // Keying the tree on the language and the theme redraws every label
+        // and colour when either changes.
+        .id(ThemeKey(language: settings.language, theme: theme.active))
     }
 
     // MARK: - Sidebar
@@ -97,7 +101,7 @@ struct SettingsView: View {
         switch section {
         case .pairs: return settings.pairs.count
         case .alerts: return settings.alerts.filter(\.isEnabled).count
-        case .general, .menuBar: return nil
+        case .general, .menuBar, .themes: return nil
         }
     }
 
@@ -115,6 +119,8 @@ struct SettingsView: View {
                     }
                 case .menuBar:
                     MenuBarSettingsSection(settings: settings, store: store)
+                case .themes:
+                    ThemesSection(settings: settings, store: store)
                 case .alerts:
                     AlertsSection(settings: settings, store: store)
                 }
@@ -125,7 +131,9 @@ struct SettingsView: View {
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(CotaTheme.window)
+        // The window already paints the ground; on glass a second fill here
+        // would hide the material.
+        .background(Color.clear)
     }
 
     // MARK: - Add pair

@@ -82,14 +82,14 @@ struct MenuBarSettingsSection: View {
             if selectedQuotes.isEmpty {
                 Text(settings.orderedMenuBarPairs.isEmpty ? "" : L10n.t("menuBar.waiting"))
                     .font(.system(size: 12))
-                    .foregroundStyle(Color.white.opacity(0.5))
+                    .foregroundStyle(CotaTheme.menuBarPreviewText.opacity(0.5))
             } else {
-                Image(nsImage: MenuBarLabelImage.render(previewSegments, dimmed: false))
+                Image(nsImage: previewImage)
                     .padding(.horizontal, 9)
                     .frame(height: 24)
                     .background(
                         RoundedRectangle(cornerRadius: CotaTheme.Radius.segment)
-                            .fill(Color.white.opacity(0.18))
+                            .fill(CotaTheme.menuBarPreviewPill)
                     )
             }
 
@@ -99,7 +99,7 @@ struct MenuBarSettingsSection: View {
                         .locale(L10n.language.locale))
             )
             .font(.system(size: 13))
-            .foregroundStyle(Color.white.opacity(0.75))
+            .foregroundStyle(CotaTheme.menuBarPreviewText.opacity(0.75))
             .lineLimit(1)
         }
         .padding(.horizontal, 14)
@@ -110,6 +110,18 @@ struct MenuBarSettingsSection: View {
         )
         .accessibilityElement(children: .combine)
         .accessibilityLabel(L10n.t("a11y.menuBarPreview"))
+    }
+
+    /// The label's colours are the system's dynamic ones. Drawn under the
+    /// theme's appearance, so they come out dark on the Light strip and white
+    /// on the others, whatever the Mac itself is set to.
+    private var previewImage: NSImage {
+        let label = MenuBarLabelImage.render(previewSegments, dimmed: false)
+        guard let appearance = CotaTheme.palette.appearance else { return label }
+        return NSImage(size: label.size, flipped: false) { rect in
+            appearance.performAsCurrentDrawingAppearance { label.draw(in: rect) }
+            return true
+        }
     }
 
     private var previewSegments: [LabelSegment] {

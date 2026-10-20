@@ -133,3 +133,17 @@
 "error.http" = "The API returned HTTP error %@.";
 "error.invalidResponse" = "The API returned an invalid response.";
 "error.invalidValue" = "The field '%@' returned an invalid value.";
+
+/* Themes */
+"settings.themes" = "Themes";
+"themes.subtitle" = "Changes the colors of the panel and Settings. The menu bar follows macOS.";
+"themes.cota" = "Cota";
+"themes.cota.note" = "Default · mint on night";
+"themes.dark" = "Dark";
+"themes.dark.note" = "Neutral gray, like macOS";
+"themes.light" = "Light";
+"themes.light.note" = "For macOS light mode";
+"themes.glass" = "Liquid Glass";
+"themes.glass.note" = "Translucent, lets the wallpaper through";
+"themes.followSystem" = "Follow macOS";
+"themes.followSystemNote" = "Uses Light when macOS is light; your chosen theme when it is dark.";
