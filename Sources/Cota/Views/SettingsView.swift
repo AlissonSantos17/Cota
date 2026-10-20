@@ -1,445 +1,246 @@
 import CotaKit
 import SwiftUI
 
-/// The contents of the Settings window.
-///
-/// Four tabs rather than one column: the panel version had grown to seven
-/// headers of identical weight and needed scrolling inside a popover, which on
-/// macOS is the sign that the content has outgrown the surface. Each tab has to
-/// fit without scrolling — one that stops fitting is asking to be split.
+enum SettingsSection: String, CaseIterable, Identifiable {
+    case general
+    case pairs
+    case menuBar
+    case alerts
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .general: return L10n.t("settings.general")
+        case .pairs: return L10n.t("settings.pairs")
+        case .menuBar: return L10n.t("settings.menuBar")
+        case .alerts: return L10n.t("settings.alerts")
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .general: return "slider.horizontal.3"
+        case .pairs: return "list.bullet"
+        case .menuBar: return "menubar.rectangle"
+        case .alerts: return "bell"
+        }
+    }
+}
+
+/// Which section is showing and whether Add pair is open. Owned by the window
+/// controller, so the panel's gear can move an open window back to General.
+@MainActor
+final class SettingsNavigation: ObservableObject {
+    @Published var section: SettingsSection = .general
+    @Published var isAddingPair = false
+}
+
+/// The contents of the Settings window: a sidebar of four sections and the
+/// selected one beside it.
 struct SettingsView: View {
     @ObservedObject var settings: SettingsStore
     @ObservedObject var store: QuoteStore
-
-    /// Wide enough for the five columns of the pairs list. The popover's 360
-    /// was the constraint that flattened the hierarchy in the first place.
-    private static let width: CGFloat = 460
+    @ObservedObject var navigation: SettingsNavigation
 
     var body: some View {
-        TabView {
-            tab {
-                section {
-                    SectionHeader(title: "Refresh interval")
+        HStack(spacing: 0) {
+            sidebar
 
-                    intervalContent
-                }
+            Rectangle()
+                .fill(CotaTheme.rowDivider)
+                .frame(width: 1)
 
-                SectionSeparator()
-
-                section {
-                    generalContent
-                }
-            }
-            .tabItem { Text("General") }
-
-            tab {
-                section {
-                    pairsList
-                }
-            }
-            .tabItem { Text("Pairs") }
-
-            tab {
-                MenuBarSettingsSection(settings: settings, store: store)
-            }
-            .tabItem { Text("Menu bar") }
-
-            tab {
-                section {
-                    AlertsSection(settings: settings)
-                }
-            }
-            .tabItem { Text("Alerts") }
+            content
         }
-        .padding(Layout.sectionSpacing)
-        .frame(width: Self.width)
-        .fixedSize(horizontal: false, vertical: true)
+        // Flexible height: the content view runs under the transparent title
+        // bar, so it is taller than the content size the window was given.
+        .frame(width: CotaTheme.Size.settingsWindow.width)
+        .frame(minHeight: CotaTheme.Size.settingsWindow.height, maxHeight: .infinity)
+        .background(CotaTheme.window)
+        .foregroundStyle(CotaTheme.textPrimary)
+        .overlay { addPairOverlay }
+        .animation(CotaTheme.Motion.expand, value: navigation.isAddingPair)
+        .environment(\.colorScheme, .dark)
+        .ignoresSafeArea()
+        // The language lives in the settings store; keying the tree on it
+        // redraws every label when it changes.
+        .id(settings.language)
     }
 
-    /// Every tab is topped out and left to size itself vertically, so the
-    /// window measures the tallest one and short tabs do not stretch.
+    // MARK: - Sidebar
+
+    private var sidebar: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            ForEach(SettingsSection.allCases) { section in
+                SidebarItem(
+                    section: section,
+                    count: count(for: section),
+                    isSelected: navigation.section == section
+                ) {
+                    navigation.section = section
+                }
+            }
+
+            Spacer(minLength: 0)
+        }
+        // Clears the traffic lights, which sit over the sidebar.
+        .padding(.top, 46)
+        .padding(.horizontal, 10)
+        .padding(.bottom, 14)
+        .frame(width: CotaTheme.Size.sidebar)
+        .frame(maxHeight: .infinity)
+        .background(CotaTheme.sidebar)
+    }
+
+    private func count(for section: SettingsSection) -> Int? {
+        switch section {
+        case .pairs: return settings.pairs.count
+        case .alerts: return settings.alerts.filter(\.isEnabled).count
+        case .general, .menuBar: return nil
+        }
+    }
+
+    // MARK: - Content
+
+    private var content: some View {
+        ScrollView(.vertical) {
+            VStack(alignment: .leading, spacing: 18) {
+                switch navigation.section {
+                case .general:
+                    GeneralSection(settings: settings)
+                case .pairs:
+                    PairsSection(settings: settings, store: store) {
+                        navigation.isAddingPair = true
+                    }
+                case .menuBar:
+                    MenuBarSettingsSection(settings: settings, store: store)
+                case .alerts:
+                    AlertsSection(settings: settings, store: store)
+                }
+            }
+            .padding(.vertical, 22)
+            .padding(.horizontal, 26)
+            .padding(.top, 14)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(CotaTheme.window)
+    }
+
+    // MARK: - Add pair
+
     @ViewBuilder
-    private func tab<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
-        VStack(spacing: 0) {
-            content()
-        }
-        .frame(maxWidth: .infinity, alignment: .top)
-        .fixedSize(horizontal: false, vertical: true)
-    }
+    private var addPairOverlay: some View {
+        if navigation.isAddingPair {
+            ZStack(alignment: .top) {
+                CotaTheme.veil
+                    .onTapGesture { navigation.isAddingPair = false }
+                    .transition(.opacity)
 
-    @ViewBuilder
-    private func section<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
-        VStack(spacing: 0) {
-            content()
-        }
-        .padding(.vertical, Layout.sectionSpacing)
-    }
-
-    // MARK: - Currency pairs
-
-    @State private var dropTarget: String?
-
-    private var pairsList: some View {
-        VStack(spacing: 0) {
-            pairsHeader
-
-            ForEach(Array(settings.pairs.enumerated()), id: \.element) { index, pair in
-                PairRow(
-                    pair: pair,
-                    quote: store.quotes.first { $0.id == pair },
-                    canRemove: settings.pairs.count > 1,
-                    isShownInMenuBar: settings.isShownInMenuBar(pair),
-                    onToggleMenuBar: { settings.setMenuBarPair(pair, shown: $0) },
-                    isDropTarget: dropTarget == pair,
-                    onMoveUp: index > 0 ? { settings.swapPairs(index, index - 1) } : nil,
-                    onMoveDown: index < settings.pairs.count - 1
-                        ? { settings.swapPairs(index, index + 1) } : nil,
-                    onRemove: { settings.removePair(pair) }
-                )
-                .padding(.horizontal, Layout.horizontalPadding)
-                .contentShape(Rectangle())
-                .draggable(PairPayload(pair: pair)) {
-                    PairLabel(pair)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 6))
+                // Centred on the whole window, as in the prototype, and as tall
+                // as its content — it hangs from the top, never to the bottom.
+                AddPairSheet(settings: settings, store: store) {
+                    navigation.isAddingPair = false
                 }
-                .dropDestination(for: PairPayload.self) { items, _ in
-                    dropTarget = nil
-                    guard let dropped = items.first?.pair,
-                        let from = settings.pairs.firstIndex(of: dropped),
-                        let to = settings.pairs.firstIndex(of: pair),
-                        from != to
-                    else {
-                        return false
-                    }
-                    settings.movePair(from: from, to: to > from ? to + 1 : to)
-                    return true
-                } isTargeted: { targeted in
-                    dropTarget = targeted ? pair : (dropTarget == pair ? nil : dropTarget)
-                }
-                .contextMenu {
-                    if index > 0 {
-                        Button("Move up") { settings.swapPairs(index, index - 1) }
-                    }
-                    if index < settings.pairs.count - 1 {
-                        Button("Move down") { settings.swapPairs(index, index + 1) }
-                    }
-                    if settings.pairs.count > 1 {
-                        Divider()
-                        Button("Remove \(PairDisplay(id: pair).text)", role: .destructive) {
-                            settings.removePair(pair)
-                        }
-                    }
-                }
-
-                if index < settings.pairs.count - 1 {
-                    RowSeparator()
-                }
-            }
-
-            if hasAvailablePairs {
-                RowSeparator()
-                Spacer().frame(height: 10)
-                addPairRow
+                .fixedSize(horizontal: false, vertical: true)
+                .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
     }
+}
 
-    /// Mandatory here, and only here: with five columns a bare checkbox in the
-    /// middle of a list of quotes does not explain itself. On a two or three
-    /// column list the same header would be noise.
-    private var pairsHeader: some View {
-        ListRow(height: 22) {
-            EmptyView()
-        } center: {
-            HStack(spacing: Layout.columnSpacing) {
-                Text("Pair")
+private struct SidebarItem: View {
+    let section: SettingsSection
+    let count: Int?
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 9) {
+                Image(systemName: section.icon)
+                    .font(.system(size: 14))
+                    .frame(width: 18)
+
+                Text(section.title)
+                    .font(.system(size: 13))
                     .frame(maxWidth: .infinity, alignment: .leading)
-                Text("Rate")
-                    .frame(width: PairColumns.rate, alignment: .trailing)
-                Text("Change")
-                    .frame(width: PairColumns.change, alignment: .trailing)
-                Text("Menu bar")
-                    .frame(width: PairColumns.menuBar, alignment: .center)
-            }
-            .font(.system(size: 11))
-            .foregroundStyle(.secondary)
-        }
-        .padding(.horizontal, Layout.horizontalPadding)
-    }
 
-    private var hasAvailablePairs: Bool {
-        !SettingsStore.availablePairs.filter { !settings.pairs.contains($0) }.isEmpty
-    }
-
-    private var addPairRow: some View {
-        // Origin first, then destination: a flat list of every offered pair runs
-        // past a hundred entries. Destinations come from the catalog, so a
-        // combination the API would refuse is never on screen.
-        return Menu {
-            ForEach(PairCatalog.currencies, id: \.self) { origin in
-                let destinations = PairCatalog.destinations(from: origin)
-                    .filter { !settings.pairs.contains("\(origin)-\($0)") }
-
-                if !destinations.isEmpty {
-                    Menu(menuTitle(origin, label: origin)) {
-                        ForEach(destinations, id: \.self) { destination in
-                            Button(menuTitle(destination, label: "\(origin)/\(destination)")) {
-                                settings.addPair("\(origin)-\(destination)")
-                            }
-                        }
-                    }
+                if let count {
+                    Text("\(count)")
+                        .font(.system(size: 11).monospacedDigit())
+                        .foregroundStyle(CotaTheme.textSecondary)
                 }
             }
-        } label: {
-            ListRow {
-                Image(systemName: "plus")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(.secondary)
-            } center: {
-                Text("Add pair")
-                    .font(.system(size: 12))
-                    .foregroundStyle(.primary)
-            }
+            .foregroundStyle(isSelected ? CotaTheme.mint : CotaTheme.textControl)
+            .padding(.horizontal, 10)
+            .frame(height: 30)
+            .background(
+                RoundedRectangle(cornerRadius: CotaTheme.Radius.button)
+                    .fill(isSelected ? CotaTheme.mintSoft : Color.clear)
+            )
             .contentShape(Rectangle())
         }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
-        .padding(.horizontal, Layout.horizontalPadding)
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
+}
 
-    /// The flag leads so the menus can be scanned by eye; crypto, with no
-    /// country, falls back to its symbol.
-    private func menuTitle(_ code: String, label: String) -> String {
-        let currency = Currency.named(code)
-        guard let glyph = currency.flag ?? currency.symbol else { return label }
-        return "\(glyph)  \(label)"
-    }
+// MARK: - General
 
-    // MARK: - Refresh interval
+private struct GeneralSection: View {
+    @ObservedObject var settings: SettingsStore
 
     private let intervalOptions: [(label: String, value: Int)] = [
         ("30s", 30), ("1m", 60), ("2m", 120), ("5m", 300), ("10m", 600),
     ]
 
-    private var intervalContent: some View {
-        VStack(alignment: .leading, spacing: 6) {
+    var body: some View {
+        SettingsHeader(title: L10n.t("settings.general"))
+
+        VStack(alignment: .leading, spacing: 8) {
+            Text(L10n.t("general.refresh"))
+                .font(.system(size: 13))
+
             SegmentedControl(
                 segments: intervalOptions.map { .init($0.label, $0.value) },
-                selection: $settings.refreshInterval
+                selection: $settings.refreshInterval,
+                fillsWidth: true
             )
-            .accessibilityLabel("Refresh interval")
+            .accessibilityLabel(L10n.t("general.refresh"))
 
-            Text("Values are cached between refreshes.")
-                .font(.system(size: 11))
-                .foregroundStyle(.tertiary)
+            SettingsNote(L10n.t("general.refreshNote"))
         }
-        .padding(.horizontal, Layout.horizontalPadding)
-    }
 
-    // MARK: - General
-
-    private var generalContent: some View {
-        ListRow {
-            EmptyView()
-        } center: {
-            Text("Launch at login")
-                .font(.system(size: 12))
-        } trailing: {
-            Toggle(
-                "",
-                isOn: Binding(
-                    get: { settings.launchAtLogin },
-                    set: { settings.setLaunchAtLogin($0) }
+        VStack(spacing: 0) {
+            SettingsRow(divider: .top) {
+                SettingsLabel(L10n.t("general.language"), note: L10n.t("general.languageNote"))
+            } control: {
+                SegmentedControl(
+                    segments: AppLanguage.allCases.map { .init($0.label, $0) },
+                    selection: $settings.language
                 )
-            )
-            .labelsHidden()
-            .toggleStyle(.switch)
-            .controlSize(.mini)
+                .accessibilityLabel(L10n.t("general.language"))
+            }
+
+            SettingsRow(divider: .top) {
+                SettingsLabel(L10n.t("general.launchAtLogin"))
+            } control: {
+                Toggle(
+                    "",
+                    isOn: Binding(
+                        get: { settings.launchAtLogin },
+                        set: { settings.setLaunchAtLogin($0) }
+                    )
+                )
+                .toggleStyle(MintToggleStyle())
+                .accessibilityLabel(L10n.t("general.launchAtLogin"))
+            }
         }
-        .padding(.horizontal, Layout.horizontalPadding)
         // The login item can be revoked in System Settings while the app runs,
         // so the switch re-reads it on every open rather than trusting the
         // value it was built with.
         .task { settings.loadLaunchAtLogin() }
-    }
-}
-
-// MARK: - Rows
-
-/// The header and every row measure their columns here, so the checkbox lands
-/// under its own label instead of wherever the rate above happened to end.
-private enum PairColumns {
-    static let rate: CGFloat = 96
-    static let change: CGFloat = 64
-    /// Wide enough for its own header: "Menu bar" at 11pt needs more than the
-    /// checkbox does, and the label is what makes the column legible.
-    static let menuBar: CGFloat = 60
-}
-
-private struct PairRow: View {
-    let pair: String
-    let quote: Quote?
-    let canRemove: Bool
-    let isShownInMenuBar: Bool
-    let onToggleMenuBar: (Bool) -> Void
-    let isDropTarget: Bool
-    let onMoveUp: (() -> Void)?
-    let onMoveDown: (() -> Void)?
-    let onRemove: () -> Void
-
-    @State private var hovering = false
-
-    var body: some View {
-        ListRow {
-            ReorderControl(hovering: hovering, onMoveUp: onMoveUp, onMoveDown: onMoveDown)
-                .accessibilityLabel("Reorder \(PairDisplay(id: pair).text)")
-        } center: {
-            HStack(spacing: Layout.columnSpacing) {
-                PairLabel(pair)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                Text(formattedBid)
-                    .font(.system(size: 12, weight: .regular, design: .default).monospacedDigit())
-                    .foregroundStyle(
-                        quote == nil ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary)
-                    )
-                    .frame(width: PairColumns.rate, alignment: .trailing)
-                    .help(missingQuoteHelp ?? "")
-
-                Text(formattedChange)
-                    .font(.system(size: 11, weight: .medium).monospacedDigit())
-                    .foregroundStyle(changeColor)
-                    .frame(width: PairColumns.change, alignment: .trailing)
-
-                // The one source of truth about what the menu bar shows. The
-                // Menu bar tab only reacts to this column.
-                Toggle("", isOn: Binding(get: { isShownInMenuBar }, set: onToggleMenuBar))
-                    .labelsHidden()
-                    .toggleStyle(.checkbox)
-                    .frame(width: PairColumns.menuBar, alignment: .center)
-                    .accessibilityLabel("Show \(PairDisplay(id: pair).text) in the menu bar")
-            }
-        } trailing: {
-            Button(action: onRemove) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                    .frame(width: Layout.trailingSlotWidth, height: Layout.rowHeight)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .disabled(!canRemove)
-            .opacity(hovering && canRemove ? 1 : 0)
-            .accessibilityLabel("Remove pair \(PairDisplay(id: pair).text)")
-            .help("Remove pair")
-        }
-        .background(alignment: .top) {
-            if isDropTarget {
-                Rectangle()
-                    .fill(Color.accentColor)
-                    .frame(height: 2)
-                    .frame(maxWidth: .infinity)
-            }
-        }
-        .onHover { hovering = $0 }
-    }
-
-    private var formattedBid: String {
-        guard let quote else { return "—" }
-        return QuoteFormat.value(quote.bid)
-    }
-
-    private var missingQuoteHelp: String? {
-        quote == nil ? "Not in the last API response" : nil
-    }
-
-    private var formattedChange: String {
-        guard let quote else { return "—" }
-        let value = quote.pctChange
-        return "\(value < 0 ? "▼" : "▲") \(QuoteFormat.percentMagnitude(value))"
-    }
-
-    private var changeColor: Color {
-        guard let quote else { return .secondary }
-        return quote.pctChange >= 0 ? .green : .red
-    }
-}
-
-private struct ReorderControl: View {
-    let hovering: Bool
-    let onMoveUp: (() -> Void)?
-    let onMoveDown: (() -> Void)?
-
-    var body: some View {
-        ZStack {
-            if hovering {
-                VStack(spacing: 1) {
-                    Button {
-                        onMoveUp?()
-                    } label: {
-                        Image(systemName: "chevron.up")
-                            .font(.system(size: 8, weight: .bold))
-                            .foregroundStyle(
-                                onMoveUp == nil
-                                    ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.secondary)
-                            )
-                            .frame(width: Layout.leadingSlotWidth, height: 10)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(onMoveUp == nil)
-                    .help("Move up")
-
-                    Button {
-                        onMoveDown?()
-                    } label: {
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 8, weight: .bold))
-                            .foregroundStyle(
-                                onMoveDown == nil
-                                    ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.secondary)
-                            )
-                            .frame(width: Layout.leadingSlotWidth, height: 10)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(onMoveDown == nil)
-                    .help("Move down")
-                }
-            } else {
-                GripHandle()
-            }
-        }
-        .frame(width: Layout.leadingSlotWidth, height: Layout.rowHeight)
-        .animation(.easeInOut(duration: 0.12), value: hovering)
-    }
-}
-
-private struct GripHandle: View {
-    var body: some View {
-        VStack(spacing: 2) {
-            HStack(spacing: 2) {
-                dot
-                dot
-            }
-            HStack(spacing: 2) {
-                dot
-                dot
-            }
-            HStack(spacing: 2) {
-                dot
-                dot
-            }
-        }
-        .frame(width: Layout.leadingSlotWidth, height: Layout.rowHeight)
-        .contentShape(Rectangle())
-    }
-
-    private var dot: some View {
-        Circle()
-            .fill(Color.primary.opacity(0.35))
-            .frame(width: 2.5, height: 2.5)
     }
 }

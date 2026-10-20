@@ -5,9 +5,11 @@ import Foundation
 /// Every surface used to carry its own rule, which is how the pairs list ended
 /// up printing `398.348,0000` next to `5,9713` — the same column, one number
 /// twice the width of the other and three of its decimals meaningless.
+///
+/// The locale follows the app's language — `5,6480` in Portuguese, `5.6480` in
+/// English — and only the separators change with it. The rules for how many
+/// decimals a magnitude gets are the same in every language.
 public enum QuoteFormat {
-    private static let locale = Locale(identifier: "pt_BR")
-
     /// Below this, cents still carry movement; above it they are noise.
     private static let decimalCeiling = Decimal(1000)
 
@@ -26,8 +28,8 @@ public enum QuoteFormat {
     /// thousand, none above.
     /// Used by the panel, the pairs list and the alerts — everywhere the width
     /// is not disputed and precision is what the reader came for.
-    public static func value(_ value: Decimal) -> String {
-        fixed(value, fractionDigits: fractionDigits(for: value))
+    public static func value(_ value: Decimal, locale: Locale = L10n.language.locale) -> String {
+        fixed(value, fractionDigits: fractionDigits(for: value), locale: locale)
     }
 
     /// The menu bar's variant, which differs from `value` in two ways, both
@@ -41,48 +43,90 @@ public enum QuoteFormat {
     /// The second is a real divergence, not an oversight: a fourth decimal
     /// costs about as much width as the currency symbol, and the menu bar is
     /// the glance surface — the panel is a click away when the digit matters.
-    public static func menuBar(_ value: Decimal) -> String {
+    public static func menuBar(_ value: Decimal, locale: Locale = L10n.language.locale) -> String {
         if value >= abbreviationFloor {
-            return "\(fixed(value / 1000, fractionDigits: 0))k"
+            return "\(fixed(value / 1000, fractionDigits: 0, locale: locale))k"
         }
 
         if value < 1 {
-            return fixed(value, fractionDigits: value < smallValueCeiling ? 5 : 4)
+            return fixed(
+                value, fractionDigits: value < smallValueCeiling ? 5 : 4, locale: locale)
         }
 
-        return fixed(value, fractionDigits: value >= decimalCeiling ? 0 : 2)
+        return fixed(value, fractionDigits: value >= decimalCeiling ? 0 : 2, locale: locale)
     }
 
     /// Range bounds may abbreviate where the main value may not: the range is
     /// context, and `403k – 409k` reads faster than the full figures.
-    public static func rangeBound(_ value: Decimal) -> String {
+    public static func rangeBound(_ value: Decimal, locale: Locale = L10n.language.locale) -> String
+    {
         if value >= decimalCeiling {
-            return "\(fixed(value / 1000, fractionDigits: 0))k"
+            return "\(fixed(value / 1000, fractionDigits: 0, locale: locale))k"
         }
 
         // Two decimals would collapse a CLP/BRL range to `0,01 – 0,01`.
         if value < 1 {
-            return Self.value(value)
+            return Self.value(value, locale: locale)
         }
 
-        return fixed(value, fractionDigits: 2)
+        return fixed(value, fractionDigits: 2, locale: locale)
+    }
+
+    /// An amount with its currency in front: `R$ 5,6480`.
+    public static func money(
+        _ value: Decimal, currency: String, locale: Locale = L10n.language.locale
+    ) -> String {
+        "\(Currency.named(currency).moneySymbol) \(Self.value(value, locale: locale))"
+    }
+
+    /// An alert threshold as the person set it: `5,70`, not `5,7000`.
+    ///
+    /// Two decimals from one up, none from a thousand, four below one — but
+    /// never fewer than the value carries, so a typed `5,6931` is not shown
+    /// back as a rounded `5,69` it will not fire at.
+    public static func threshold(_ value: Decimal, locale: Locale = L10n.language.locale) -> String
+    {
+        let floor: Int
+        if value >= decimalCeiling {
+            floor = 0
+        } else if value >= 1 {
+            floor = 2
+        } else {
+            floor = 4
+        }
+        return fixed(
+            value, fractionDigits: min(max(floor, ownFractionDigits(value)), 6), locale: locale)
+    }
+
+    private static func ownFractionDigits(_ value: Decimal) -> Int {
+        max(-value.exponent, 0)
     }
 
     /// Signed percentage, for surfaces where the sign is the only marker.
-    public static func percent(_ change: Decimal) -> String {
-        "\(change < 0 ? "-" : "+")\(percentMagnitude(change))"
+    public static func percent(_ change: Decimal, locale: Locale = L10n.language.locale) -> String {
+        "\(change < 0 ? "-" : "+")\(percentMagnitude(change, locale: locale))"
     }
 
     /// Unsigned percentage, for surfaces that already carry a ▲/▼ — a sign
     /// beside an arrow says the same thing twice.
-    public static func percentMagnitude(_ change: Decimal) -> String {
-        "\(fixed(abs(change), fractionDigits: 2))%"
+    public static func percentMagnitude(
+        _ change: Decimal, locale: Locale = L10n.language.locale
+    ) -> String {
+        "\(fixed(abs(change), fractionDigits: 2, locale: locale))%"
     }
 
-    /// Parses a threshold the way the alerts field is typed: pt-BR grouping
-    /// and a decimal comma, plus a plain `6.02`. Zero and below are rejected
+    /// Parses a number the way the alert and converter fields are typed, in
+    /// either language: pt-BR grouping and a decimal comma (`1.000,50`), en
+    /// grouping and a decimal point (`1,000.50`), or a plain `6.02`. Zero and below are rejected
     /// — they are not prices anyone would alert on.
-    public static func parseThreshold(_ text: String) -> Decimal? {
+    ///
+    /// A lone separator followed by exactly three digits is ambiguous, and the
+    /// language decides: in Portuguese `5.123` is grouping and `5,123` a
+    /// decimal; in English, the other way round.
+    public static func parseThreshold(
+        _ text: String, locale: Locale = L10n.language.locale
+    ) -> Decimal? {
+        let groupsWithDot = locale.decimalSeparator != "."
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
 
@@ -99,11 +143,18 @@ public enum QuoteFormat {
             } else {
                 normalized = trimmed.replacingOccurrences(of: ",", with: "")
             }
-        } else if lastComma != nil {
-            normalized = trimmed.replacingOccurrences(of: ",", with: ".")
+        } else if let comma = lastComma {
+            let fraction = trimmed[trimmed.index(after: comma)...]
+            if !groupsWithDot, fraction.count == 3, fraction.allSatisfy(\.isNumber) {
+                normalized = trimmed.replacingOccurrences(of: ",", with: "")
+            } else if trimmed.filter({ $0 == "," }).count > 1 {
+                return nil
+            } else {
+                normalized = trimmed.replacingOccurrences(of: ",", with: ".")
+            }
         } else if let dot = lastDot {
             let fraction = trimmed[trimmed.index(after: dot)...]
-            if fraction.count == 3, fraction.allSatisfy(\.isNumber) {
+            if groupsWithDot, fraction.count == 3, fraction.allSatisfy(\.isNumber) {
                 normalized = trimmed.replacingOccurrences(of: ".", with: "")
             } else if trimmed.filter({ $0 == "." }).count > 1 {
                 return nil
@@ -154,7 +205,7 @@ public enum QuoteFormat {
         return value >= precisionCeiling ? 2 : 4
     }
 
-    private static func fixed(_ value: Decimal, fractionDigits: Int) -> String {
+    private static func fixed(_ value: Decimal, fractionDigits: Int, locale: Locale) -> String {
         value.formatted(
             .number
                 .precision(.fractionLength(fractionDigits))

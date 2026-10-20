@@ -14,6 +14,7 @@ public final class SettingsStore: ObservableObject {
         static let menuBarFormat = "menuBarFormat"
         static let menuBarIndicator = "menuBarIndicator"
         static let dimWhenStale = "dimWhenStale"
+        static let language = "appLanguage"
 
         /// Read once, to migrate, then never again. Left in place rather than
         /// deleted: an install that rolls back to the previous build finds its
@@ -26,6 +27,7 @@ public final class SettingsStore: ObservableObject {
 
     private let defaults: UserDefaults
     private let launchAgent: LaunchAgent
+    private let drivesLocalization: Bool
 
     /// The pairs and their menu bar flags — the single source of truth for both.
     @Published public private(set) var pairSettings: [PairSetting] {
@@ -63,6 +65,16 @@ public final class SettingsStore: ObservableObject {
         didSet { defaults.set(dimWhenStale, forKey: Keys.dimWhenStale) }
     }
 
+    /// The language of every label, currency name and number. Changing it
+    /// redraws in place: views observe the store, and `L10n` is pointed at the
+    /// new strings before anything reads them.
+    @Published public var language: AppLanguage {
+        didSet {
+            defaults.set(language.rawValue, forKey: Keys.language)
+            applyLanguage()
+        }
+    }
+
     @Published public var launchAtLogin = false
 
     @Published public var alerts: [PriceAlert] = []
@@ -82,9 +94,17 @@ public final class SettingsStore: ObservableObject {
         PairCatalog.pairs
     }
 
-    public init(defaults: UserDefaults = .standard, launchAgent: LaunchAgent = .system) {
+    /// `drivesLocalization` is for the app's own store only. `L10n.language`
+    /// is process-wide, and tests that build stores in parallel must not move
+    /// it under each other's feet.
+    public init(
+        defaults: UserDefaults = .standard,
+        launchAgent: LaunchAgent = .system,
+        drivesLocalization: Bool = false
+    ) {
         self.defaults = defaults
         self.launchAgent = launchAgent
+        self.drivesLocalization = drivesLocalization
         let resolvedPairs = Self.loadPairSettings(from: defaults)
         self.pairSettings = resolvedPairs
         self.pairs = resolvedPairs.map(\.pair)
@@ -101,12 +121,22 @@ public final class SettingsStore: ObservableObject {
             defaults.string(forKey: Keys.menuBarIndicator)
             .flatMap(ChangeIndicator.init(rawValue:)) ?? .arrow
         self.dimWhenStale = defaults.object(forKey: Keys.dimWhenStale) as? Bool ?? true
+        self.language =
+            defaults.string(forKey: Keys.language)
+            .flatMap(AppLanguage.init(rawValue:)) ?? .system
 
         self.alerts = Self.loadAlerts(from: defaults)
 
         // Read here, not left to a caller: the switch is the only place the
         // login item is visible, and nothing was calling `loadLaunchAtLogin()`.
         self.launchAtLogin = launchAgent.isEnabled()
+
+        applyLanguage()
+    }
+
+    private func applyLanguage() {
+        guard drivesLocalization else { return }
+        L10n.language = language
     }
 
     // MARK: - Persistence and migration
@@ -226,6 +256,12 @@ public final class SettingsStore: ObservableObject {
     /// reconcile — which was the whole point of folding the two lists into one.
     public var orderedMenuBarPairs: [String] {
         pairSettings.filter(\.showsInMenuBar).map(\.pair)
+    }
+
+    /// Pairs with at least one alert switched on: the menu bar marks them
+    /// with a dot.
+    public var alertPairs: Set<String> {
+        Set(alerts.filter(\.isEnabled).map(\.pair))
     }
 
     public func addAlert(_ alert: PriceAlert) {

@@ -60,14 +60,21 @@ public final class NotificationService: NSObject, UNUserNotificationCenterDelega
         self.clock = clock
         self.states = store.load()
         super.init()
+        deliver = { [weak self] alert, value in
+            try await NotificationService.post(
+                alert: alert, currentValue: value, change: self?.changes[alert.pair])
+        }
     }
 
     /// How a due alert reaches the person. Throws when the notification
     /// centre refuses the request. Injectable so the rules can be tested
     /// without a notification centre.
     var deliver: (PriceAlert, Decimal) async throws -> Void = { alert, value in
-        try await NotificationService.post(alert: alert, currentValue: value)
+        try await NotificationService.post(alert: alert, currentValue: value, change: nil)
     }
+
+    /// The day's change per pair from the last check, for the banner body.
+    private var changes: [String: Decimal] = [:]
 
     /// What Notification Center still shows. Injectable for the same reason
     /// as `deliver`.
@@ -120,6 +127,8 @@ public final class NotificationService: NSObject, UNUserNotificationCenterDelega
         // on: a muted alert keeps remembering that it fired.
         let knownIDs = Set(alerts.map(\.id))
         states = states.filter { knownIDs.contains($0.key) }
+
+        changes = Dictionary(quotes.map { ($0.id, $0.pctChange) }, uniquingKeysWith: { $1 })
 
         var due: [(alert: PriceAlert, bid: Decimal)] = []
         var pauses: [UUID: AlertPause] = [:]
@@ -278,12 +287,12 @@ public final class NotificationService: NSObject, UNUserNotificationCenterDelega
         }
     }
 
-    private static func post(alert: PriceAlert, currentValue: Decimal) async throws {
-        let baseCode = alert.pair.split(separator: "-").first.map(String.init) ?? alert.pair
-
+    private static func post(
+        alert: PriceAlert, currentValue: Decimal, change: Decimal?
+    ) async throws {
         let content = UNMutableNotificationContent()
-        content.title = "\(flag(for: baseCode)) Threshold Reached"
-        content.body = body(for: alert, currentValue: currentValue)
+        content.title = title(for: alert)
+        content.body = body(for: alert, currentValue: currentValue, change: change)
         content.sound = .default
 
         let request = UNNotificationRequest(
@@ -295,19 +304,25 @@ public final class NotificationService: NSObject, UNUserNotificationCenterDelega
         try await UNUserNotificationCenter.current().add(request)
     }
 
+    /// "Euro rose above R$ 5.75": the currency by name and the threshold
+    /// with the destination's symbol, so the banner says what crossed what
+    /// without the pair code.
+    static func title(for alert: PriceAlert) -> String {
+        let display = PairDisplay(id: alert.pair)
+        let threshold =
+            "\(Currency.named(display.quote).moneySymbol) \(QuoteFormat.threshold(alert.threshold))"
+        let key = alert.isAbove ? "notification.crossedAbove" : "notification.crossedBelow"
+        return L10n.t(key, L10n.currencyName(display.base), threshold)
+    }
+
     /// Through `QuoteFormat` like every other surface. The banner used to fix
     /// four decimals of its own, which printed BTC as `398.348,0000`.
-    ///
-    /// Names the pair: with more than one destination on offer, `6,02` alone no
-    /// longer says whether it is reais or dollars, and the title only carries
-    /// the origin's flag.
-    static func body(for alert: PriceAlert, currentValue: Decimal) -> String {
-        let direction = alert.isAbove ? "above" : "below"
-        let threshold = QuoteFormat.value(alert.threshold)
-        let current = QuoteFormat.value(currentValue)
-        let pair = PairDisplay(id: alert.pair).text
-
-        return "\(pair) is now \(current) (\(direction) your \(threshold) alert)."
+    static func body(for alert: PriceAlert, currentValue: Decimal, change: Decimal?) -> String {
+        let current = QuoteFormat.money(currentValue, currency: PairDisplay(id: alert.pair).quote)
+        guard let change else { return L10n.t("notification.bodyNoChange", current) }
+        let arrow = change < 0 ? "▼" : "▲"
+        return L10n.t(
+            "notification.body", current, "\(arrow) \(QuoteFormat.percentMagnitude(change))")
     }
 
     static func flag(for code: String) -> String {

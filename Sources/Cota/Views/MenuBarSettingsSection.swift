@@ -1,10 +1,10 @@
 import CotaKit
 import SwiftUI
 
-/// The "Menu bar" block of Settings.
+/// Settings → Menu bar.
 ///
 /// The preview sits at the top because the choice only makes sense if the
-/// person can see the result while deciding: `auto` dropping to codes, or a
+/// person can see the result while deciding: symbols dropping to codes, or a
 /// flag falling back for crypto, are both things you understand by watching
 /// them happen.
 struct MenuBarSettingsSection: View {
@@ -12,98 +12,112 @@ struct MenuBarSettingsSection: View {
     @ObservedObject var store: QuoteStore
 
     var body: some View {
+        SettingsHeader(title: L10n.t("settings.menuBar"), subtitle: L10n.t("menuBar.subtitle"))
+
+        VStack(alignment: .leading, spacing: 8) {
+            preview
+
+            // No pair picker here: the pin in Pairs is the single source of
+            // truth, and a second selector would put the reader back in front
+            // of two lists of the same thing.
+            if settings.orderedMenuBarPairs.isEmpty {
+                SettingsNote(L10n.t("menuBar.empty"))
+            } else if settings.orderedMenuBarPairs.count > 2 {
+                // Not a cap: where the line falls depends on what else the
+                // person keeps up there, so this explains rather than forbids.
+                SettingsNote(L10n.t("menuBar.crowded"))
+            }
+        }
+
+        VStack(alignment: .leading, spacing: 8) {
+            formatCards
+
+            if let reason = MenuBarLabel.disabledReason(for: .value, pairCount: pinnedCount) {
+                SettingsNote(reason)
+            }
+
+            // Only while "Symbol" is in fallback: without it the card looks
+            // identical to "Code" and the option reads as broken.
+            if selectedFormat == .auto, let note = collisionNote {
+                SettingsNote(note)
+            }
+        }
+
         VStack(spacing: 0) {
-            // "Preview", not "Menu bar": the tab already says which surface
-            // this is, and repeating it inside makes the real headers below
-            // look like siblings of a title.
-            group {
-                SectionHeader(title: "Preview")
-                preview
-
-                // No pair picker here: the "Menu bar" column of the Pairs tab
-                // is the single source of truth, and a second selector would
-                // put the reader back in front of two lists of the same thing.
-                if settings.orderedMenuBarPairs.isEmpty {
-                    helpText("Tick a pair in the Pairs tab to show it here.", indent: 0)
-                } else if settings.orderedMenuBarPairs.count > 2 {
-                    // Not a cap: where the line falls depends on what else the
-                    // person keeps up there, so this explains rather than
-                    // forbids.
-                    helpText(
-                        "Two pairs fit comfortably; more will crowd the other menu bar icons.",
-                        indent: 0
-                    )
-                }
+            SettingsRow(divider: .bottom, verticalPadding: 6) {
+                SettingsLabel(L10n.t("menuBar.change"))
+            } control: {
+                SegmentedControl(
+                    segments: ChangeIndicator.allCases.map { .init($0.label, $0) },
+                    selection: $settings.menuBarIndicator
+                )
+                .accessibilityLabel(L10n.t("menuBar.change"))
             }
 
-            SectionSeparator()
-
-            group {
-                SectionHeader(title: "Format")
-                formatList
-            }
-
-            SectionSeparator()
-
-            group {
-                SectionHeader(title: "Change indicator")
-                indicatorControl
-            }
-
-            SectionSeparator()
-
-            // Its own block rather than a tail of "Change indicator": it governs
-            // the whole label, not what follows the number.
-            group {
-                staleToggle
+            // Governs the menu bar and nothing else. Dimming grates precisely
+            // on the bar, which is always in view; the panel was opened on
+            // purpose, and there is room there to explain stale data.
+            SettingsRow(divider: .none, verticalPadding: 6) {
+                SettingsLabel(L10n.t("menuBar.dimStale"), note: L10n.t("menuBar.dimStaleNote"))
+            } control: {
+                Toggle("", isOn: $settings.dimWhenStale)
+                    .toggleStyle(MintToggleStyle())
+                    .accessibilityLabel(L10n.t("menuBar.dimStale"))
             }
         }
     }
 
-    @ViewBuilder
-    private func group<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
-        VStack(spacing: 0) {
-            content()
-        }
-        .padding(.vertical, Layout.sectionSpacing)
+    private var pinnedCount: Int {
+        settings.orderedMenuBarPairs.count
     }
 
     // MARK: - Preview
 
-    /// Drawn by the same renderer the menu bar uses, from the same segments, so
-    /// the preview cannot promise something the bar will not draw.
+    /// Drawn by the same renderer the menu bar uses, from the same segments,
+    /// so the preview cannot promise something the bar will not draw.
     private var preview: some View {
-        HStack {
+        HStack(spacing: 16) {
+            Spacer(minLength: 0)
+
             if selectedQuotes.isEmpty {
-                Text(
-                    settings.orderedMenuBarPairs.isEmpty
-                        ? "No pairs shown in the menu bar"
-                        : "Waiting for quotes"
-                )
-                .font(.system(size: 11))
-                .foregroundStyle(.tertiary)
+                Text(settings.orderedMenuBarPairs.isEmpty ? "" : L10n.t("menuBar.waiting"))
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color.white.opacity(0.5))
             } else {
                 Image(nsImage: MenuBarLabelImage.render(previewSegments, dimmed: false))
+                    .padding(.horizontal, 9)
+                    .frame(height: 24)
+                    .background(
+                        RoundedRectangle(cornerRadius: CotaTheme.Radius.segment)
+                            .fill(Color.white.opacity(0.18))
+                    )
             }
 
-            Spacer(minLength: 0)
+            Text(
+                Date.now.formatted(
+                    .dateTime.weekday(.abbreviated).day().month().hour().minute()
+                        .locale(L10n.language.locale))
+            )
+            .font(.system(size: 13))
+            .foregroundStyle(Color.white.opacity(0.75))
+            .lineLimit(1)
         }
-        .frame(height: 26)
-        .padding(.horizontal, Layout.columnSpacing)
+        .padding(.horizontal, 14)
+        .frame(height: 44)
         .background(
-            RoundedRectangle(cornerRadius: 6)
-                .fill(Color(nsColor: .quaternaryLabelColor).opacity(0.4))
+            RoundedRectangle(cornerRadius: CotaTheme.Radius.card)
+                .fill(CotaTheme.menuBarStrip)
         )
-        .padding(.horizontal, Layout.horizontalPadding)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Menu bar preview")
+        .accessibilityLabel(L10n.t("a11y.menuBarPreview"))
     }
 
     private var previewSegments: [LabelSegment] {
         MenuBarLabel.segments(
             for: selectedQuotes,
             format: settings.menuBarFormat,
-            indicator: settings.menuBarIndicator
+            indicator: settings.menuBarIndicator,
+            alertPairs: settings.alertPairs
         )
     }
 
@@ -111,157 +125,92 @@ struct MenuBarSettingsSection: View {
         store.menuBarQuotes
     }
 
-    // MARK: - Pairs
-
     // MARK: - Format
 
-    private var formatList: some View {
-        VStack(spacing: 0) {
-            ForEach(Array(MenuBarFormat.allCases.enumerated()), id: \.element) { index, format in
-                formatRow(format)
-
-                if let reason = MenuBarLabel.disabledReason(
-                    for: format,
-                    pairCount: settings.orderedMenuBarPairs.count
-                ) {
-                    helpText(reason)
-                }
-
-                // Only under "Automatic", and only while it is in fallback:
-                // without it the row looks identical to "Currency code" and the
-                // option reads as broken. With it, the coincidence becomes a
-                // rule the person can act on.
-                if format == .auto, let note = collisionNote {
-                    helpText(note)
-                }
-
-                if index < MenuBarFormat.allCases.count - 1 {
-                    RowSeparator()
-                }
-            }
-        }
-    }
-
     /// What the bar is actually drawing, which is not always what is stored:
-    /// "Value only" falls back to "Automatic" as soon as a second pair is
-    /// ticked. Marking the stored choice left the radio on a row that was both
-    /// selected and disabled while the bar showed something else.
-    ///
-    /// The stored choice is deliberately left alone — unticking the second pair
-    /// has to bring "Value only" back.
+    /// "Value only" falls back to "Symbol" as soon as a second pair is pinned.
+    /// The stored choice is left alone — unpinning the second pair has to
+    /// bring "Value only" back.
     private var selectedFormat: MenuBarFormat {
-        MenuBarLabel.effectiveFormat(
-            settings.menuBarFormat,
-            pairCount: settings.orderedMenuBarPairs.count
-        )
+        MenuBarLabel.effectiveFormat(settings.menuBarFormat, pairCount: pinnedCount)
     }
 
-    private func formatRow(_ format: MenuBarFormat) -> some View {
-        let isDisabled =
-            MenuBarLabel.disabledReason(
-                for: format,
-                pairCount: settings.orderedMenuBarPairs.count
-            ) != nil
-        let isSelected = selectedFormat == format
-
-        return Button {
-            settings.menuBarFormat = format
-        } label: {
-            ListRow(leadingWidth: 16, trailingWidth: 104) {
-                Image(
-                    systemName: isSelected
-                        ? "largecircle.fill.circle"
-                        : "circle"
-                )
-                .font(.system(size: 12))
-                .foregroundStyle(
-                    isSelected
-                        ? AnyShapeStyle(Color.accentColor)
-                        : AnyShapeStyle(.secondary))
-            } center: {
-                Text(format.label)
-                    .font(.system(size: 12))
-            } trailing: {
-                LabelSegmentsText(segments: example(for: format))
+    private var formatCards: some View {
+        HStack(spacing: 8) {
+            ForEach(MenuBarFormat.allCases) { format in
+                FormatCard(
+                    label: format.label,
+                    example: example(for: format),
+                    isSelected: selectedFormat == format,
+                    isEnabled: MenuBarLabel.disabledReason(for: format, pairCount: pinnedCount)
+                        == nil
+                ) {
+                    settings.menuBarFormat = format
+                }
             }
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
-        .disabled(isDisabled)
-        .opacity(isDisabled ? 0.5 : 1)
-        .padding(.horizontal, Layout.horizontalPadding)
-        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 
-    /// Examples derive from the first selected pair, never from a fixed value:
+    /// Examples derive from the first pinned pair rather than a fixed value:
     /// an example hardcoded to EUR while the person follows USD and CAD
-    /// describes a configuration that is not theirs.
+    /// describes a configuration that is not theirs. With nothing pinned, the
+    /// first pair in the list stands in.
     private func example(for format: MenuBarFormat) -> [LabelSegment] {
-        guard let first = selectedQuotes.first else { return [] }
+        let sample =
+            selectedQuotes.first
+            ?? store.quotes.first.map {
+                MenuBarQuote(pair: $0.id, bid: $0.bid, change: $0.pctChange)
+            }
+        guard let sample else { return [] }
 
+        let among = selectedQuotes.isEmpty ? [sample] : selectedQuotes
         return MenuBarLabel.exampleSegments(
-            for: first,
+            for: sample,
             format: format,
-            among: selectedQuotes.map(\.code),
-            destinations: selectedQuotes.map(\.destination)
+            among: among.map(\.code),
+            destinations: among.map(\.destination)
         )
     }
 
     private var collisionNote: String? {
         MenuBarLabel.collisionNote(among: selectedQuotes.map(\.code))
     }
+}
 
-    // MARK: - Indicator
+private struct FormatCard: View {
+    let label: String
+    let example: [LabelSegment]
+    let isSelected: Bool
+    let isEnabled: Bool
+    let action: () -> Void
 
-    private var indicatorControl: some View {
-        SegmentedControl(
-            segments: ChangeIndicator.allCases.map { .init($0.label, $0) },
-            selection: $settings.menuBarIndicator
-        )
-        .padding(.horizontal, Layout.horizontalPadding)
-        .accessibilityLabel("Change indicator")
-    }
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 10) {
+                LabelSegmentsText(segments: example, size: 15)
+                    .frame(height: 20, alignment: .leading)
 
-    /// Governs the menu bar and nothing else. Dimming grates precisely on the
-    /// bar, which is always in view; the panel was opened on purpose, and the
-    /// person there wants the whole picture with room to explain it.
-    private var staleToggle: some View {
-        VStack(spacing: 0) {
-            ListRow {
-                EmptyView()
-            } center: {
-                Text("Dim when data is stale")
-                    .font(.system(size: 12))
-            } trailing: {
-                Toggle("", isOn: $settings.dimWhenStale)
-                    .labelsHidden()
-                    .toggleStyle(.switch)
-                    .controlSize(.mini)
+                Text(label)
+                    .font(.system(size: 11))
+                    .foregroundStyle(isSelected ? CotaTheme.mint : CotaTheme.textSecondary)
+                    .lineLimit(1)
             }
-            .padding(.horizontal, Layout.horizontalPadding)
-
-            // On screen, not in a tooltip: without it the panel going on
-            // marking stale data with the toggle off reads as a bug, and a
-            // tooltip is only found by someone who already suspected one.
-            helpText(
-                "Applies to the menu bar only. The popover always marks stale data.",
-                indent: Layout.leadingSlotWidth + Layout.columnSpacing
-            )
-        }
-    }
-
-    /// Indented to whatever it explains: under a row, past the slot reserved
-    /// for the radio or checkbox, so the line starts under the label and not
-    /// under the control; under the preview, flush with the section margin.
-    private func helpText(_ text: String, indent: CGFloat = 16 + Layout.columnSpacing) -> some View
-    {
-        Text(text)
-            .font(.system(size: 11))
-            .foregroundStyle(.tertiary)
-            .fixedSize(horizontal: false, vertical: true)
+            .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.leading, Layout.horizontalPadding + indent)
-            .padding(.trailing, Layout.horizontalPadding)
-            .padding(.bottom, 6)
+            .background(
+                RoundedRectangle(cornerRadius: CotaTheme.Radius.card)
+                    .fill(isSelected ? CotaTheme.mintCard : CotaTheme.cardFill)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: CotaTheme.Radius.card)
+                    .strokeBorder(isSelected ? CotaTheme.mint : CotaTheme.cardBorder, lineWidth: 1)
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!isEnabled)
+        .opacity(isEnabled ? 1 : 0.4)
+        .accessibilityLabel(label)
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 }

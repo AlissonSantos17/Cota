@@ -6,14 +6,34 @@ struct PanelView: View {
     @ObservedObject var store: QuoteStore
     @ObservedObject var settings: SettingsStore
 
+    @ObservedObject private var panelState = PanelState.shared
+    /// The converter's amount and direction are shared by every row, so
+    /// opening the next pair converts the same 100.
+    @State private var convertAmount = "100"
+    @State private var convertInverted = false
+    @State private var copiedPairID: String?
+
     var body: some View {
         quotesPanel
-            .frame(width: 360)
+            .frame(width: CotaTheme.Size.panelWidth)
+            // The window follows the content's height: a row opening has to
+            // grow the panel, not scroll or clip inside a fixed frame.
+            .fixedSize(horizontal: false, vertical: true)
+            .syncsWindowHeight()
+            .background(CotaTheme.night)
+            .overlay(
+                RoundedRectangle(cornerRadius: CotaTheme.Radius.panel)
+                    .strokeBorder(CotaTheme.panelBorder, lineWidth: 1)
+            )
+            .foregroundStyle(CotaTheme.textPrimary)
+            .environment(\.colorScheme, .dark)
             .background { shortcutButtons }
+            // The language lives in the settings store; reading it here makes
+            // the whole panel redraw when it changes.
+            .id(settings.language)
     }
 
-    /// Settings is a window of its own now, not a second page of the popover.
-    /// The popover stays what it is: the quotes view.
+    /// Settings is a window of its own, not a second page of the popover.
     private func openSettings() {
         SettingsWindowController.show(settings: settings, store: store)
     }
@@ -25,11 +45,12 @@ struct PanelView: View {
             VStack(spacing: 0) {
                 header
 
-                SectionSeparator()
-
                 content(now: context.date)
+                    .padding(.bottom, 6)
 
-                SectionSeparator()
+                Rectangle()
+                    .fill(CotaTheme.hairline)
+                    .frame(height: 1)
 
                 footer(now: context.date)
             }
@@ -43,16 +64,14 @@ struct PanelView: View {
         } else if !store.hasLoaded {
             // The skeleton means "this is arriving". Once the first fetch has
             // failed it is not arriving, and animated placeholders would go on
-            // promising a load that is never coming — the same lie as a stale
-            // quote wearing a fresh face (§2.5).
+            // promising a load that is never coming (§2.5).
             if store.error != nil {
                 failureState
             } else {
                 skeleton
             }
         } else {
-            quotes
-                .opacity(isDegraded(now: now) ? 0.5 : 1)
+            quotes(degraded: isDegraded(now: now))
         }
     }
 
@@ -62,195 +81,123 @@ struct PanelView: View {
         store.error != nil || store.isStale(at: now)
     }
 
+    // MARK: - Header
+
     private var header: some View {
-        HStack(spacing: Layout.columnSpacing) {
-            Text("Quotes")
-                .font(.system(size: 13, weight: .medium))
+        HStack(spacing: 8) {
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable()
+                .interpolation(.high)
+                .frame(width: 20, height: 20)
+                .accessibilityHidden(true)
 
-            if store.loading {
-                ProgressView()
-                    .controlSize(.small)
-                    .scaleEffect(0.7)
-            }
-
-            Spacer(minLength: Layout.columnSpacing)
-
-            SegmentedControl(
-                segments: QuotePeriod.allCases.map { .init($0.label, $0) },
-                selection: $settings.period,
-                height: 22
-            )
-            .frame(width: 108)
-            .accessibilityLabel("Period")
-        }
-        .padding(.horizontal, Layout.horizontalPadding)
-        .frame(height: 44)
-    }
-
-    private var quotes: some View {
-        ForEach(Array(settings.pairs.enumerated()), id: \.element) { index, pair in
-            if let quote = store.quotes.first(where: { $0.id == pair }) {
-                QuoteRow(
-                    quote: quote,
-                    symbol: store.symbol(quote.code),
-                    series: store.series(for: quote.id, period: settings.period),
-                    change: store.change(for: quote.id, period: settings.period),
-                    range: store.range(for: quote.id, period: settings.period)
-                )
-            } else {
-                UnavailableRow(pair: pair, symbol: store.symbol(PairDisplay(id: pair).base))
-            }
-
-            if index < settings.pairs.count - 1 {
-                RowSeparator()
-            }
-        }
-    }
-
-    private func footer(now: Date) -> some View {
-        HStack(spacing: 12) {
-            status(now: now)
+            Text(L10n.t("panel.title"))
+                .font(.system(size: 13, weight: .semibold))
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            FooterButton(icon: "arrow.clockwise", help: "Refresh quotes") {
-                Task { await store.refresh() }
-            }
-            .disabled(store.loading)
-
-            FooterButton(icon: "gearshape", help: "Settings") {
-                openSettings()
-            }
-
-            FooterButton(icon: "power", help: "Quit Cota") {
-                NSApplication.shared.terminate(nil)
+            if activeAlertCount > 0 {
+                HStack(spacing: 5) {
+                    Image(systemName: "bell")
+                        .font(.system(size: 10))
+                    Text("\(activeAlertCount)")
+                        .font(.system(size: 11).monospacedDigit())
+                }
+                .foregroundStyle(CotaTheme.mint)
+                .padding(.vertical, 3)
+                .padding(.horizontal, 8)
+                .background(CotaTheme.mintCounter, in: Capsule())
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(L10n.t("a11y.alertsActive", "\(activeAlertCount)"))
             }
         }
-        .padding(.horizontal, Layout.horizontalPadding)
-        .frame(height: 38)
+        .padding(.horizontal, 16)
+        .frame(height: CotaTheme.Size.panelHeader)
     }
 
-    /// Relative rather than absolute: the question a stale panel raises is
-    /// "how old is this?", not "what day is it?".
-    private func status(now: Date) -> some View {
-        let degraded = isDegraded(now: now)
+    private var activeAlertCount: Int {
+        settings.alerts.filter(\.isEnabled).count
+    }
 
-        return HStack(spacing: 4) {
-            if degraded {
-                Image(systemName: "exclamationmark.triangle")
-                    .font(.system(size: 10))
-            }
+    // MARK: - Rows
 
-            if store.error != nil {
-                Text("Couldn't update")
-            } else if let date = store.lastUpdate {
-                let stamp = "Updated \(Self.elapsed(from: date, to: now))"
-                if store.unavailablePairs.isEmpty {
-                    Text(stamp)
+    private func quotes(degraded: Bool) -> some View {
+        VStack(spacing: 0) {
+            ForEach(settings.pairs, id: \.self) { pair in
+                if let quote = store.quotes.first(where: { $0.id == pair }) {
+                    PanelRow(
+                        quote: quote,
+                        series: store.series(for: quote.id, period: settings.period),
+                        change: store.change(for: quote.id, period: settings.period),
+                        range: store.range(for: quote.id, period: settings.period),
+                        alert: alert(for: pair),
+                        isExpanded: panelState.expandedPairID == pair,
+                        isDegraded: degraded,
+                        isCopied: copiedPairID == pair,
+                        period: $settings.period,
+                        convertAmount: $convertAmount,
+                        convertInverted: $convertInverted,
+                        onToggle: { toggle(pair) },
+                        onCopy: { copy(quote) },
+                        onAlert: { toggleAlert(for: quote) }
+                    )
                 } else {
-                    Text("\(stamp) · \(unavailableStatus)")
+                    UnavailableRow(pair: pair)
                 }
             }
         }
-        .font(.system(size: 11))
-        .foregroundStyle(degraded ? AnyShapeStyle(.orange) : AnyShapeStyle(.secondary))
-        .help(statusHelp)
     }
 
-    private var unavailableStatus: String {
-        store.unavailablePairs.count == 1
-            ? "1 pair unavailable"
-            : "\(store.unavailablePairs.count) pairs unavailable"
+    /// The alert the row reports and the button acts on: an enabled one first,
+    /// so the chart draws the line that will actually fire.
+    private func alert(for pair: String) -> PriceAlert? {
+        settings.alerts.first { $0.pair == pair && $0.isEnabled }
+            ?? settings.alerts.first { $0.pair == pair }
     }
 
-    private var statusHelp: String {
-        if let error = store.error, !error.isEmpty { return error }
-        guard !store.unavailablePairs.isEmpty else { return "" }
-        let names = store.unavailablePairs.map { PairDisplay(id: $0).text }.joined(separator: ", ")
-        return "Not in the last API response: \(names)"
-    }
-
-    /// Hand-rolled rather than a relative date style: the stock one rounds a
-    /// fetch that just landed into "in 0 seconds".
-    private static func elapsed(from date: Date, to now: Date) -> String {
-        let seconds = Int(max(0, now.timeIntervalSince(date)))
-
-        switch seconds {
-        case ..<60:
-            return "just now"
-        case ..<3600:
-            return "\(seconds / 60) min ago"
-        case ..<86_400:
-            return "\(seconds / 3600) h ago"
-        default:
-            return "\(seconds / 86_400) d ago"
+    private func toggle(_ pair: String) {
+        withAnimation(CotaTheme.Motion.expand) {
+            panelState.expandedPairID = panelState.expandedPairID == pair ? nil : pair
         }
     }
 
-    private var emptyState: some View {
-        VStack(spacing: 8) {
-            Text("No currency pairs")
-                .font(.system(size: 13, weight: .medium))
-
-            Text("Pick the pairs you want to follow.")
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
-
-            Button("Open settings") {
-                openSettings()
+    private func copy(_ quote: Quote) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(QuoteFormat.value(quote.bid), forType: .string)
+        copiedPairID = quote.id
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
+            if copiedPairID == quote.id {
+                copiedPairID = nil
             }
-            .controlSize(.small)
-            .padding(.top, 2)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 28)
     }
 
-    /// Only for a failure with nothing to fall back on. Once a fetch has
-    /// landed, a later failure keeps the values on screen and dims them — old
-    /// data beats no data, and this state would be throwing it away.
-    private var failureState: some View {
-        VStack(spacing: 8) {
-            Text("Couldn't load quotes")
-                .font(.system(size: 13, weight: .medium))
-
-            Text("Check your connection and try again.")
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
-
-            Button("Try again") {
-                Task { await store.refresh() }
-            }
-            .controlSize(.small)
-            .disabled(store.loading)
-            .padding(.top, 2)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 28)
-    }
-
-    private var skeleton: some View {
-        ForEach(Array(settings.pairs.enumerated()), id: \.element) { index, _ in
-            SkeletonRow()
-
-            if index < settings.pairs.count - 1 {
-                RowSeparator()
-            }
+    private func toggleAlert(for quote: Quote) {
+        if let existing = alert(for: quote.id) {
+            settings.removeAlert(id: existing.id)
+        } else {
+            settings.addAlert(
+                PriceAlert(
+                    pair: quote.id,
+                    threshold: PriceAlert.suggestedThreshold(for: quote.bid),
+                    isAbove: true
+                )
+            )
         }
     }
 
     private var shortcutButtons: some View {
         Group {
-            Button("Refresh") {
+            Button(L10n.t("footer.refresh")) {
                 Task { await store.refresh() }
             }
             .keyboardShortcut("r", modifiers: .command)
 
-            Button("Settings") {
+            Button(L10n.t("footer.settings")) {
                 openSettings()
             }
             .keyboardShortcut(",", modifiers: .command)
 
-            Button("Quit") {
+            Button(L10n.t("footer.quit")) {
                 NSApplication.shared.terminate(nil)
             }
             .keyboardShortcut("q", modifiers: .command)
@@ -261,34 +208,181 @@ struct PanelView: View {
     }
 }
 
+extension PanelView {
+    // MARK: - Footer
+
+    private func footer(now: Date) -> some View {
+        HStack(spacing: 14) {
+            status(now: now)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            FooterButton(icon: "arrow.clockwise", help: L10n.t("footer.refresh")) {
+                Task { await store.refresh() }
+            }
+            .disabled(store.loading)
+
+            FooterButton(icon: "gearshape", help: L10n.t("footer.settings")) {
+                openSettings()
+            }
+
+            FooterButton(icon: "power", help: L10n.t("footer.quit")) {
+                NSApplication.shared.terminate(nil)
+            }
+        }
+        .padding(.horizontal, 16)
+        .frame(height: CotaTheme.Size.footer)
+    }
+
+    /// Relative rather than absolute: the question a stale panel raises is
+    /// "how old is this?", not "what day is it?".
+    private func status(now: Date) -> some View {
+        let degraded = isDegraded(now: now)
+
+        return HStack(spacing: 6) {
+            Circle()
+                .fill(degraded ? CotaTheme.amber : CotaTheme.mint)
+                .frame(width: 6, height: 6)
+
+            Text(statusText(now: now))
+                .font(.system(size: 11).monospacedDigit())
+                .lineLimit(1)
+                .truncationMode(.tail)
+        }
+        .foregroundStyle(degraded ? CotaTheme.amber : CotaTheme.footerStatus)
+        .help(statusHelp)
+    }
+
+    private func statusText(now: Date) -> String {
+        guard let date = store.lastUpdate else {
+            return store.error != nil ? L10n.t("status.couldNotUpdate") : ""
+        }
+
+        let stamp: String
+        if store.error != nil {
+            stamp = L10n.t("status.offline", Self.time(date))
+        } else if store.isStale(at: now) {
+            stamp = L10n.t("status.stale", Self.elapsed(from: date, to: now))
+        } else if now.timeIntervalSince(date) < 60 {
+            stamp = L10n.t("status.updatedNow")
+        } else {
+            stamp = L10n.t("status.updatedAgo", Self.elapsed(from: date, to: now))
+        }
+
+        guard !store.unavailablePairs.isEmpty else { return stamp }
+        return "\(stamp) · \(unavailableStatus)"
+    }
+
+    private var unavailableStatus: String {
+        store.unavailablePairs.count == 1
+            ? L10n.t("status.unavailable.one")
+            : L10n.t("status.unavailable.many", "\(store.unavailablePairs.count)")
+    }
+
+    private var statusHelp: String {
+        if let error = store.error, !error.isEmpty { return error }
+        guard !store.unavailablePairs.isEmpty else { return "" }
+        let names = store.unavailablePairs.map { PairDisplay(id: $0).text }.joined(separator: ", ")
+        return L10n.t("status.unavailableHelp", names)
+    }
+
+    /// Hand-rolled rather than a relative date style: the stock one rounds a
+    /// fetch that just landed into "in 0 seconds".
+    private static func elapsed(from date: Date, to now: Date) -> String {
+        let seconds = Int(max(0, now.timeIntervalSince(date)))
+
+        switch seconds {
+        case ..<3600:
+            return "\(max(1, seconds / 60)) min"
+        case ..<86_400:
+            return "\(seconds / 3600) h"
+        default:
+            return "\(seconds / 86_400) d"
+        }
+    }
+
+    private static func time(_ date: Date) -> String {
+        date.formatted(Date.FormatStyle(time: .shortened).locale(L10n.language.locale))
+    }
+
+    // MARK: - Empty, failure and loading
+
+    private var emptyState: some View {
+        VStack(spacing: 8) {
+            Text(L10n.t("panel.empty.title"))
+                .font(.system(size: 13, weight: .medium))
+
+            Text(L10n.t("panel.empty.body"))
+                .font(.system(size: 11))
+                .foregroundStyle(CotaTheme.textSecondary)
+
+            PanelTextButton(title: L10n.t("panel.empty.action")) {
+                openSettings()
+            }
+            .padding(.top, 2)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 28)
+    }
+
+    /// Only for a failure with nothing to fall back on. Once a fetch has
+    /// landed, a later failure keeps the values on screen and dims them.
+    private var failureState: some View {
+        VStack(spacing: 8) {
+            Text(L10n.t("panel.failure.title"))
+                .font(.system(size: 13, weight: .medium))
+
+            Text(L10n.t("panel.failure.body"))
+                .font(.system(size: 11))
+                .foregroundStyle(CotaTheme.textSecondary)
+
+            PanelTextButton(title: L10n.t("panel.failure.retry")) {
+                Task { await store.refresh() }
+            }
+            .disabled(store.loading)
+            .padding(.top, 2)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 28)
+    }
+
+    private var skeleton: some View {
+        VStack(spacing: 0) {
+            ForEach(settings.pairs, id: \.self) { _ in
+                SkeletonRow()
+            }
+        }
+    }
+}
+
 private struct SkeletonRow: View {
     var body: some View {
-        ListRow(
-            height: Layout.quoteRowHeight,
-            leadingWidth: Layout.badgeSize,
-            trailingWidth: Layout.valueColumnWidth
-        ) {
+        HStack(spacing: 10) {
             Circle()
-                .fill(Color(nsColor: .quaternaryLabelColor))
-                .frame(width: Layout.badgeSize, height: Layout.badgeSize)
-        } center: {
+                .fill(CotaTheme.graphite)
+                .frame(width: CotaTheme.Size.avatar, height: CotaTheme.Size.avatar)
+
             VStack(alignment: .leading, spacing: 4) {
                 bar(width: 64, height: 10)
                 bar(width: 48, height: 8)
             }
-        } trailing: {
+            .frame(maxWidth: .infinity, alignment: .leading)
+
             VStack(alignment: .trailing, spacing: 4) {
                 bar(width: 60, height: 10)
                 bar(width: 40, height: 8)
             }
         }
-        .padding(.horizontal, Layout.horizontalPadding)
-        .accessibilityLabel("Loading quote")
+        .padding(.horizontal, 10)
+        .frame(height: CotaTheme.Size.row)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 2)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(L10n.t("a11y.loading"))
     }
 
     private func bar(width: CGFloat, height: CGFloat) -> some View {
         RoundedRectangle(cornerRadius: 3)
-            .fill(Color(nsColor: .quaternaryLabelColor))
+            .fill(CotaTheme.graphite)
             .frame(width: width, height: height)
     }
 }
@@ -301,9 +395,9 @@ private struct FooterButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: icon)
-                .font(.system(size: 12))
-                .foregroundStyle(.secondary)
-                .frame(width: 15, height: 15)
+                .font(.system(size: 13))
+                .foregroundStyle(CotaTheme.textSecondary)
+                .frame(width: 16, height: 16)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -312,139 +406,22 @@ private struct FooterButton: View {
     }
 }
 
-// MARK: - Quote row
-
-private struct UnavailableRow: View {
-    let pair: String
-    let symbol: String
+private struct PanelTextButton: View {
+    let title: String
+    let action: () -> Void
 
     var body: some View {
-        ListRow(
-            height: Layout.quoteRowHeight,
-            leadingWidth: Layout.badgeSize,
-            trailingWidth: Layout.valueColumnWidth
-        ) {
-            CurrencyBadge(symbol: symbol)
-        } center: {
-            VStack(alignment: .leading, spacing: 2) {
-                PairLabel(pair)
-                Text("Not in the last API response")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-            }
-        } trailing: {
-            Text("—")
-                .font(.system(size: 13).monospacedDigit())
-                .foregroundStyle(.secondary)
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(CotaTheme.mint)
+                .padding(.horizontal, 12)
+                .frame(height: CotaTheme.Size.actionButton)
+                .background(
+                    CotaTheme.mintSoft,
+                    in: RoundedRectangle(cornerRadius: CotaTheme.Radius.button)
+                )
         }
-        .padding(.horizontal, Layout.horizontalPadding)
-        .accessibilityLabel(PairDisplay(id: pair).text)
-        .accessibilityValue("Unavailable")
-    }
-}
-
-private struct QuoteRow: View {
-    let quote: Quote
-    let symbol: String
-    let series: [Decimal]
-    let change: Decimal?
-    let range: (low: Decimal, high: Decimal)?
-
-    @State private var copied = false
-
-    var body: some View {
-        ListRow(
-            height: Layout.quoteRowHeight,
-            leadingWidth: Layout.badgeSize,
-            trailingWidth: Layout.valueColumnWidth
-        ) {
-            CurrencyBadge(symbol: symbol)
-        } center: {
-            HStack(spacing: Layout.columnSpacing) {
-                VStack(alignment: .leading, spacing: 2) {
-                    PairLabel(base: quote.code, quote: quote.codein, size: 13)
-
-                    Text(formattedRange)
-                        .font(.system(size: 11).monospacedDigit())
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer(minLength: Layout.columnSpacing)
-
-                SparklineView(data: series, color: changeColor)
-                    .frame(width: SparklineView.width, height: SparklineView.height)
-            }
-        } trailing: {
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(formattedValue)
-                    .font(.system(size: 13).monospacedDigit())
-
-                Text(formattedChange)
-                    .font(.system(size: 11).monospacedDigit())
-                    .foregroundStyle(changeColor)
-            }
-        }
-        .padding(.horizontal, Layout.horizontalPadding)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(quote.code) to \(quote.codein)")
-        .accessibilityValue("\(formattedValue), change \(formattedChange)")
-        .accessibilityHint("Click to copy value")
-        .contentShape(Rectangle())
-        .onTapGesture {
-            NSPasteboard.general.clearContents()
-            NSPasteboard.general.setString(formattedValue, forType: .string)
-            copied = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                copied = false
-            }
-        }
-        .overlay(alignment: .topTrailing) {
-            if copied {
-                Text("Copied!")
-                    .font(.system(size: 10))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(.green.opacity(0.2), in: RoundedRectangle(cornerRadius: 4))
-                    .padding(.trailing, Layout.horizontalPadding)
-                    .transition(.opacity)
-            }
-        }
-        .animation(.easeInOut(duration: 0.2), value: copied)
-    }
-
-    /// No currency prefix: the pair name already states it, and a prefix puts
-    /// the digits at a different x on every row.
-    private var formattedValue: String {
-        QuoteFormat.value(quote.bid)
-    }
-
-    private var formattedRange: String {
-        guard let range else { return "—" }
-        return "\(QuoteFormat.rangeBound(range.low)) – \(QuoteFormat.rangeBound(range.high))"
-    }
-
-    /// Always carries an arrow: colour alone does not communicate direction to
-    /// a colourblind reader.
-    private var formattedChange: String {
-        let value = change ?? quote.pctChange
-        let arrow = value < 0 ? "▼" : "▲"
-        return "\(arrow) \(QuoteFormat.percentMagnitude(value))"
-    }
-
-    private var changeColor: Color {
-        (change ?? quote.pctChange) < 0 ? .red : .green
-    }
-}
-
-private struct CurrencyBadge: View {
-    let symbol: String
-
-    var body: some View {
-        Text(symbol)
-            .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(Color.accentColor)
-            .frame(width: Layout.badgeSize, height: Layout.badgeSize)
-            .background(Color.accentColor.opacity(0.15), in: Circle())
-            .accessibilityHidden(true)
+        .buttonStyle(.plain)
     }
 }

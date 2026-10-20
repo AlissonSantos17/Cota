@@ -11,9 +11,9 @@ public enum QuotePeriod: String, CaseIterable, Identifiable, Sendable {
 
     public var label: String {
         switch self {
-        case .day: return "24h"
-        case .week: return "7d"
-        case .month: return "30d"
+        case .day: return L10n.t("period.24h")
+        case .week: return L10n.t("period.7d")
+        case .month: return L10n.t("period.30d")
         }
     }
 

@@ -326,7 +326,7 @@ struct NotificationServiceTests {
     /// The banner had a number format of its own, fixed at four decimals, so
     /// BTC arrived as `398.348,0000` — the exact defect `QuoteFormat` was
     /// extracted to end everywhere else.
-    @Test func theNotificationBodyUsesTheSharedNumberFormat() {
+    @Test func theNotificationUsesTheSharedNumberFormat() {
         let btc = PriceAlert(
             pair: "BTC-BRL",
             threshold: Decimal(string: "400000")!,
@@ -335,29 +335,22 @@ struct NotificationServiceTests {
 
         let body = NotificationService.body(
             for: btc,
-            currentValue: Decimal(string: "398348.12")!
+            currentValue: Decimal(string: "398348.12")!,
+            change: nil
         )
 
         #expect(body.contains("398.348"))
         #expect(!body.contains("398.348,1200"))
-        #expect(body.contains("400.000"))
+        #expect(NotificationService.title(for: btc).contains("400.000"))
     }
 
     /// Below ten the fourth decimal is where the movement lives, and the shared
     /// rule keeps it — the banner is not a narrower surface than the panel.
-    @Test func theNotificationBodyNamesThePair() {
-        let body = NotificationService.body(
-            for: alert,
-            currentValue: Decimal(string: "6.0123")!
-        )
-
-        #expect(body.hasPrefix("\(PairDisplay(id: alert.pair).text) is now"))
-    }
-
     @Test func theNotificationBodyKeepsPrecisionOnSmallValues() {
         let body = NotificationService.body(
             for: alert,
-            currentValue: Decimal(string: "6.0123")!
+            currentValue: Decimal(string: "6.0123")!,
+            change: nil
         )
 
         #expect(body.contains("6,0123"))

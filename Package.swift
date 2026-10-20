@@ -3,6 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "Cota",
+    defaultLocalization: "pt-BR",
     platforms: [
         .macOS(.v13)
     ],
@@ -13,8 +14,12 @@ let package = Package(
         )
     ],
     targets: [
+        // The strings live here rather than in the app target: number formats,
+        // menu bar notes and notifications are built in CotaKit, and they have
+        // to follow the language the person picked too.
         .target(
-            name: "CotaKit"
+            name: "CotaKit",
+            resources: [.process("Resources")]
         ),
         .executableTarget(
             name: "Cota",

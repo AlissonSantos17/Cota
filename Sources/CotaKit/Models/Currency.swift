@@ -28,6 +28,43 @@ extension Currency {
         table[code] ?? Currency(code: code)
     }
 
+    /// The glyph inside the round avatar in the panel and Settings.
+    ///
+    /// Not `symbol`, which keeps "$" shared on purpose for the `auto` format.
+    /// An avatar sits next to the currency's name, so it can afford to tell CAD
+    /// from AUD — and every currency needs one, XRP included.
+    public var avatarGlyph: String {
+        Self.avatarGlyphs[code] ?? code
+    }
+
+    /// The prefix an amount carries in the panel, the converter and the
+    /// alerts: `R$ 5,6480`, `US$ 1.250,00`.
+    ///
+    /// Unambiguous where `symbol` is not — an amount stands alone, without a
+    /// pair name beside it to say which dollar it is.
+    public var moneySymbol: String {
+        Self.moneySymbols[code] ?? code
+    }
+
+    private static let moneySymbols: [String: String] = [
+        "BRL": "R$", "USD": "US$", "EUR": "€", "GBP": "£", "JPY": "¥",
+        "CHF": "CHF", "CAD": "C$", "AUD": "A$", "CNY": "CN¥",
+        "ARS": "AR$", "MXN": "MX$", "CLP": "CLP$",
+        "BTC": "₿", "ETH": "Ξ", "XRP": "XRP",
+    ]
+
+    /// Crypto is listed apart from the currencies in Add pair.
+    public var isCrypto: Bool {
+        ["BTC", "ETH", "XRP"].contains(code)
+    }
+
+    private static let avatarGlyphs: [String: String] = [
+        "BRL": "R$", "USD": "$", "EUR": "€", "GBP": "£", "JPY": "¥",
+        "CHF": "Fr", "CAD": "C$", "AUD": "A$", "CNY": "元",
+        "ARS": "$", "MXN": "$", "CLP": "$",
+        "BTC": "₿", "ETH": "Ξ", "XRP": "X",
+    ]
+
     /// Symbols are shared here exactly where the real world shares them: the
     /// `auto` format finds its collisions in this table, so mapping CAD to
     /// anything other than "$" would hide the very ambiguity the lookup exists

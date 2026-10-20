@@ -65,11 +65,11 @@ struct MenuBarLabelTests {
     @Test func collisionNoteNamesTheCurrenciesResponsible() {
         #expect(
             MenuBarLabel.collisionNote(among: ["USD", "CAD"])
-                == "Using codes — USD and CAD both use the $ symbol."
+                == "USD e CAD usam o símbolo $, então a barra mostra os códigos."
         )
         #expect(
             MenuBarLabel.collisionNote(among: ["USD", "CAD", "AUD"])
-                == "Using codes — USD, CAD and AUD all use the $ symbol."
+                == "USD, CAD e AUD usam o símbolo $, então a barra mostra os códigos."
         )
         #expect(MenuBarLabel.collisionNote(among: ["EUR", "USD"]) == nil)
     }

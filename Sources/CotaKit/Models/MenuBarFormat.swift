@@ -17,10 +17,12 @@ public enum MenuBarFormat: String, CaseIterable, Identifiable, Sendable {
 
     public var label: String {
         switch self {
-        case .auto: return "Automatic"
-        case .code: return "Currency code"
-        case .flag: return "Flag"
-        case .value: return "Value only"
+        // `auto` is presented as "Symbol": it shows symbols whenever they are
+        // unambiguous and falls back to codes, with a note, when they are not.
+        case .auto: return L10n.t("menuBar.format.symbol")
+        case .code: return L10n.t("menuBar.format.code")
+        case .flag: return L10n.t("menuBar.format.flag")
+        case .value: return L10n.t("menuBar.format.valueOnly")
         }
     }
 }
@@ -35,9 +37,9 @@ public enum ChangeIndicator: String, CaseIterable, Identifiable, Sendable {
 
     public var label: String {
         switch self {
-        case .none: return "None"
-        case .arrow: return "Arrow"
-        case .percent: return "Percent"
+        case .none: return L10n.t("menuBar.change.none")
+        case .arrow: return L10n.t("menuBar.change.arrow")
+        case .percent: return L10n.t("menuBar.change.percent")
         }
     }
 }
