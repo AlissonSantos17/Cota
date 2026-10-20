@@ -219,7 +219,7 @@ struct AlertRow: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            CurrencyAvatar(pair: alert.pair, surface: CotaTheme.window)
+            CurrencyAvatar(pair: alert.pair)
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(alert.label)

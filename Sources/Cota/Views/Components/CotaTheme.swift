@@ -84,6 +84,11 @@ enum CotaTheme {
     static let mintCard = mint.opacity(0.08)
     /// The border of the alert value field.
     static let mintFieldBorder = mint.opacity(0.40)
+    /// The destination glyph in the avatar badge: quiet, so the origin's
+    /// glyph stays the one that reads first.
+    static let badgeGlyph = mint.opacity(0.35)
+    /// The disc behind the badge glyph: noticeable, still see-through.
+    static let badgeFill = graphite.opacity(0.55)
     static let upFill = mint.opacity(0.12)
     static let downFill = coral.opacity(0.12)
 
@@ -114,7 +119,10 @@ enum CotaTheme {
         static let panelHeader: CGFloat = 44
         static let row: CGFloat = 50
         static let avatar: CGFloat = 28
-        static let avatarBadge: CGFloat = 17
+        /// The disc behind the badge glyph.
+        static let avatarBadge: CGFloat = 15
+        /// How far the badge reaches past the avatar's right edge.
+        static let badgeOutset: CGFloat = 4
         static let sparkline = CGSize(width: 56, height: 22)
         static let chart = CGSize(width: 324, height: 116)
         static let valueColumn: CGFloat = 96

@@ -99,7 +99,7 @@ private struct PairRow: View {
                 .foregroundStyle(CotaTheme.moss)
                 .accessibilityHidden(true)
 
-            CurrencyAvatar(pair: pair, size: 26, surface: CotaTheme.window)
+            CurrencyAvatar(pair: pair, size: 26)
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(display.text)

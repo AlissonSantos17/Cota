@@ -45,7 +45,7 @@ Arquivo atual: `PanelView.swift`, `SparklineView.swift`, `Components/ListRow.swi
 - **Avatar** 28×28, círculo `#1B2420`, glifo da moeda de origem em 15 pt semibold `#7BE0AE`.
   - Glifos: BRL `R$`, USD `$`, EUR `€`, GBP `£`, JPY `¥`, CHF `Fr`, CAD `C$`, AUD `A$`, CNY `元`, ARS/MXN/CLP `$`, BTC `₿`, ETH `Ξ`, XRP `X`.
   - **Atenção:** isso não é `Currency.symbol`, que mantém "$" compartilhado de propósito. Crie `Currency.avatarGlyph`.
-- **Selo de destino** (só quando o destino não é BRL): círculo de 17 pt no canto inferior direito, deslocado (−5, −4). Fundo `#111714`, borda 1 pt `#1B2420`, glifo do destino em 10 pt menta.
+- **Selo de destino** (em todo par, inclusive BRL, que mostra `R$`): círculo de 15 pt em grafite a 55% (`CotaTheme.badgeFill`), sem borda — só para notar o selo, ainda transparente —, com o glifo do destino em 11 pt light, menta a 35% (`CotaTheme.badgeGlyph`). Fica no canto inferior direito, 4 pt para fora da borda do avatar e 3 pt abaixo (`CotaTheme.Size.badgeOutset`). Glifos de dois caracteres (`R$`, `C$`, `A$`, `Fr`) usam 8,5 pt, para não cobrir o símbolo principal nem encostar no texto ao lado.
 - **Nome**: nome da moeda de origem, localizado ("Euro", "Dólar americano"), 13 pt medium `#F2F5F3`, uma linha com reticências. Abaixo, o par `EUR/BRL` em 11 pt `#7E8B85`.
 - **Sparkline** 56×22: linha de 1,5 pt (menta em alta, coral `#FF8A7A` em baixa) e linha de abertura tracejada (2/3) 1 pt `#4B5C55`. Some (opacidade 0) quando a linha está aberta.
 - **Coluna de valor** com 96 pt, alinhada à direita:

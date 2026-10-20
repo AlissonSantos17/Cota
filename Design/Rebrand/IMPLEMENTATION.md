@@ -65,6 +65,8 @@ Onde o código saiu diferente do plano, e por quê:
 - `QuoteFormat.threshold` mostra alvos sem casas sobrando (5,70) e nunca arredonda o que foi digitado. `QuoteFormat.parseThreshold` também recebe o locale: em EN, `5.123` é decimal.
 - O formato `auto` aparece como "Símbolo".
 - A janela do `MenuBarExtra` não acompanha a altura do conteúdo, então `syncsWindowHeight()` redimensiona a janela quando uma linha abre.
+- O selo de destino aparece em todo par, inclusive BRL (`R$`). Antes ficava escondido nos pares em real, e o avatar sozinho não dizia em que moeda o par estava. O README foi atualizado.
+- O selo tem um círculo discreto (grafite a 55%, 15 pt, sem borda) e o glifo do destino: menta a 35% (valor do Claude Design), 11 pt light, 4 pt para fora da borda do avatar. Glifos de dois caracteres usam 8,5 pt, para que `R$` não cubra o símbolo principal.
 - O título da notificação usa o nome da moeda sem artigo ("Euro passou de R$ 5,75").
 - Pendentes: conferência visual com `stale = true` e com pares cripto (BTC/USD) no app real.
 

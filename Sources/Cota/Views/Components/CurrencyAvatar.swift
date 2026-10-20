@@ -2,28 +2,22 @@ import CotaKit
 import SwiftUI
 
 /// The round avatar that leads a pair in the panel and in Settings: the
-/// origin's glyph in mint, and — when the destination is not the real — a
-/// small badge with the destination's glyph in the lower right corner.
+/// origin's glyph in mint, and a small badge with the destination's glyph in
+/// the lower right corner.
 ///
-/// BRL needs no badge because it is the default answer to "in what?": an app
-/// of rates in reais only has to point out the pairs that are not.
+/// Every pair carries the badge, BRL included. Leaving the real out made it
+/// look like the one currency without a symbol, and the avatar alone could
+/// not say what a pair was quoted in.
 struct CurrencyAvatar: View {
     let base: String
     let quote: String
     var size: CGFloat = CotaTheme.Size.avatar
-    /// The badge is cut out of whatever the avatar sits on.
-    var surface: Color = CotaTheme.night
 
-    init(
-        pair: String,
-        size: CGFloat = CotaTheme.Size.avatar,
-        surface: Color = CotaTheme.night
-    ) {
+    init(pair: String, size: CGFloat = CotaTheme.Size.avatar) {
         let display = PairDisplay(id: pair)
         self.base = display.base
         self.quote = display.quote
         self.size = size
-        self.surface = surface
     }
 
     var body: some View {
@@ -37,32 +31,34 @@ struct CurrencyAvatar: View {
             .overlay(alignment: .bottomTrailing) {
                 if showsBadge {
                     badge
-                        .offset(x: 5, y: 4)
+                        .offset(x: CotaTheme.Size.badgeOutset, y: 3)
                 }
             }
             .accessibilityHidden(true)
     }
 
     private var showsBadge: Bool {
-        !quote.isEmpty && quote != "BRL"
+        !quote.isEmpty
     }
 
     private var glyphSize: CGFloat {
         size >= CotaTheme.Size.avatar ? 15 : 14
     }
 
-    private var badgeSize: CGFloat {
-        size >= CotaTheme.Size.avatar ? CotaTheme.Size.avatarBadge : 16
-    }
-
+    /// A faint disc with the glyph, at the circle's lower right edge. A
+    /// two-character glyph like "R$" is set smaller, so it neither spreads
+    /// over the origin's glyph nor reaches the text beside the avatar.
     private var badge: some View {
-        Text(Currency.named(quote).avatarGlyph)
-            .font(.system(size: 10))
-            .foregroundStyle(CotaTheme.mint)
+        let glyph = Currency.named(quote).avatarGlyph
+
+        return Text(glyph)
+            .font(.system(size: glyph.count > 1 ? 8.5 : 11, weight: .light))
+            .foregroundStyle(CotaTheme.badgeGlyph)
             .lineLimit(1)
-            .minimumScaleFactor(0.5)
-            .frame(width: badgeSize, height: badgeSize)
-            .background(surface, in: Circle())
-            .overlay(Circle().strokeBorder(CotaTheme.graphite, lineWidth: 1))
+            .fixedSize()
+            .frame(width: CotaTheme.Size.avatarBadge, height: CotaTheme.Size.avatarBadge)
+            // Just enough to read as a badge. See-through, so the edge of the
+            // avatar still shows beneath it.
+            .background(CotaTheme.badgeFill, in: Circle())
     }
 }
